@@ -69,7 +69,7 @@ How phase 2 is put together:
 - The note-tree model is pure functions over a `Y.Doc` in `packages/sync/src/workspace.ts` (create, move, `nudgeNote`, trash, `buildTree`). Keep UI out of it; it is what the server and importers will share. Each note is a nested `Y.Map` so concurrent field edits merge; concurrent moves can form a cycle, which `buildTree` surfaces at the root instead of losing notes.
 - `apps/web/src/workspace/store.ts` owns the index doc and per-note docs, each persisted with `y-indexeddb` (`seijaku-index`, `seijaku-note-<id>`). Phase 3 attaches the sync provider here. Components read through `hooks.ts` (`useSyncExternalStore`); the snapshot reference only changes when the index changes.
 - The editor binds to a note doc with `withCollaboration` from `@blocknote/core/yjs`. Custom blocks (callout, math) are in `apps/web/src/editor/schema.ts`.
-- Sidebar reorder works by drag and drop *and* by the row menu (up, down, indent, outdent), because HTML5 drag is unreliable on iPhone.
+- Sidebar reorder works by drag and drop _and_ by the row menu (up, down, indent, outdent), because HTML5 drag is unreliable on iPhone.
 
 BlockNote 0.57 gotchas learned the hard way:
 

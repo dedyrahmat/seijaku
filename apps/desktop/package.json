@@ -1,0 +1,6 @@
+{
+	"name": "@seijaku/desktop",
+	"private": true,
+	"version": "0.0.0",
+	"description": "Tauri 2 shell, added in phase 10. Needs Rust (not installed yet)."
+}

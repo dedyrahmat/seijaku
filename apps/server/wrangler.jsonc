@@ -1,0 +1,11 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "seijaku",
+	"main": "src/worker.ts",
+	"compatibility_date": "2026-11-01",
+	"r2_buckets": [{ "binding": "BLOBS", "bucket_name": "seijaku-files" }],
+	"durable_objects": {
+		"bindings": [{ "name": "WORKSPACE_ROOM", "class_name": "WorkspaceRoom" }]
+	},
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["WorkspaceRoom"] }]
+}

@@ -1,0 +1,96 @@
+import { DurableObject } from "cloudflare:workers";
+import { encodeResync, MAX_FRAME_BYTES, type Peer, Room } from "@seijaku/sync";
+import { type SqlDriver, SqlUpdateStore } from "./sql-store";
+
+/**
+ * Cloudflare entry for the workspace room: one Durable Object per workspace, update log in
+ * the object's own SQLite, sockets accepted through the hibernation API so an idle
+ * workspace costs nothing.
+ *
+ * When the object wakes from hibernation its in-memory Room is gone, but the sockets are
+ * still connected. Each one gets a fresh Peer and a Resync frame, and the device answers by
+ * subscribing to its docs again.
+ */
+
+function toBuffer(u: Uint8Array): ArrayBuffer {
+	return u.buffer.slice(
+		u.byteOffset,
+		u.byteOffset + u.byteLength,
+	) as ArrayBuffer;
+}
+
+function doDriver(storage: DurableObjectStorage): SqlDriver {
+	const prepare = (params: unknown[] = []) =>
+		params.map((p) => (p instanceof Uint8Array ? toBuffer(p) : p));
+	return {
+		exec: (sql) => {
+			storage.sql.exec(sql);
+		},
+		all: <T>(sql: string, params?: unknown[]) =>
+			storage.sql.exec(sql, ...(prepare(params) as never[])).toArray() as T[],
+		run: (sql, params) => {
+			storage.sql.exec(sql, ...(prepare(params) as never[]));
+		},
+		transaction: (fn) => storage.transactionSync(fn),
+	};
+}
+
+export class WorkspaceRoom extends DurableObject {
+	private room: Room;
+	private peers = new Map<WebSocket, Peer>();
+
+	constructor(ctx: DurableObjectState, env: unknown) {
+		super(ctx, env as never);
+		this.room = new Room(new SqlUpdateStore(doDriver(ctx.storage)));
+		// Keep-alive pings are answered without waking the object.
+		ctx.setWebSocketAutoResponse(
+			new WebSocketRequestResponsePair("ping", "pong"),
+		);
+		// Constructed again after hibernation: reattach sockets that are still open.
+		for (const ws of ctx.getWebSockets()) this.adopt(ws, true);
+	}
+
+	override async fetch(request: Request): Promise<Response> {
+		if (request.headers.get("Upgrade") !== "websocket") {
+			return new Response("Expected a WebSocket upgrade", { status: 426 });
+		}
+		const pair = new WebSocketPair();
+		const [client, server] = [pair[0], pair[1]];
+		this.ctx.acceptWebSocket(server);
+		this.adopt(server, false);
+		return new Response(null, { status: 101, webSocket: client });
+	}
+
+	private adopt(ws: WebSocket, resync: boolean): Peer {
+		const peer = this.room.join({
+			send: (data) => ws.send(toBuffer(data)),
+			close: (code, reason) => ws.close(code, reason),
+		});
+		this.peers.set(ws, peer);
+		if (resync) ws.send(toBuffer(encodeResync()));
+		return peer;
+	}
+
+	override async webSocketMessage(
+		ws: WebSocket,
+		message: string | ArrayBuffer,
+	): Promise<void> {
+		if (typeof message === "string") return; // pings are auto-answered
+		if (message.byteLength > MAX_FRAME_BYTES) {
+			ws.close(1009, "frame too large");
+			return;
+		}
+		const peer = this.peers.get(ws) ?? this.adopt(ws, true);
+		await peer.receive(new Uint8Array(message));
+	}
+
+	override async webSocketClose(ws: WebSocket): Promise<void> {
+		this.peers.get(ws)?.leave();
+		this.peers.delete(ws);
+	}
+
+	override async webSocketError(ws: WebSocket): Promise<void> {
+		this.peers.get(ws)?.leave();
+		this.peers.delete(ws);
+	}
+}

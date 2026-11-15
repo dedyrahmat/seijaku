@@ -18,7 +18,22 @@ import { type MutableRefObject, useEffect, useRef } from "react";
 import { useColorScheme } from "../theme";
 import type { NoteSession } from "../workspace/store";
 import { workspace } from "../workspace/store";
+import { apiUrl } from "../workspace/syncUrl";
 import { schema } from "./schema";
+
+/** Sends a picked, pasted or dropped file to the server and returns its address. */
+async function uploadFile(file: File): Promise<string> {
+	const res = await fetch(apiUrl("/api/files"), {
+		method: "POST",
+		headers: { "Content-Type": file.type || "application/octet-stream" },
+		body: file,
+	});
+	if (res.status === 413) throw new Error("That file is larger than 25 MB.");
+	if (!res.ok)
+		throw new Error("Could not upload. Check your connection and try again.");
+	const { url } = (await res.json()) as { url: string };
+	return apiUrl(url);
+}
 
 /** BlockNote keys group headers by name, so items of one group must sit together. */
 function keepGroupsTogether<T extends { group?: string }>(items: T[]): T[] {
@@ -44,6 +59,7 @@ export function Editor({ session, focusRef }: Props) {
 	const editor = useCreateBlockNote(
 		withCollaboration({
 			schema,
+			uploadFile,
 			extensions: [syntaxHighlighter],
 			collaboration: {
 				fragment: session.fragment,

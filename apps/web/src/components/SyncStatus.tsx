@@ -1,0 +1,104 @@
+import { useEffect, useRef, useState } from "react";
+import { useHomeScreenNotice, useSyncState } from "../workspace/hooks";
+import { ago } from "./ago";
+
+/**
+ * The one quiet status in the title bar ("Sync, said quietly" in the design). Dot and
+ * label only; it grows louder only when something needs attention. Pressing it opens the
+ * plain-language line for the current state.
+ */
+
+type Kind = "synced" | "syncing" | "offline" | "keep-safe";
+
+export function SyncStatus() {
+	const state = useSyncState();
+	const keepSafe = useHomeScreenNotice();
+	const [open, setOpen] = useState(false);
+	const [now, setNow] = useState(() => Date.now());
+	const root = useRef<HTMLDivElement>(null);
+
+	// Offline beats everything; the Home Screen notice stays until the browser agrees to keep our data.
+	const kind: Kind =
+		state.status === "offline"
+			? "offline"
+			: keepSafe
+				? "keep-safe"
+				: state.status;
+
+	useEffect(() => {
+		if (!open) return;
+		setNow(Date.now());
+		const tick = setInterval(() => setNow(Date.now()), 30_000);
+		const close = (e: Event) => {
+			if (!root.current?.contains(e.target as Node)) setOpen(false);
+		};
+		const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+		document.addEventListener("pointerdown", close);
+		document.addEventListener("keydown", esc);
+		return () => {
+			clearInterval(tick);
+			document.removeEventListener("pointerdown", close);
+			document.removeEventListener("keydown", esc);
+		};
+	}, [open]);
+
+	const label = {
+		synced: "Synced",
+		syncing: "Syncing…",
+		offline: "Offline · saved on this device",
+		"keep-safe": "Keep your notes safe",
+	}[kind];
+
+	const detail = {
+		synced: `Every note is on this device and on your server. Last sync ${ago(state.lastSyncedAt, now)}.`,
+		syncing:
+			state.pending > 0
+				? `Sending ${state.pending} ${state.pending === 1 ? "edit" : "edits"}. You can keep typing; nothing waits on this.`
+				: "Catching up with your server. You can keep typing; nothing waits on this.",
+		offline:
+			"No connection. Edits are safe here and merge when you reconnect, even if you edited on another device too.",
+		"keep-safe":
+			"This browser may clear stored notes when space runs low. Add Seijaku to your Home Screen so the copy on this device is kept.",
+	}[kind];
+
+	// Filled dot: settled. Ring: in progress or waiting on you. Vermilion: needs attention.
+	const accent = kind === "offline" || kind === "keep-safe";
+	const hollow = kind === "syncing" || kind === "keep-safe";
+	const colour = accent ? "var(--accent)" : "var(--mute)";
+
+	return (
+		<div ref={root} className="relative">
+			<button
+				type="button"
+				onClick={() => setOpen((v) => !v)}
+				aria-expanded={open}
+				aria-haspopup="dialog"
+				data-sync={kind}
+				className="flex h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-xs text-ink2 hover:bg-hover md:h-7"
+			>
+				<span
+					aria-hidden
+					className="size-[7px] shrink-0 rounded-full"
+					style={{
+						background: hollow ? "transparent" : colour,
+						boxShadow: hollow ? `inset 0 0 0 1.5px ${colour}` : undefined,
+					}}
+				/>
+				<span role="status" className="whitespace-nowrap">
+					{label}
+				</span>
+			</button>
+			{open ? (
+				<div
+					role="dialog"
+					aria-label="Sync status"
+					className="absolute top-full right-0 z-50 mt-1 w-72 max-w-[calc(100vw-24px)] rounded-[14px] border border-line bg-raised p-4 shadow-lg"
+				>
+					<p className="text-sm leading-[1.55] text-ink2 [text-wrap:pretty]">
+						{detail}
+					</p>
+				</div>
+			) : null}
+		</div>
+	);
+}

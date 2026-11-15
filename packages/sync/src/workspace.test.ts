@@ -163,3 +163,63 @@ describe("merging devices", () => {
 		expect(listNotes(b)).toHaveLength(1);
 	});
 });
+
+import {
+	dailyNoteId,
+	ensureDailyNote,
+	listTags,
+	normalizeTag,
+	purgeAllTrashed,
+	purgeNote,
+} from "./workspace";
+
+describe("purge, daily notes and tags", () => {
+	test("purging a page removes its whole subtree and nothing else", () => {
+		const doc = new Y.Doc();
+		const a = createNote(doc, { title: "a" });
+		const b = createNote(doc, { title: "b", parentId: a });
+		const c = createNote(doc, { title: "c", parentId: b });
+		const keep = createNote(doc, { title: "keep" });
+		trashNote(doc, a);
+		expect(purgeNote(doc, a).sort()).toEqual([a, b, c].sort());
+		expect(listNotes(doc).map((n) => n.id)).toEqual([keep]);
+	});
+
+	test("emptying the trash removes every trashed page", () => {
+		const doc = new Y.Doc();
+		const a = createNote(doc, {});
+		const b = createNote(doc, {});
+		const keep = createNote(doc, {});
+		trashNote(doc, a);
+		trashNote(doc, b);
+		purgeAllTrashed(doc);
+		expect(listNotes(doc).map((n) => n.id)).toEqual([keep]);
+	});
+
+	test("the daily note has one id per day on every device", () => {
+		const day = new Date(2026, 10, 15);
+		expect(dailyNoteId(day)).toBe("daily-2026-11-15");
+		const a = new Y.Doc();
+		const b = new Y.Doc();
+		ensureDailyNote(a, day);
+		ensureDailyNote(b, day);
+		Y.applyUpdate(a, Y.encodeStateAsUpdate(b));
+		expect(listNotes(a).filter((n) => n.id === "daily-2026-11-15").length).toBe(
+			1,
+		);
+		expect(listNotes(a)[0]?.title).toBe("Sun 15 Nov");
+	});
+
+	test("tags are counted over live notes and normalised", () => {
+		const doc = new Y.Doc();
+		createNote(doc, { tags: ["math", "signals"] });
+		createNote(doc, { tags: ["math"] });
+		const gone = createNote(doc, { tags: ["old"] });
+		trashNote(doc, gone);
+		expect(listTags(listNotes(doc))).toEqual([
+			{ tag: "math", count: 2 },
+			{ tag: "signals", count: 1 },
+		]);
+		expect(normalizeTag("  #Deep Work ")).toBe("deep-work");
+	});
+});

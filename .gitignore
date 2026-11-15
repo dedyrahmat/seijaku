@@ -9,3 +9,6 @@ dist/
 !.env.example
 target/
 .DS_Store
+data/
+*.sqlite
+*.sqlite-*

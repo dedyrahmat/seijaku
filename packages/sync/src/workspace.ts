@@ -333,3 +333,78 @@ export function flattenTree(tree: TreeNode[]): NoteMeta[] {
 	walk(tree);
 	return out;
 }
+
+/** Deletes a trashed page and everything beneath it for good. Returns the removed ids. */
+export function purgeNote(doc: Y.Doc, id: string): string[] {
+	const notes = notesMap(doc);
+	const all = listNotes(doc);
+	const doomed = new Set<string>([id]);
+	let grew = true;
+	while (grew) {
+		grew = false;
+		for (const n of all) {
+			if (n.parentId && doomed.has(n.parentId) && !doomed.has(n.id)) {
+				doomed.add(n.id);
+				grew = true;
+			}
+		}
+	}
+	doc.transact(() => {
+		for (const d of doomed) notes.delete(d);
+	});
+	return [...doomed].filter((d) => !notes.has(d));
+}
+
+/** Every trashed note that is not itself inside another trashed note's subtree is a trash entry. */
+export function purgeAllTrashed(doc: Y.Doc): string[] {
+	const removed: string[] = [];
+	for (const n of listTrash(listNotes(doc))) {
+		if (getNote(doc, n.id)) removed.push(...purgeNote(doc, n.id));
+	}
+	return removed;
+}
+
+/** `daily-2026-11-15`: the same id on every device, so offline devices converge on one note. */
+export function dailyNoteId(date: Date): string {
+	const p = (n: number) => String(n).padStart(2, "0");
+	return `daily-${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`;
+}
+
+export function isDailyNoteId(id: string): boolean {
+	return /^daily-\d{4}-\d{2}-\d{2}$/.test(id);
+}
+
+/** "Sun 15 Nov", as in the design. */
+export function dailyTitle(date: Date): string {
+	return date.toLocaleDateString("en-GB", {
+		weekday: "short",
+		day: "numeric",
+		month: "short",
+	});
+}
+
+/** Opens (creating if needed) the daily note for `date` and returns its id. */
+export function ensureDailyNote(doc: Y.Doc, date: Date): string {
+	const id = dailyNoteId(date);
+	const existing = getNote(doc, id);
+	if (!existing) createNote(doc, { id, title: dailyTitle(date) });
+	else if (existing.trashed) restoreNote(doc, id);
+	return id;
+}
+
+/** All tags in use on live notes with their counts, most used first. */
+export function listTags(notes: NoteMeta[]): { tag: string; count: number }[] {
+	const counts = new Map<string, number>();
+	for (const n of notes) {
+		if (n.trashed) continue;
+		for (const t of n.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
+	}
+	return [...counts]
+		.map(([tag, count]) => ({ tag, count }))
+		.sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+}
+
+/** Tags are lowercase words without spaces or a leading #. */
+export function normalizeTag(raw: string): string {
+	return raw.trim().replace(/^#+/, "").replace(/\s+/g, "-").toLowerCase();
+}

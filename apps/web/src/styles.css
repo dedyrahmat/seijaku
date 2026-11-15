@@ -20,6 +20,8 @@
 	--tag: #ebe4d3;
 	--accent: #ae3b28;
 	--accent-soft: #ae3b281a;
+	--mark: #f0d9b8;
+	--scrim: #201d194d;
 	--warn: #8a4b2a;
 	--hl-kw: #a4402a;
 	--hl-fn: #2f5b6b;
@@ -45,6 +47,8 @@
 		--tag: #2b2822;
 		--accent: #e27a63;
 		--accent-soft: #e27a6326;
+		--mark: #5a4426;
+		--scrim: #0000008c;
 		--warn: #d9ae68;
 		--hl-kw: #e58b73;
 		--hl-fn: #8fbfcb;
@@ -70,6 +74,8 @@
 	--color-tag: var(--tag);
 	--color-accent: var(--accent);
 	--color-accent-soft: var(--accent-soft);
+	--color-mark: var(--mark);
+	--color-scrim: var(--scrim);
 	--font-serif:
 		"Newsreader Variable", "Hiragino Mincho ProN", "Yu Mincho",
 		"Noto Serif CJK JP", Georgia, serif;

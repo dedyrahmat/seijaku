@@ -1,0 +1,131 @@
+import { afterEach, expect, test } from "bun:test";
+import { INDEX_DOC_ID, noteDocId, SyncClient } from "@seijaku/sync";
+import * as Y from "yjs";
+import { openStore, startServer } from "./bun";
+
+const stops: (() => void)[] = [];
+afterEach(() => {
+	for (const stop of stops.splice(0)) stop();
+});
+
+async function until(check: () => boolean, ms = 3000) {
+	const end = Date.now() + ms;
+	while (!check()) {
+		if (Date.now() > end) throw new Error("timed out");
+		await new Promise((r) => setTimeout(r, 10));
+	}
+}
+
+function connect(port: number) {
+	const client = new SyncClient({
+		url: () => `ws://localhost:${port}/sync`,
+		minDelay: 20,
+		maxDelay: 100,
+	});
+	client.start();
+	stops.push(() => client.stop());
+	return client;
+}
+
+test("two devices sync through a real Bun server and the data survives a restart", async () => {
+	const dir = `${process.env.TEMP ?? "/tmp"}/seijaku-test-${Date.now()}`;
+	const dbPath = `${dir}/db.sqlite`;
+
+	const first = startServer({ port: 0, store: openStore(dbPath) });
+	const a = connect(first.server.port ?? 0);
+	const b = connect(first.server.port ?? 0);
+	const docA = new Y.Doc();
+	const docB = new Y.Doc();
+	const attA = a.attach(noteDocId("abc"), docA);
+	const attB = b.attach(noteDocId("abc"), docB);
+	await attA.whenSynced();
+	await attB.whenSynced();
+
+	docA.getText("t").insert(0, "over a real socket");
+	await until(() => docB.getText("t").toString() === "over a real socket");
+	await until(() => a.getState().status === "synced");
+	await first.room.flush();
+
+	a.stop();
+	b.stop();
+	await first.server.stop(true);
+
+	const second = startServer({ port: 0, store: openStore(dbPath) });
+	const c = connect(second.server.port ?? 0);
+	const docC = new Y.Doc();
+	const attC = c.attach(noteDocId("abc"), docC);
+	expect(await attC.whenSynced()).toBe(true);
+	expect(docC.getText("t").toString()).toBe("over a real socket");
+	await second.server.stop(true);
+});
+
+test("the client reconnects when the server comes back", async () => {
+	const store = openStore(":memory:");
+	const first = startServer({ port: 0, store });
+	const port = first.server.port ?? 0;
+	const client = connect(port);
+	const doc = new Y.Doc();
+	client.attach(INDEX_DOC_ID, doc);
+	await until(() => client.getState().status === "synced");
+
+	await first.server.stop(true);
+	await until(() => client.getState().status === "offline");
+	doc.getText("t").insert(0, "typed while down");
+
+	const second = startServer({ port, store });
+	await until(() => client.getState().status === "synced", 5000);
+	await second.room.flush();
+	const stored = new Y.Doc();
+	Y.applyUpdate(stored, await second.room.readDoc(INDEX_DOC_ID));
+	expect(stored.getText("t").toString()).toBe("typed while down");
+	await second.server.stop(true);
+});
+
+test("health route answers over HTTP", async () => {
+	const { server } = startServer({ port: 0, store: openStore(":memory:") });
+	const res = await fetch(`http://localhost:${server.port}/api/health`);
+	expect(await res.json()).toEqual({ ok: true });
+	await server.stop(true);
+});
+
+test("files upload, download with safe headers, and reject bad ids", async () => {
+	const dir = `${process.env.TEMP ?? "/tmp"}/seijaku-blobs-${Date.now()}`;
+	const { server } = startServer({
+		port: 0,
+		store: openStore(":memory:"),
+		blobDir: dir,
+	});
+	const base = `http://localhost:${server.port}`;
+	const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+
+	const up = await fetch(`${base}/api/files`, {
+		method: "POST",
+		headers: { "Content-Type": "image/png" },
+		body: png,
+	});
+	const meta = (await up.json()) as { id: string; url: string; size: number };
+	expect(up.status).toBe(200);
+	expect(meta.size).toBe(8);
+
+	const down = await fetch(base + meta.url);
+	expect(down.headers.get("content-type")).toBe("image/png");
+	expect(down.headers.get("x-content-type-options")).toBe("nosniff");
+	expect(new Uint8Array(await down.arrayBuffer())).toEqual(png);
+
+	// Active content is never served as itself.
+	const html = await fetch(`${base}/api/files`, {
+		method: "POST",
+		headers: { "Content-Type": "text/html" },
+		body: "<script>alert(1)</script>",
+	});
+	const h = (await html.json()) as { url: string };
+	const served = await fetch(base + h.url);
+	expect(served.headers.get("content-type")).toBe("application/octet-stream");
+	expect(served.headers.get("content-disposition")).toBe("attachment");
+
+	expect((await fetch(`${base}/api/files/nothex`)).status).toBe(404);
+	expect(
+		(await fetch(`${base}/api/files`, { method: "POST", body: "" })).status,
+	).toBe(400);
+	await server.stop(true);
+});

@@ -1,11 +1,15 @@
 import {
 	buildTree,
+	countWords,
+	fragmentText,
 	type NoteMeta,
 	parsePageSlug,
+	type SyncState,
 	type TreeNode,
 } from "@seijaku/sync";
 import { useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { needsHomeScreenNotice, readStorageEnv } from "./storage";
 import { type NoteSession, workspace } from "./store";
 
 export function useWorkspaceReady(): boolean {
@@ -65,4 +69,41 @@ export function writeLocal(key: string, value: string): void {
 	} catch {
 		// Storage unavailable: the preference simply won't persist.
 	}
+}
+
+export function useSyncState(): SyncState {
+	return useSyncExternalStore(
+		workspace.sync.subscribe,
+		workspace.sync.getState,
+	);
+}
+
+/** True when the design's "Keep your notes safe" notice applies on this device. */
+export function useHomeScreenNotice(): boolean {
+	const persisted = useSyncExternalStore(
+		workspace.subscribePersisted,
+		workspace.getPersisted,
+	);
+	return needsHomeScreenNotice(readStorageEnv(persisted));
+}
+
+/** Words in a note, recounted shortly after the content stops changing. */
+export function useWordCount(session: NoteSession | null): number {
+	const [count, setCount] = useState(0);
+	useEffect(() => {
+		if (!session) return setCount(0);
+		const recount = () => setCount(countWords(fragmentText(session.fragment)));
+		recount();
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		const onChange = () => {
+			clearTimeout(timer);
+			timer = setTimeout(recount, 300);
+		};
+		session.fragment.observeDeep(onChange);
+		return () => {
+			clearTimeout(timer);
+			session.fragment.unobserveDeep(onChange);
+		};
+	}, [session]);
+	return count;
 }

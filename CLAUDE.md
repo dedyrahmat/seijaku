@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Phases 1 (scaffold) and 2 (local editor) are done. `apps/web` is a working local-first editor with no server: nested pages, the block editor, trash, and IndexedDB persistence. `apps/server` and `packages/db` are still empty. [docs/PLAN.md](docs/PLAN.md) is the source of truth for scope, architecture and phase order; read it before doing anything. Next is phase 3 (sync), which starts after the user's go-ahead.
+Phases 1 (scaffold), 2 (local editor) and 3 (sync) are done. `apps/web` is a local-first editor that mirrors every note to a sync server over one WebSocket: nested pages, the block editor, trash, IndexedDB persistence, and the title-bar sync status. `apps/server` runs on Bun (`src/bun.ts`) and on Cloudflare (`src/worker.ts` + Durable Object); sync is unauthenticated until phase 4. `packages/db` is still empty. [docs/PLAN.md](docs/PLAN.md) is the source of truth for scope, architecture and phase order; read it before doing anything. Next is phase 4 (auth), which starts after the user's go-ahead.
 
 `apps/desktop` is only a placeholder `package.json`. Tauri needs Rust, which is not installed on this machine; install it (rustup) before phase 10.
 
@@ -22,9 +22,12 @@ bun test path/to/file.test.ts          # one test file
 bun test -t "name pattern"             # tests whose name matches
 bun run --cwd apps/web dev             # Vite dev server on http://localhost:5173
 bun run --cwd apps/web build           # production build (apps/web/dist)
+bun run --cwd apps/server dev          # sync server on http://localhost:8787 (data/seijaku.sqlite)
+bun run --cwd apps/server dev:worker   # same server on local workerd via wrangler (port 8787 by default)
+bun apps/server/scripts/smoke.ts ws://localhost:8787/sync [idleSeconds]   # black-box check of a running server
 ```
 
-`.claude/launch.json` defines a `web` configuration for the dev server. Deploy commands will be added in phase 11.
+`.claude/launch.json` defines `web` and `server` configurations; run both for sync (Vite proxies `/sync` to the server). To test two devices in one browser use two origins, e.g. `localhost` and `[::1]` (each has its own IndexedDB). Deploy commands will be added in phase 11.
 
 Conventions: Biome defaults (tabs, double quotes), with Tailwind directives enabled for CSS; strict TypeScript from `tsconfig.base.json` (`noUncheckedIndexedAccess`, `verbatimModuleSyntax`); workspace packages are named `@seijaku/<dir>` and export TypeScript source directly (`"main": "src/index.ts"`, no build step). Tests live next to the code as `*.test.ts`. Only `packages/sync` has tests so far; the web app has none yet and was verified by hand in a browser. A change that touches the editor or sidebar needs a browser check, not just typecheck.
 
@@ -37,6 +40,7 @@ Single user (the owner) on many devices: web, iPhone as an installable PWA (no A
 ## How to work here
 
 - **Start each phase only when the user says so.** The plan is accepted, but the user gives the go-ahead per phase.
+- **Match the mockup, board by board.** Before building or changing any screen, read the matching board(s) of the mockup (see Design) and compare the result to them afterwards, including geometry and copy. Never defer a mockup element to a "later phase" or leave it out on your own; if one genuinely cannot work yet, ask the user. The user has asked for this repeatedly.
 - **Stop after every phase.** Finish the phase, show it running, and wait for the user's go-ahead before the next one.
 - Phases with an unverified dependency begin with a short spike (BlockNote restyling, Better Auth passkeys on both runtimes, Apple export formats). If a spike fails, use the fallback named in the plan and tell the user.
 - Keep `docs/PLAN.md` current when a decision changes.
@@ -67,9 +71,16 @@ Things that are easy to get wrong:
 How phase 2 is put together:
 
 - The note-tree model is pure functions over a `Y.Doc` in `packages/sync/src/workspace.ts` (create, move, `nudgeNote`, trash, `buildTree`). Keep UI out of it; it is what the server and importers will share. Each note is a nested `Y.Map` so concurrent field edits merge; concurrent moves can form a cycle, which `buildTree` surfaces at the root instead of losing notes.
-- `apps/web/src/workspace/store.ts` owns the index doc and per-note docs, each persisted with `y-indexeddb` (`seijaku-index`, `seijaku-note-<id>`). Phase 3 attaches the sync provider here. Components read through `hooks.ts` (`useSyncExternalStore`); the snapshot reference only changes when the index changes.
+- `apps/web/src/workspace/store.ts` owns the index doc and per-note docs, each persisted with `y-indexeddb` (`seijaku-index`, `seijaku-note-<id>`) and attached to the `SyncClient` only after IndexedDB has loaded. After each connect it also mirrors notes that are not open ("catch-up", transient docs that are dropped from memory once synced), and the server's `notify` frames trigger the same for notes changed elsewhere. Components read through `hooks.ts` (`useSyncExternalStore`); the snapshot reference only changes when the index changes.
 - The editor binds to a note doc with `withCollaboration` from `@blocknote/core/yjs`. Custom blocks (callout, math) are in `apps/web/src/editor/schema.ts`.
 - Sidebar reorder works by drag and drop _and_ by the row menu (up, down, indent, outdent), because HTML5 drag is unreliable on iPhone.
+
+How phase 3 is put together:
+
+- `packages/sync`: `protocol.ts` (frames), `room.ts` (server hub, runtime-agnostic, talks to sockets through `RoomConnection` and to disk through `UpdateStore`), `client.ts` (`SyncClient`: reconnect with backoff, status, ack counting), `store.ts` (`UpdateStore` + in-memory store for tests). The Room acks an update only after it is stored; the client's status is "syncing" until every ack is back.
+- `apps/server`: `sql-store.ts` is the one SQL implementation of `UpdateStore`, behind a `SqlDriver` that `bun.ts` (bun:sqlite) and `room-do.ts` (DO SQLite) each implement. `worker.ts`/`room-do.ts` are type-checked by `tsconfig.worker.json` (workers types), everything else by `tsconfig.json` (bun types); do not import across that line.
+- A Durable Object loses its Room when it hibernates; `room-do.ts` re-creates a Peer per open socket and sends `resync` so devices subscribe again. Keep any new per-socket server state recoverable that way.
+- UI follows the mockup's "Sync, said quietly": `components/SyncStatus.tsx` (dot + label; click for the plain-language line), `NoteFooter.tsx` (word count, "Saved on this device").
 
 BlockNote 0.57 gotchas learned the hard way:
 
@@ -85,6 +96,6 @@ Readable words, no one-letter segments. Pages live at `/page/Getting-Started-<id
 
 ## Design
 
-The reference is the mockup at https://claude.ai/artifact/2oncbwyZeMDyVdZkDGwNJQ (Washi & ink tokens, sidebar, title bar, note body, home). Tokens live in `apps/web/src/styles.css` (paper, panel, raised, hover, ink, ink2, mute, line, callout, code, tag, vermilion accent); fonts are Newsreader, Hanken Grotesk, JetBrains Mono. Mockup elements for later phases (search box, Today, tags, Import, Settings, history, share, sign-in) are not built yet; add them in the phase that owns the feature, not as inert controls.
+The reference is the mockup at https://claude.ai/artifact/2oncbwyZeMDyVdZkDGwNJQ (Washi & ink tokens, sidebar, title bar, note body, home). Tokens live in `apps/web/src/styles.css` (paper, panel, raised, hover, ink, ink2, mute, line, callout, code, tag, vermilion accent); fonts are Newsreader, Hanken Grotesk, JetBrains Mono. Boards: Home (splash with rotating haiku), Main/Editor-Dark/Tablet/Phone-* (shell), Sidebar, Titlebar, NoteBody, Blocks (slash menu), Switcher, Trash, Import-Choose/Progress, Sync-States, History, Share, Public-Page, Sign-In/Setup/Recovery, Quick-Capture. Built so far: Home, Sidebar (search, Today, Pages, Tags, Trash/Import/Settings), Titlebar (back, forward, sync status; history, share and more are phase 7), Switcher, Trash, Import (Markdown, HTML, plain text work; the other sources say "Coming soon"), Sync-States, tags and "Edited" row under the title. Not built: History, Share, Public-Page, Sign-In/Setup/Recovery, Import-Progress, Quick-Capture, and the app-specific importers. Settings has no board, so it follows the Trash page's layout.
 
 "Washi & ink": warm paper-toned light theme, sumi-ink dark theme, following the system setting. Generous whitespace, serif headings with a sans body, chrome that recedes while writing. Use the `frontend-design` skill when building UI.

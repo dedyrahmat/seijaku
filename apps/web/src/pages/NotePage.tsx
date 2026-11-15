@@ -1,6 +1,7 @@
 import { pageSlug, restoreNote, updateNote } from "@seijaku/sync";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { NoteMetaRow } from "../components/NoteMetaRow";
 import { pageLink } from "../components/pageLink";
 import { Editor } from "../editor/Editor";
 import {
@@ -74,6 +75,7 @@ export function NotePage() {
 				title={note.title}
 				onEnter={() => focusEditor.current?.()}
 			/>
+			<NoteMetaRow key={`meta-${noteId}`} note={note} />
 			{session?.id === noteId ? (
 				<Editor
 					key={`editor-${noteId}`}
@@ -122,7 +124,7 @@ function TitleField({
 					onEnter();
 				}
 			}}
-			className="mb-6 w-full bg-transparent font-serif text-[42px] leading-[1.12] font-medium tracking-[-0.015em] text-ink outline-none placeholder:text-mute/60 md:text-[68px]"
+			className="mb-4 w-full bg-transparent font-serif text-[42px] leading-[1.12] font-medium tracking-[-0.015em] text-ink outline-none placeholder:text-mute/60 md:text-[68px]"
 		/>
 	);
 }

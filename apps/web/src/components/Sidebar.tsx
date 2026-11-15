@@ -1,23 +1,21 @@
 import {
-	listTrash,
+	buildTree,
+	dailyNoteId,
+	dailyTitle,
+	ensureDailyNote,
+	isDailyNoteId,
+	listTags,
 	moveNote,
 	type NoteMeta,
 	type Nudge,
 	nudgeNote,
-	restoreNote,
 	siblingsOf,
 	type TreeNode,
 	trashNote,
 } from "@seijaku/sync";
-import { Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import {
-	readLocal,
-	useNoteId,
-	useNotes,
-	useTree,
-	writeLocal,
-} from "../workspace/hooks";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { readLocal, useNoteId, useNotes, writeLocal } from "../workspace/hooks";
 import { workspace } from "../workspace/store";
 import { Logo } from "./Logo";
 import { pageLink } from "./pageLink";
@@ -48,20 +46,32 @@ export function Sidebar({
 	open,
 	onClose,
 	hidden = false,
+	onSearch,
 }: {
 	open: boolean;
 	onClose: () => void;
 	/** Desktop only: the sidebar is collapsed from the top bar. */
 	hidden?: boolean;
+	/** Opens the quick switcher, optionally with a query already typed. */
+	onSearch: (query?: string) => void;
 }) {
-	const tree = useTree();
 	const notes = useNotes();
 	const newPage = useNewPage();
 	const noteId = useNoteId();
+	const navigate = useNavigate();
+	const path = useRouterState({ select: (s) => s.location.pathname });
 	const [expanded, setExpanded] = useState(loadExpanded);
 	const dragId = useRef<string | null>(null);
-	const [showTrash, setShowTrash] = useState(false);
-	const trash = listTrash(notes);
+
+	// Daily notes live behind "Today", not in the page tree.
+	const tree = useMemo(
+		() => buildTree(notes.filter((n) => !isDailyNoteId(n.id))),
+		[notes],
+	);
+	const tags = useMemo(() => listTags(notes), [notes]);
+	const today = new Date();
+	const todayId = dailyNoteId(today);
+	const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
 
 	const toggle = (id: string, force?: boolean) =>
 		setExpanded((prev) => {
@@ -84,6 +94,14 @@ export function Sidebar({
 		},
 	};
 
+	const openToday = () => {
+		const id = ensureDailyNote(workspace.index, today);
+		void navigate(pageLink(id, dailyTitle(today)));
+	};
+
+	const foot =
+		"flex h-11 w-full items-center gap-2.5 rounded-[10px] px-2.5 text-left text-[13px] text-ink2 hover:bg-hover md:h-8";
+
 	return (
 		<>
 			{open ? (
@@ -96,7 +114,7 @@ export function Sidebar({
 			) : null}
 			<aside
 				aria-label="Pages"
-				className={`chrome fixed inset-y-0 left-0 z-40 flex w-72 max-w-[85vw] flex-col border-r border-line2 bg-panel pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] transition-transform duration-200 md:static md:w-[264px] md:max-w-none md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"} ${hidden ? "md:hidden" : ""}`}
+				className={`chrome fixed inset-y-0 left-0 z-40 flex w-[326px] max-w-[85vw] flex-col border-r border-line2 bg-panel pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-[8px_0_40px_rgba(40,30,15,0.22)] transition-transform duration-200 md:static md:w-[264px] md:max-w-none md:translate-x-0 md:shadow-none ${open ? "translate-x-0" : "-translate-x-full"} ${hidden ? "md:hidden" : ""}`}
 			>
 				<div className="flex h-14 flex-none items-center gap-2.5 pr-3.5 pl-[18px]">
 					<Link to="/" className="flex items-center gap-2.5">
@@ -110,7 +128,7 @@ export function Sidebar({
 						type="button"
 						onClick={() => newPage(null)}
 						aria-label="New page"
-						className="flex size-9 items-center justify-center rounded-[10px] text-ink2 hover:bg-hover md:size-8"
+						className="flex size-11 items-center justify-center rounded-[10px] text-ink2 hover:bg-hover md:size-8"
 					>
 						<svg
 							width="16"
@@ -127,28 +145,38 @@ export function Sidebar({
 					</button>
 				</div>
 
-				<div className="px-5 pt-4 pb-1.5 text-[11px] font-medium tracking-[0.09em] text-mute uppercase">
-					Pages
-				</div>
-
-				<nav className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-4">
-					{tree.length === 0 ? (
-						<p className="px-2 py-2 text-sm text-mute">No pages yet.</p>
-					) : (
-						<ul>
-							{tree.map((node) => (
-								<TreeRow key={node.note.id} node={node} depth={0} ctx={ctx} />
-							))}
-						</ul>
-					)}
-				</nav>
-
-				<div className="border-t border-line2 px-2.5 pt-2 pb-3">
+				<div className="flex-none px-2.5 pt-1 pb-2.5">
 					<button
 						type="button"
-						onClick={() => setShowTrash((v) => !v)}
-						aria-expanded={showTrash}
-						className={`flex h-11 w-full items-center gap-2.5 rounded-[10px] px-2.5 text-[13px] text-ink2 hover:bg-hover md:h-8 ${showTrash ? "bg-hover" : ""}`}
+						onClick={() => onSearch()}
+						className="flex h-11 w-full items-center gap-2.5 rounded-[14px] border border-line bg-raised px-2.5 text-left text-[13px] text-ink2 hover:border-mute md:h-9"
+					>
+						<svg
+							width="15"
+							height="15"
+							viewBox="0 0 16 16"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="1.4"
+							strokeLinecap="round"
+							aria-hidden="true"
+						>
+							<circle cx="7" cy="7" r="4.5" />
+							<path d="M10.5 10.5L14 14" />
+						</svg>
+						<span className="flex-1">Search or jump to</span>
+						<span className="hidden font-mono text-[11px] text-mute md:inline">
+							{isMac ? "⌘ K" : "Ctrl K"}
+						</span>
+					</button>
+				</div>
+
+				<div className="flex-none px-2.5">
+					<button
+						type="button"
+						onClick={openToday}
+						aria-current={noteId === todayId ? "page" : undefined}
+						className={`flex h-11 w-full items-center gap-2.5 rounded-[10px] px-2.5 text-left text-sm text-ink hover:bg-hover md:h-[34px] ${noteId === todayId ? "bg-hover" : ""}`}
 					>
 						<svg
 							width="15"
@@ -159,45 +187,104 @@ export function Sidebar({
 							strokeWidth="1.4"
 							strokeLinecap="round"
 							strokeLinejoin="round"
+							className="text-ink2"
 							aria-hidden="true"
 						>
-							<path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.2c0 .5.4.8.9.8h4c.5 0 .9-.3.9-.8l.6-8.2" />
+							<rect x="2.5" y="3.5" width="11" height="10" rx="2" />
+							<path d="M2.5 7h11M5.5 2v3M10.5 2v3" />
 						</svg>
-						<span className="flex-1 text-left">Trash</span>
-						{trash.length > 0 ? (
-							<span className="text-xs text-mute">{trash.length}</span>
-						) : null}
+						<span className="flex-1">Today</span>
+						<span className="text-xs text-mute">{dailyTitle(today)}</span>
 					</button>
-					{showTrash ? (
-						<ul className="max-h-48 overflow-y-auto">
-							{trash.length === 0 ? (
-								<li className="px-3 py-1.5 text-sm text-mute">
-									Trash is empty.
-								</li>
-							) : (
-								trash.map((n) => (
-									<li
-										key={n.id}
-										className="flex items-center justify-between gap-2 px-2.5 py-1 text-[13px]"
-									>
-										<span className="truncate text-mute">
-											{n.title || "Untitled"}
-										</span>
-										<button
-											type="button"
-											onClick={() => restoreNote(workspace.index, n.id)}
-											className="shrink-0 text-accent hover:underline"
-										>
-											Restore
-										</button>
-									</li>
-								))
-							)}
+				</div>
+
+				<div className="px-5 pt-4 pb-1.5 text-[11px] font-medium tracking-[0.09em] text-mute uppercase">
+					Pages
+				</div>
+
+				<nav className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-4">
+					{tree.length === 0 ? (
+						<p className="px-2 py-2 text-sm text-mute">No pages yet.</p>
+					) : (
+						<ul className="flex flex-col gap-px">
+							{tree.map((node) => (
+								<TreeRow key={node.note.id} node={node} depth={0} ctx={ctx} />
+							))}
 						</ul>
+					)}
+
+					{tags.length > 0 ? (
+						<div className="hidden md:block">
+							<div className="px-2.5 pt-[18px] pb-1.5 text-[11px] font-medium tracking-[0.09em] text-mute uppercase">
+								Tags
+							</div>
+							<div className="flex flex-wrap gap-x-3.5 gap-y-1 px-2.5 text-[13px] text-ink2">
+								{tags.map(({ tag }) => (
+									<button
+										type="button"
+										key={tag}
+										onClick={() => onSearch(`#${tag}`)}
+										className="hover:text-ink"
+									>
+										#{tag}
+									</button>
+								))}
+							</div>
+						</div>
 					) : null}
+				</nav>
+
+				<div className="flex flex-none flex-col gap-px border-t border-line2 px-2.5 pt-2 pb-3">
+					<Link
+						to="/trash"
+						className={`${foot} ${path === "/trash" ? "bg-hover" : ""}`}
+					>
+						<FootIcon>
+							<path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.2c0 .5.4.8.9.8h4c.5 0 .9-.3.9-.8l.6-8.2" />
+						</FootIcon>
+						Trash
+					</Link>
+					<Link
+						to="/import"
+						className={`${foot} ${path === "/import" ? "bg-hover" : ""}`}
+					>
+						<FootIcon>
+							<path d="M8 2.5v8M4.8 7.6L8 10.8l3.2-3.2M3 13h10" />
+						</FootIcon>
+						Import
+					</Link>
+					<Link
+						to="/settings"
+						className={`${foot} ${path === "/settings" ? "bg-hover" : ""}`}
+					>
+						<FootIcon>
+							<path d="M2.5 5h6M12 5h1.5M2.5 11h1.5M7.5 11h6" />
+							<circle cx="10" cy="5" r="1.6" />
+							<circle cx="5.7" cy="11" r="1.6" />
+						</FootIcon>
+						Settings
+					</Link>
 				</div>
 			</aside>
 		</>
+	);
+}
+
+function FootIcon({ children }: { children: React.ReactNode }) {
+	return (
+		<svg
+			width="15"
+			height="15"
+			viewBox="0 0 16 16"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="1.4"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			aria-hidden="true"
+		>
+			{children}
+		</svg>
 	);
 }
 

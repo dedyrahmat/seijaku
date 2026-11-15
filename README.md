@@ -37,18 +37,20 @@ Each phase ends in something runnable, and work stops after every phase for revi
 - [x] Editor bound to a Y.Doc with the v1 blocks (callout, math, tables, toggles, code, media by URL)
 - [x] IndexedDB persistence, works offline on one device
 
-### Phase 3: Sync
+### Phase 3: Sync (done)
 
-- [ ] `UpdateStore` interface (append update, load doc, compact)
-- [ ] `Room` class and message encoding on `y-protocols`: state-vector diff on connect, then live updates, many docs multiplexed by docId
-- [ ] Update log compaction into snapshots
-- [ ] Bun adapter: in-process room, `Bun.serve` WebSocket, `UpdateStore` on `bun:sqlite`
-- [ ] Client provider in `apps/web` store: one WebSocket per device, reconnect with backoff
-- [ ] Background catch-up of notes that are not open
-- [ ] Cloudflare adapter: `WorkspaceRoom` Durable Object with WebSocket hibernation, `UpdateStore` on DO SQLite
-- [ ] `bun test`: two simulated clients converge, offline edits merge, compaction keeps state, against both stores
-- [ ] Playwright: two browser contexts see each other's edits, offline edits merge after reconnect, reload offline still opens notes
-- [ ] Verify on `wrangler dev`
+- [x] `UpdateStore` interface (append update, load doc, compact)
+- [x] `Room` class and message encoding on `y-protocols`: state-vector diff on connect, then live updates, many docs multiplexed by docId
+- [x] Update log compaction into one merged update
+- [x] Bun adapter: in-process room, `Bun.serve` WebSocket, `UpdateStore` on `bun:sqlite`
+- [x] Client provider in `apps/web` store: one WebSocket per device, reconnect with backoff
+- [x] Background catch-up of notes that are not open
+- [x] Cloudflare adapter: `WorkspaceRoom` Durable Object with WebSocket hibernation, `UpdateStore` on DO SQLite
+- [x] Sync status in the title bar, per the design (Synced, Syncing, Offline, Keep your notes safe), and the word count and "Saved on this device" footer
+- [x] `bun test`: two simulated clients converge, offline edits merge, compaction keeps state; the Bun server is tested over a real socket and restart (the DO store is checked with `apps/server/scripts/smoke.ts` against `wrangler dev`, not in `bun test`)
+- [x] Two browser profiles see each other's edits and offline edits merge after reconnect (checked by hand in the browser pane, not Playwright)
+- [ ] Reload offline still opens notes: needs the service worker, phase 9
+- [ ] Playwright automation of the two-context test
 
 ### Phase 4: Auth
 

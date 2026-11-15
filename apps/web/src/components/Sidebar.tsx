@@ -9,11 +9,18 @@ import {
 	type TreeNode,
 	trashNote,
 } from "@seijaku/sync";
-import { Link, useParams } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { readLocal, useNotes, useTree, writeLocal } from "../workspace/hooks";
+import {
+	readLocal,
+	useNoteId,
+	useNotes,
+	useTree,
+	writeLocal,
+} from "../workspace/hooks";
 import { workspace } from "../workspace/store";
 import { Logo } from "./Logo";
+import { pageLink } from "./pageLink";
 import { useNewPage } from "./useNewPage";
 
 const EXPANDED_KEY = "seijaku:expanded";
@@ -50,7 +57,7 @@ export function Sidebar({
 	const tree = useTree();
 	const notes = useNotes();
 	const newPage = useNewPage();
-	const { noteId } = useParams({ strict: false }) as { noteId?: string };
+	const noteId = useNoteId();
 	const [expanded, setExpanded] = useState(loadExpanded);
 	const dragId = useRef<string | null>(null);
 	const [showTrash, setShowTrash] = useState(false);
@@ -290,8 +297,7 @@ function TreeRow({
 					<span className="w-6 shrink-0" />
 				)}
 				<Link
-					to="/n/$noteId"
-					params={{ noteId: note.id }}
+					{...pageLink(note.id, note.title)}
 					aria-current={active ? "page" : undefined}
 					className={`min-w-0 flex-1 truncate py-2.5 text-sm md:py-[7px] ${active ? "font-medium text-ink" : "text-ink2"}`}
 				>

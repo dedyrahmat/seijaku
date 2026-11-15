@@ -87,7 +87,7 @@ Adapter interfaces chosen at the entry point:
 ### Public share links
 
 - `shares` table in the metadata DB: note id, random token, created/revoked. Toggle per note, revocable.
-- `/s/:token` serves a read-only render of that one note (no sidebar, no auth), with its images served through share-scoped URLs. Child pages are not exposed.
+- `/share/:token` serves a read-only render of that one note (no sidebar, no auth), with its images served through share-scoped URLs. Child pages are not exposed.
 
 ### Desktop quick capture
 
@@ -100,6 +100,10 @@ Adapter interfaces chosen at the entry point:
 - v1 importers: Obsidian vault (Markdown folder/zip, incl. frontmatter tags and `![[image]]` embeds), Notion export zip (Markdown + CSV, page nesting), Google Keep (Google Takeout JSON), Evernote (ENEX), Apple Notes, Apple Journal, and generic Markdown / HTML / plain text.
 - "Any other app" is covered by the generic importers plus the plugin shape, not by a bespoke importer per app.
 - **Unverified**: the exact export formats for Apple Notes and Apple Journal. Confirm against real exports at the start of the import phase; ask the user for a small sample export from each app they actually use.
+
+### URLs
+
+Addresses are readable words, never one-letter codes. Pages are `/page/Getting-Started-<id>`: the title slug is for people, the trailing id is what the app looks up, so renaming a page never breaks an old link and the app rewrites the address to match the new title. Helpers are `pageSlug` and `parsePageSlug` in `packages/sync/src/slug.ts`; routes build links with `pageLink` (`apps/web/src/components/pageLink.ts`). Every future route follows the same rule: full English words, no abbreviations (`/share/:token`, `/trash`, `/settings`, `/import`, `/sign-in`, `/daily/2026-11-15`).
 
 ### Design
 

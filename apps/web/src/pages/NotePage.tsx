@@ -1,13 +1,21 @@
-import { restoreNote, updateNote } from "@seijaku/sync";
-import { Link, useParams } from "@tanstack/react-router";
+import { pageSlug, restoreNote, updateNote } from "@seijaku/sync";
+import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { pageLink } from "../components/pageLink";
 import { Editor } from "../editor/Editor";
-import { useNoteSession, useNotes, writeLocal } from "../workspace/hooks";
+import {
+	useNoteId,
+	useNoteSession,
+	useNotes,
+	writeLocal,
+} from "../workspace/hooks";
 import { workspace } from "../workspace/store";
 import { LAST_NOTE_KEY } from "./Home";
 
 export function NotePage() {
-	const { noteId } = useParams({ strict: false }) as { noteId: string };
+	const noteId = useNoteId() ?? "";
+	const { slug } = useParams({ strict: false }) as { slug?: string };
+	const navigate = useNavigate();
 	const note = useNotes().find((n) => n.id === noteId);
 	const session = useNoteSession(noteId);
 	const focusEditor = useRef<(() => void) | null>(null);
@@ -19,6 +27,18 @@ export function NotePage() {
 	useEffect(() => {
 		if (note && !note.trashed) writeLocal(LAST_NOTE_KEY, noteId);
 	}, [note, noteId]);
+
+	// Keep the address readable: once the title settles, rewrite the URL to match it.
+	const title = note?.title;
+	useEffect(() => {
+		if (title === undefined || !slug || slug === pageSlug(title, noteId))
+			return;
+		const t = setTimeout(
+			() => void navigate({ ...pageLink(noteId, title), replace: true }),
+			600,
+		);
+		return () => clearTimeout(t);
+	}, [title, slug, noteId, navigate]);
 
 	if (!note) {
 		return (

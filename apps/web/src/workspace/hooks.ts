@@ -1,4 +1,10 @@
-import { buildTree, type NoteMeta, type TreeNode } from "@seijaku/sync";
+import {
+	buildTree,
+	type NoteMeta,
+	parsePageSlug,
+	type TreeNode,
+} from "@seijaku/sync";
+import { useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { type NoteSession, workspace } from "./store";
 
@@ -12,6 +18,12 @@ export function useWorkspaceReady(): boolean {
 		};
 	}, []);
 	return ready;
+}
+
+/** The id of the page in the URL (`/page/Some-Title-<id>`), if any. */
+export function useNoteId(): string | undefined {
+	const { slug } = useParams({ strict: false }) as { slug?: string };
+	return slug ? parsePageSlug(slug) : undefined;
 }
 
 export function useNotes(): NoteMeta[] {

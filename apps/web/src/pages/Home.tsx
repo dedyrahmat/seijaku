@@ -1,6 +1,7 @@
 import { flattenTree } from "@seijaku/sync";
 import { Navigate } from "@tanstack/react-router";
 import { Logo } from "../components/Logo";
+import { pageLink } from "../components/pageLink";
 import { useNewPage } from "../components/useNewPage";
 import { readLocal, useNotes, useTree } from "../workspace/hooks";
 
@@ -15,7 +16,7 @@ export function Home() {
 	const target =
 		notes.find((n) => n.id === last && !n.trashed) ?? flattenTree(tree)[0];
 	if (target) {
-		return <Navigate to="/n/$noteId" params={{ noteId: target.id }} replace />;
+		return <Navigate {...pageLink(target.id, target.title)} replace />;
 	}
 
 	return (

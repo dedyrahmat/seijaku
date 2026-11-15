@@ -1,15 +1,12 @@
 import type { NoteMeta } from "@seijaku/sync";
-import {
-	Link,
-	Outlet,
-	useParams,
-	useRouterState,
-} from "@tanstack/react-router";
+import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Logo } from "../components/Logo";
+import { pageLink } from "../components/pageLink";
 import { Sidebar } from "../components/Sidebar";
 import {
 	readLocal,
+	useNoteId,
 	useNotes,
 	useWorkspaceReady,
 	writeLocal,
@@ -58,7 +55,7 @@ export function Shell() {
 		() => readLocal(SIDEBAR_HIDDEN_KEY) === "1",
 	);
 	const path = useRouterState({ select: (s) => s.location.pathname });
-	const { noteId } = useParams({ strict: false }) as { noteId?: string };
+	const noteId = useNoteId();
 
 	// Close the mobile drawer after navigating.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: path is the trigger
@@ -152,8 +149,7 @@ export function Shell() {
 										</span>
 									) : (
 										<Link
-											to="/n/$noteId"
-											params={{ noteId: n.id }}
+											{...pageLink(n.id, n.title)}
 											className="truncate hover:text-ink"
 										>
 											{n.title || "Untitled"}

@@ -79,6 +79,10 @@ BlockNote 0.57 gotchas learned the hard way:
 - Slash-menu groups must stay contiguous (`keepGroupsTogether` in `Editor.tsx`); BlockNote keys group headers by name.
 - BlockNote's heading and theme CSS is more specific than plain selectors; overrides in `styles.css` use `:root:root` or an `:root` prefix. Level 1 headings have no `data-level` attribute.
 
+## URLs
+
+Readable words, no one-letter segments. Pages live at `/page/Getting-Started-<id>` (title slug for people, trailing id for lookup; `pageLink` builds it, `parsePageSlug` reads it, and `NotePage` rewrites the address after a rename). New routes use full words (`/share/:token`, `/trash`, `/settings`, `/sign-in`). See `docs/PLAN.md`.
+
 ## Design
 
 The reference is the mockup at https://claude.ai/artifact/2oncbwyZeMDyVdZkDGwNJQ (Washi & ink tokens, sidebar, title bar, note body, home). Tokens live in `apps/web/src/styles.css` (paper, panel, raised, hover, ink, ink2, mute, line, callout, code, tag, vermilion accent); fonts are Newsreader, Hanken Grotesk, JetBrains Mono. Mockup elements for later phases (search box, Today, tags, Import, Settings, history, share, sign-in) are not built yet; add them in the phase that owns the feature, not as inert controls.

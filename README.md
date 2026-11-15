@@ -19,6 +19,94 @@ Seijaku is a local-first note-taking app. The name is the Japanese Zen garden id
 
 One person, many devices: web, an installable PWA on iPhone, and desktop for Windows, macOS and Linux through Tauri 2. Notes are Yjs documents that merge cleanly after editing offline. The server runs either on Cloudflare (Workers, Durable Objects, D1, R2) or self-hosted on Bun, from one codebase.
 
+## Roadmap
+
+Each phase ends in something runnable, and work stops after every phase for review. Details are in [docs/PLAN.md](docs/PLAN.md).
+
+### Phase 1: Scaffold (done)
+
+- [x] Check installed tools, `git init`
+- [x] Bun workspaces, TypeScript, Biome, test setup
+- [x] Empty apps and packages
+
+### Phase 2: Local editor (done)
+
+- [x] BlockNote restyling spike
+- [x] App shell and Washi & ink theme (light and dark)
+- [x] Index doc and note tree: nested pages, reorder, trash
+- [x] Editor bound to a Y.Doc with the v1 blocks (callout, math, tables, toggles, code, media by URL)
+- [x] IndexedDB persistence, works offline on one device
+
+### Phase 3: Sync
+
+- [ ] `UpdateStore` interface (append update, load doc, compact)
+- [ ] `Room` class and message encoding on `y-protocols`: state-vector diff on connect, then live updates, many docs multiplexed by docId
+- [ ] Update log compaction into snapshots
+- [ ] Bun adapter: in-process room, `Bun.serve` WebSocket, `UpdateStore` on `bun:sqlite`
+- [ ] Client provider in `apps/web` store: one WebSocket per device, reconnect with backoff
+- [ ] Background catch-up of notes that are not open
+- [ ] Cloudflare adapter: `WorkspaceRoom` Durable Object with WebSocket hibernation, `UpdateStore` on DO SQLite
+- [ ] `bun test`: two simulated clients converge, offline edits merge, compaction keeps state, against both stores
+- [ ] Playwright: two browser contexts see each other's edits, offline edits merge after reconnect, reload offline still opens notes
+- [ ] Verify on `wrangler dev`
+
+### Phase 4: Auth
+
+- [ ] Spike Better Auth passkeys on both runtimes (fallback: `@simplewebauthn` with own sessions)
+- [ ] First-run setup gated by `SETUP_TOKEN`, then registration closes
+- [ ] Passkey sign-in and recovery codes
+- [ ] Session checks on HTTP and WebSocket upgrade
+
+### Phase 5: Attachments
+
+- [ ] `BlobStore` adapters: R2 and local disk
+- [ ] Upload and download for images and files
+- [ ] Offline cache and an upload queue that flushes on reconnect
+- [ ] Link-preview unfurl endpoint
+
+### Phase 6: Organising
+
+- [ ] Tags
+- [ ] Daily notes (`daily-YYYY-MM-DD`)
+- [ ] On-device search (MiniSearch)
+- [ ] Ctrl/Cmd+K quick switcher
+- [ ] Trash: permanent delete and auto-empty
+- [ ] Markdown import and export, whole-workspace zip
+
+### Phase 7: History and sharing
+
+- [ ] Version snapshots on the server and a history panel
+- [ ] Restore as a new edit
+- [ ] Public read-only share links (`/share/:token`), revocable
+
+### Phase 8: Importers
+
+- [ ] Common intermediate form and shared writer
+- [ ] Obsidian, Notion, Google Keep, Evernote
+- [ ] Apple Notes and Apple Journal (confirm export formats first)
+- [ ] Generic Markdown, HTML and plain text
+
+### Phase 9: PWA
+
+- [ ] Service worker app-shell caching, so the app loads offline
+- [ ] Manifest and icons
+- [ ] iPhone polish: safe areas, keyboard handling
+- [ ] Code-split the main bundle
+
+### Phase 10: Desktop
+
+- [ ] Tauri 2 shell for Windows, macOS and Linux
+- [ ] Sign-in through the system browser and a `seijaku://` deep link
+- [ ] Server URL setting
+- [ ] Quick capture: global hotkey and tray
+- [ ] Auto-updater and GitHub Actions builds
+
+### Phase 11: Deploy
+
+- [ ] `wrangler.jsonc` and D1 migrations for Cloudflare
+- [ ] Dockerfile and compose for self-hosting
+- [ ] Deployment docs for both paths
+
 ## Getting started
 
 You need [Bun](https://bun.sh).

@@ -36,6 +36,11 @@ export function ImportPage() {
 	const [dragging, setDragging] = useState(false);
 	const [progress, setProgress] = useState<[number, number] | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	const [skipped, setSkipped] = useState<{ name: string; reason: string }[]>(
+		[],
+	);
+	const abort = useRef<AbortController | null>(null);
+	const background = useRef(false);
 	const picker = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
@@ -61,11 +66,28 @@ export function ImportPage() {
 
 	const run = async () => {
 		setError(null);
+		setSkipped([]);
+		background.current = false;
+		abort.current = new AbortController();
 		try {
 			setProgress([0, files.length]);
-			const ids = await importFiles(files, kind, (d, t) => setProgress([d, t]));
+			const ids = await importFiles(
+				files,
+				kind,
+				(d, t) => setProgress([d, t]),
+				{
+					signal: abort.current.signal,
+					onSkip: (file, reason) =>
+						setSkipped((prev) => [...prev, { name: file.name, reason }]),
+				},
+			);
+			if (abort.current.signal.aborted) {
+				setProgress(null);
+				setFiles([]);
+				return;
+			}
 			const first = ids[0];
-			if (first)
+			if (first && !background.current)
 				void navigate(
 					pageLink(first, files[0]?.name.replace(/\.[^.]+$/, "") ?? ""),
 				);
@@ -76,6 +98,160 @@ export function ImportPage() {
 	};
 
 	const busy = progress !== null;
+
+	if (progress) {
+		const [done, total] = progress;
+		const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+		return (
+			<div className="mx-auto flex w-full max-w-[880px] flex-col gap-6 px-5 pt-10 pb-24 md:px-11">
+				<div className="flex flex-col gap-2">
+					<h1 className="font-serif text-[32px] font-medium tracking-[-0.015em]">
+						Importing your notes
+					</h1>
+					<p className="text-[15px] text-ink2">
+						You can keep using Seijaku. Imported notes appear in the sidebar as
+						they land.
+					</p>
+				</div>
+
+				<div className="flex flex-col gap-2.5">
+					<div className="flex justify-between text-sm">
+						<span>
+							{done} of {total} {total === 1 ? "note" : "notes"}
+						</span>
+						<span className="text-mute">{pct}%</span>
+					</div>
+					<div
+						role="progressbar"
+						aria-label="Import progress"
+						aria-valuemin={0}
+						aria-valuemax={100}
+						aria-valuenow={pct}
+						className="h-2 overflow-hidden rounded-full bg-tag"
+					>
+						<div
+							style={{ width: `${pct}%` }}
+							className="h-full rounded-full bg-ink transition-[width]"
+						/>
+					</div>
+					<div className="flex gap-7 pt-1 text-[13px] text-mute">
+						<span>{done - skipped.length} imported</span>
+						<span>
+							{skipped.length} {skipped.length === 1 ? "thing" : "things"}{" "}
+							skipped
+						</span>
+					</div>
+				</div>
+
+				<ul className="flex max-h-[420px] flex-col overflow-y-auto rounded-[20px] border border-line bg-raised">
+					{files.map((file, i) => {
+						const skip = skipped.find((x) => x.name === file.name);
+						const state = skip
+							? "warn"
+							: i < done
+								? "done"
+								: i === done
+									? "active"
+									: "wait";
+						return (
+							<li
+								// biome-ignore lint/suspicious/noArrayIndexKey: file names can repeat across folders
+								key={`${file.name}-${i}`}
+								className="flex min-h-[46px] items-center gap-3 border-b border-line2 px-[18px] text-sm last:border-b-0"
+							>
+								<span className="flex size-4 flex-none items-center justify-center">
+									{state === "done" ? (
+										<svg
+											width="16"
+											height="16"
+											viewBox="0 0 16 16"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="1.6"
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											role="img"
+											aria-label="Done"
+											className="text-ink2"
+										>
+											<path d="M3.5 8.5l3 3 6-7" />
+										</svg>
+									) : null}
+									{state === "active" ? (
+										<svg
+											width="16"
+											height="16"
+											viewBox="0 0 16 16"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="1.6"
+											strokeLinecap="round"
+											role="img"
+											aria-label="In progress"
+										>
+											<path d="M8 2.5a5.5 5.5 0 105.5 5.5" />
+										</svg>
+									) : null}
+									{state === "warn" ? (
+										<svg
+											width="16"
+											height="16"
+											viewBox="0 0 16 16"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="1.6"
+											strokeLinecap="round"
+											role="img"
+											aria-label="Skipped"
+											className="text-accent"
+										>
+											<path d="M8 4v5M8 11.6v.4" />
+										</svg>
+									) : null}
+								</span>
+								<span className="min-w-0 flex-1 truncate font-mono text-[13px]">
+									{file.name}
+								</span>
+								<span
+									className={`text-xs ${state === "warn" ? "text-accent" : "text-mute"}`}
+								>
+									{state === "warn"
+										? skip?.reason
+										: state === "active"
+											? "Reading…"
+											: ""}
+								</span>
+							</li>
+						);
+					})}
+				</ul>
+
+				<div className="flex flex-wrap items-center gap-3">
+					<span className="text-[13px] text-mute">
+						Files that cannot be read are skipped and listed here.
+					</span>
+					<div className="flex-1" />
+					<button
+						type="button"
+						onClick={() => abort.current?.abort()}
+						className="h-11 rounded-[14px] border border-line px-[18px] text-sm text-accent hover:bg-hover md:h-10"
+					>
+						Cancel import
+					</button>
+					<button
+						type="button"
+						onClick={() => {
+							background.current = true;
+							void navigate({ to: "/" });
+						}}
+						className="h-11 rounded-[14px] bg-ink px-[22px] text-sm font-medium text-paper hover:opacity-90 md:h-10"
+					>
+						Keep going in background
+					</button>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="mx-auto flex w-full max-w-[880px] flex-col gap-[22px] px-5 pt-10 pb-24 md:px-11 md:pt-14">

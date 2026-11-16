@@ -20,6 +20,12 @@
 	--tag: #ebe4d3;
 	--accent: #ae3b28;
 	--accent-soft: #ae3b281a;
+	--off: #cfc6b3;
+	--swatch-vermilion: #ae3b28;
+	--swatch-matcha: #6f8f63;
+	--swatch-indigo: #5b73a3;
+	--swatch-gold: #c9a04a;
+	--swatch-ink: #201d19;
 	--mark: #f0d9b8;
 	--scrim: #201d194d;
 	--warn: #8a4b2a;
@@ -31,32 +37,34 @@
 	color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-	:root {
-		--paper: #171512;
-		--panel: #1d1b17;
-		--raised: #23201b;
-		--hover: #2b2822;
-		--ink: #e9e3d6;
-		--ink2: #b5ad9d;
-		--mute: #968e7e;
-		--line: #37332b;
-		--line2: #2d2a24;
-		--callout: #26231d;
-		--code: #1f1d18;
-		--tag: #2b2822;
-		--accent: #e27a63;
-		--accent-soft: #e27a6326;
-		--mark: #5a4426;
-		--scrim: #0000008c;
-		--warn: #d9ae68;
-		--hl-kw: #e58b73;
-		--hl-fn: #8fbfcb;
-		--hl-str: #a9c27a;
-		--hl-num: #d9ae68;
-		--hl-cmt: #8e8676;
-		color-scheme: dark;
-	}
+/* preferences.ts sets data-theme to the resolved theme (light or dark). */
+:root[data-theme="dark"] {
+	--paper: #171512;
+	--panel: #1d1b17;
+	--raised: #23201b;
+	--hover: #2b2822;
+	--ink: #e9e3d6;
+	--ink2: #b5ad9d;
+	--mute: #968e7e;
+	--line: #37332b;
+	--line2: #2d2a24;
+	--callout: #26231d;
+	--code: #1f1d18;
+	--tag: #2b2822;
+	--accent: #e27a63;
+	--accent-soft: #e27a6326;
+	--off: #4a453b;
+	--swatch-vermilion: #e27a63;
+	--swatch-ink: #e9e3d6;
+	--mark: #5a4426;
+	--scrim: #0000008c;
+	--warn: #d9ae68;
+	--hl-kw: #e58b73;
+	--hl-fn: #8fbfcb;
+	--hl-str: #a9c27a;
+	--hl-num: #d9ae68;
+	--hl-cmt: #8e8676;
+	color-scheme: dark;
 }
 
 @theme inline {
@@ -74,6 +82,7 @@
 	--color-tag: var(--tag);
 	--color-accent: var(--accent);
 	--color-accent-soft: var(--accent-soft);
+	--color-off: var(--off);
 	--color-mark: var(--mark);
 	--color-scrim: var(--scrim);
 	--font-serif:
@@ -127,6 +136,19 @@ body {
 		transition: none;
 	}
 }
+:root[data-reduce-motion="true"] *,
+:root[data-reduce-motion="true"] *::before,
+:root[data-reduce-motion="true"] *::after {
+	/* biome-ignore lint/complexity/noImportantStyles: reduce motion must beat every component's own durations */
+	animation-duration: 0.01ms !important;
+	/* biome-ignore lint/complexity/noImportantStyles: same */
+	transition-duration: 0.01ms !important;
+}
+
+/* Settings can hide the editor block handles. */
+:root[data-block-handles="false"] .bn-side-menu {
+	display: none;
+}
 
 /* Sidebar rows reveal their actions on hover/focus; always visible on touch. */
 .row-actions {
@@ -176,8 +198,8 @@ body {
 }
 
 .bn-editor {
-	font-size: 1.0625rem;
-	line-height: 1.75;
+	font-size: var(--text-size, 1.0625rem);
+	line-height: var(--line-height, 1.75);
 }
 
 /* Quieter scale than BlockNote's 3/2/1.3em: headings guide, they don't shout.
@@ -196,7 +218,7 @@ body {
 	.bn-block-outer
 	.bn-block
 	> .bn-block-content[data-content-type="heading"] {
-	font-family: var(--font-serif);
+	font-family: var(--font-heading, var(--font-serif));
 	font-weight: 500;
 	letter-spacing: -0.01em;
 	line-height: 1.25;
@@ -280,7 +302,7 @@ body {
 	border-radius: 16px;
 	background: var(--code);
 	color: var(--ink);
-	font-family: var(--font-mono);
+	font-family: var(--font-code, var(--font-mono));
 	font-size: 0.8125rem;
 	line-height: 1.7;
 }

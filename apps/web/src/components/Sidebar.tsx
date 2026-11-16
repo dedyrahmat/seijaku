@@ -255,7 +255,7 @@ export function Sidebar({
 					</Link>
 					<Link
 						to="/settings"
-						className={`${foot} ${path === "/settings" ? "bg-hover" : ""}`}
+						className={`${foot} ${path.startsWith("/settings") ? "bg-hover" : ""}`}
 					>
 						<FootIcon>
 							<path d="M2.5 5h6M12 5h1.5M2.5 11h1.5M7.5 11h6" />

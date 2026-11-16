@@ -11,6 +11,7 @@ import {
 } from "@seijaku/sync";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
+import { getPrefs } from "../preferences";
 import { currentSyncUrl } from "./syncUrl";
 
 export interface NoteSession {
@@ -66,7 +67,7 @@ class Workspace {
 			this.snapshot = listNotes(this.index);
 			// Join the server only after local data is loaded, so the handshake sends one diff.
 			this.indexAttachment = this.sync.attach(INDEX_DOC_ID, this.index);
-			this.sync.start();
+			if (!getPrefs().workOffline) this.sync.start();
 		});
 
 		// Ask the browser not to evict our data under storage pressure (matters most on iOS).

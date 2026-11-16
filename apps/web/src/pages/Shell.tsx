@@ -1,17 +1,26 @@
-import type { NoteMeta } from "@seijaku/sync";
+import {
+	dailyTitle,
+	ensureDailyNote,
+	type NoteMeta,
+	trashNote,
+} from "@seijaku/sync";
 import {
 	Link,
 	Outlet,
 	useRouter,
 	useRouterState,
 } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { HistoryPanel } from "../components/HistoryPanel";
 import { Logo } from "../components/Logo";
 import { NoteFooter } from "../components/NoteFooter";
 import { pageLink } from "../components/pageLink";
+import { SharePopover } from "../components/SharePopover";
 import { Sidebar } from "../components/Sidebar";
 import { Switcher } from "../components/Switcher";
 import { SyncStatus } from "../components/SyncStatus";
+import { useNewPage } from "../components/useNewPage";
+import { setPref } from "../preferences";
 import {
 	readLocal,
 	useNoteId,
@@ -19,12 +28,22 @@ import {
 	useWorkspaceReady,
 	writeLocal,
 } from "../workspace/hooks";
+import { workspace } from "../workspace/store";
 
 const SECTIONS: Record<string, string> = {
 	"/trash": "Trash",
 	"/import": "Import",
 	"/settings": "Settings",
 };
+
+/** Screens that stand alone, with no sidebar or title bar: sign-in, capture, public pages. */
+const STANDALONE = [
+	"/sign-in",
+	"/setup",
+	"/recovery-codes",
+	"/capture",
+	"/share/",
+];
 
 const SIDEBAR_HIDDEN_KEY = "seijaku:sidebar-hidden";
 
@@ -70,6 +89,9 @@ export function Shell() {
 	});
 	const [typing, setTyping] = useState(false);
 	const [drawerOpen, setDrawerOpen] = useState(false);
+	const [panel, setPanel] = useState<"none" | "history" | "share">("none");
+	const [moreOpen, setMoreOpen] = useState(false);
+	const newPage = useNewPage();
 	const [sidebarHidden, setSidebarHidden] = useState(
 		() => readLocal(SIDEBAR_HIDDEN_KEY) === "1",
 	);
@@ -78,19 +100,57 @@ export function Shell() {
 
 	// Close the mobile drawer after navigating.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: path is the trigger
-	useEffect(() => setDrawerOpen(false), [path]);
+	useEffect(() => {
+		setDrawerOpen(false);
+		setMoreOpen(false);
+	}, [path]);
 
-	// Ctrl or Cmd K opens search from anywhere, as the sidebar button promises.
+	// A panel belongs to one page; renaming it rewrites the address but keeps the panel open.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: noteId is the trigger
+	useEffect(() => setPanel("none"), [noteId]);
+
+	const toggleSidebar = () =>
+		setSidebarHidden((v) => {
+			writeLocal(SIDEBAR_HIDDEN_KEY, v ? "0" : "1");
+			return !v;
+		});
+
+	// The shortcuts listed in Settings. Ctrl or Cmd K opens search from anywhere, as the sidebar button promises.
+	const latest = useRef({ noteId, newPage, toggleSidebar });
+	latest.current = { noteId, newPage, toggleSidebar };
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
-			if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+			if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+			const key = e.key.toLowerCase();
+			const run = (fn: () => void) => {
 				e.preventDefault();
-				setSwitcher({ open: true, query: "" });
-			}
+				fn();
+			};
+			if (key === "k" || (e.shiftKey && key === "f"))
+				run(() => setSwitcher({ open: true, query: "" }));
+			else if (key === "\\") run(() => latest.current.toggleSidebar());
+			else if (e.shiftKey && key === "l")
+				run(() =>
+					setPref(
+						"theme",
+						document.documentElement.dataset.theme === "dark"
+							? "light"
+							: "dark",
+					),
+				);
+			else if (e.shiftKey && key === "t")
+				run(() => {
+					const today = new Date();
+					const id = ensureDailyNote(workspace.index, today);
+					void router.navigate(pageLink(id, dailyTitle(today)));
+				});
+			else if (key === "n") run(() => latest.current.newPage(null));
+			else if (e.shiftKey && key === "h" && latest.current.noteId)
+				run(() => setPanel((p) => (p === "history" ? "none" : "history")));
 		};
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
-	}, []);
+	}, [router]);
 
 	// Typing steps the chrome back; any pointer movement brings it home.
 	useEffect(() => {
@@ -110,16 +170,12 @@ export function Shell() {
 		};
 	}, []);
 
+	if (STANDALONE.some((p) => path.startsWith(p))) return <Outlet />;
 	if (!ready) return <div className="h-dvh bg-paper" aria-busy="true" />;
 
+	const sectionPath = path.startsWith("/settings") ? "/settings" : path;
 	const crumbs = trail(notes, noteId);
 	const current = noteId ? notes.find((n) => n.id === noteId) : undefined;
-	const toggleSidebar = () =>
-		setSidebarHidden((v) => {
-			writeLocal(SIDEBAR_HIDDEN_KEY, v ? "0" : "1");
-			return !v;
-		});
-
 	return (
 		<div
 			data-typing={typing && !drawerOpen}
@@ -197,7 +253,7 @@ export function Shell() {
 						aria-label="Breadcrumb"
 						className="ml-3 flex min-w-0 items-center gap-2 text-[13px] text-ink2"
 					>
-						{!noteId && SECTIONS[path] ? (
+						{!noteId && SECTIONS[sectionPath] ? (
 							<>
 								<Link to="/" className="hover:text-ink">
 									Seijaku
@@ -206,7 +262,7 @@ export function Shell() {
 									/
 								</span>
 								<span className="text-ink" aria-current="page">
-									{SECTIONS[path]}
+									{SECTIONS[sectionPath]}
 								</span>
 							</>
 						) : null}
@@ -237,6 +293,41 @@ export function Shell() {
 					</nav>
 					<div className="flex-1" />
 					<SyncStatus />
+					{current && !current.trashed ? (
+						<>
+							<button
+								type="button"
+								aria-label="Version history"
+								aria-pressed={panel === "history"}
+								onClick={() =>
+									setPanel(panel === "history" ? "none" : "history")
+								}
+								className={`flex h-7 w-8 items-center justify-center rounded-[10px] text-ink2 hover:bg-hover ${panel === "history" ? "bg-hover" : ""}`}
+							>
+								<Icon>
+									<circle cx="8" cy="8" r="5.5" />
+									<path d="M8 5v3l2 1.5" />
+								</Icon>
+							</button>
+							<button
+								type="button"
+								data-share-trigger
+								aria-expanded={panel === "share"}
+								onClick={() => setPanel(panel === "share" ? "none" : "share")}
+								className={`mx-0.5 flex h-7 items-center gap-1.5 rounded-[10px] border border-line px-3 text-[13px] text-ink hover:bg-hover ${panel === "share" ? "bg-hover" : ""}`}
+							>
+								<Icon>
+									<path d="M6.5 9.5l3-3M5 7.5L3.8 8.7a2.5 2.5 0 003.5 3.5L8.5 11M11 8.5l1.2-1.2a2.5 2.5 0 00-3.5-3.5L7.5 5" />
+								</Icon>
+								Share
+							</button>
+							<MoreMenu
+								open={moreOpen}
+								onOpen={setMoreOpen}
+								onTrash={() => trashNote(workspace.index, current.id)}
+							/>
+						</>
+					) : null}
 				</header>
 
 				<div className="relative min-h-0 flex-1">
@@ -248,6 +339,80 @@ export function Shell() {
 					) : null}
 				</div>
 			</div>
+			{panel === "history" && current && !current.trashed ? (
+				<HistoryPanel noteId={current.id} onClose={() => setPanel("none")} />
+			) : null}
+			{panel === "share" && current && !current.trashed ? (
+				<SharePopover onClose={() => setPanel("none")} />
+			) : null}
+		</div>
+	);
+}
+
+function MoreMenu({
+	open,
+	onOpen,
+	onTrash,
+}: {
+	open: boolean;
+	onOpen: (v: boolean) => void;
+	onTrash: () => void;
+}) {
+	const root = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		if (!open) return;
+		const close = (e: Event) => {
+			if (!root.current?.contains(e.target as Node)) onOpen(false);
+		};
+		const esc = (e: KeyboardEvent) => e.key === "Escape" && onOpen(false);
+		document.addEventListener("pointerdown", close);
+		document.addEventListener("keydown", esc);
+		return () => {
+			document.removeEventListener("pointerdown", close);
+			document.removeEventListener("keydown", esc);
+		};
+	}, [open, onOpen]);
+
+	return (
+		<div ref={root} className="relative">
+			<button
+				type="button"
+				aria-label="More"
+				aria-haspopup="menu"
+				aria-expanded={open}
+				onClick={() => onOpen(!open)}
+				className="flex h-7 w-8 items-center justify-center rounded-[10px] text-ink2 hover:bg-hover"
+			>
+				<svg
+					width="16"
+					height="16"
+					viewBox="0 0 16 16"
+					fill="currentColor"
+					aria-hidden="true"
+				>
+					<circle cx="3.5" cy="8" r="1.2" />
+					<circle cx="8" cy="8" r="1.2" />
+					<circle cx="12.5" cy="8" r="1.2" />
+				</svg>
+			</button>
+			{open ? (
+				<div
+					role="menu"
+					className="absolute top-full right-0 z-50 mt-1 w-44 rounded-[14px] border border-line bg-raised p-1 shadow-lg"
+				>
+					<button
+						type="button"
+						role="menuitem"
+						onClick={() => {
+							onTrash();
+							onOpen(false);
+						}}
+						className="block w-full rounded-[10px] px-3 py-1.5 text-left text-sm text-accent hover:bg-hover"
+					>
+						Move to trash
+					</button>
+				</div>
+			) : null}
 		</div>
 	);
 }

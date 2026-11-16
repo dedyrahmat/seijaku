@@ -68,7 +68,7 @@ export function NotePage() {
 	}
 
 	return (
-		<article className="mx-auto w-full max-w-[760px] px-5 pt-10 pb-[40vh] md:pt-[72px]">
+		<article className="mx-auto w-full max-w-[var(--page-width,760px)] px-5 pt-10 pb-[40vh] md:pt-[72px]">
 			<TitleField
 				key={`title-${noteId}`}
 				id={note.id}

@@ -24,11 +24,27 @@ export async function importFiles(
 	files: File[],
 	kind: SourceKind,
 	onProgress?: (done: number, total: number) => void,
+	opts: {
+		signal?: AbortSignal;
+		/** A file that could not be read; the import carries on with the next one. */
+		onSkip?: (file: File, reason: string) => void;
+	} = {},
 ): Promise<string[]> {
 	const parser = BlockNoteEditor.create({ schema });
 	const ids: string[] = [];
 	for (const [i, file] of files.entries()) {
-		const text = await file.text();
+		if (opts.signal?.aborted) break;
+		let text: string;
+		try {
+			text = await file.text();
+		} catch (err) {
+			opts.onSkip?.(
+				file,
+				err instanceof Error ? err.message : "Could not read",
+			);
+			onProgress?.(i + 1, files.length);
+			continue;
+		}
 		const blocks =
 			kind === "markdown"
 				? await parser.tryParseMarkdownToBlocks(text)

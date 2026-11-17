@@ -113,38 +113,45 @@ export function startFileQueue(): void {
 	setInterval(() => void flushUploads(), 30_000);
 }
 
+export interface OpenedFile {
+	name: string;
+	type: string;
+	bytes: Uint8Array;
+}
+
+/** Gets a sealed file (from the cache, else the server) and opens it; null if it cannot be opened here. */
+export async function readFile(url: string): Promise<OpenedFile | null> {
+	const cipher = authStore.getCipher();
+	if (!cipher) return null;
+	const cache = await open(FILES);
+	let sealed = await cache?.match(url);
+	if (!sealed) {
+		const res = await fetch(url, { credentials: "include" }).catch(() => null);
+		if (!res?.ok) return null;
+		await cache?.put(url, res.clone());
+		sealed = res;
+	}
+	try {
+		return cipher.openFile(new Uint8Array(await sealed.arrayBuffer()));
+	} catch {
+		return null; // uploaded before notes were encrypted
+	}
+}
+
 const opened = new Map<string, Promise<string>>();
 
-/** Gets a sealed file (from the cache, else the server), opens it here, and returns a local address. */
+/** A local address for a sealed file, for the editor to show. Falls back to the file's own address. */
 export function resolveFileUrl(url: string): Promise<string> {
 	if (!url.includes("/api/files/")) return Promise.resolve(url);
 	let found = opened.get(url);
 	if (!found) {
-		found = (async () => {
-			const cipher = authStore.getCipher();
-			if (!cipher) return url;
-			const cache = await open(FILES);
-			let sealed = await cache?.match(url);
-			if (!sealed) {
-				const res = await fetch(url, { credentials: "include" }).catch(
-					() => null,
-				);
-				if (!res?.ok) return url;
-				await cache?.put(url, res.clone());
-				sealed = res;
-			}
-			try {
-				const file = cipher.openFile(
-					new Uint8Array(await sealed.arrayBuffer()),
-				);
-				return URL.createObjectURL(
-					new Blob([file.bytes as BlobPart], { type: file.type }),
-				);
-			} catch {
-				// Uploaded before notes were encrypted: the address itself still works.
-				return url;
-			}
-		})();
+		found = readFile(url).then((file) =>
+			file
+				? URL.createObjectURL(
+						new Blob([file.bytes as BlobPart], { type: file.type }),
+					)
+				: url,
+		);
 		opened.set(url, found);
 		// A failed look-up must not stick: the next render tries again.
 		void found.then((u) => u === url && opened.delete(url));

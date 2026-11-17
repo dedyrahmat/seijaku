@@ -11,6 +11,7 @@ function note(id: string, over: Partial<NoteMeta> = {}): NoteMeta {
 		icon: null,
 		tags: [],
 		trashed: false,
+		trashedAt: null,
 		createdAt: 0,
 		updatedAt: 0,
 		...over,

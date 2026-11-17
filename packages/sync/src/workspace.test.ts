@@ -170,6 +170,7 @@ import {
 	listTags,
 	normalizeTag,
 	purgeAllTrashed,
+	purgeExpired,
 	purgeNote,
 } from "./workspace";
 
@@ -221,5 +222,25 @@ describe("purge, daily notes and tags", () => {
 			{ tag: "signals", count: 1 },
 		]);
 		expect(normalizeTag("  #Deep Work ")).toBe("deep-work");
+	});
+});
+
+describe("trash expiry", () => {
+	test("only entries older than the limit are deleted, and restoring clears the time", () => {
+		const doc = new Y.Doc();
+		const old = createNote(doc, { title: "old" });
+		const fresh = createNote(doc, { title: "fresh" });
+		const restored = createNote(doc, { title: "restored" });
+		const day = 86_400_000;
+		trashNote(doc, old, 1000);
+		trashNote(doc, fresh, 1000 + 29 * day);
+		trashNote(doc, restored, 1000);
+		restoreNote(doc, restored, 1000 + 40 * day);
+		expect(getNote(doc, restored)?.trashedAt).toBeNull();
+
+		const removed = purgeExpired(doc, 30, 1000 + 31 * day);
+		expect(removed).toEqual([old]);
+		expect(getNote(doc, fresh)?.trashed).toBe(true);
+		expect(getNote(doc, restored)).toBeDefined();
 	});
 });

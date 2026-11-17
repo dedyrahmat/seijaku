@@ -79,12 +79,12 @@ Sign-in is optional and accounts work like a wallet.
 
 ### Phase 6: Organising
 
-- [ ] Tags
-- [ ] Daily notes (`daily-YYYY-MM-DD`)
-- [ ] On-device search (MiniSearch)
-- [ ] Ctrl/Cmd+K quick switcher
-- [ ] Trash: permanent delete and auto-empty
-- [ ] Markdown import and export, whole-workspace zip
+- [x] Tags
+- [x] Daily notes (`daily-YYYY-MM-DD`)
+- [x] On-device search (own implementation, no MiniSearch)
+- [x] Ctrl/Cmd+K quick switcher
+- [x] Trash: permanent delete and auto-empty
+- [x] Markdown import and export, whole-workspace zip
 
 ### Phase 7: History and sharing
 

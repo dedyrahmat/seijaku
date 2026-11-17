@@ -20,6 +20,8 @@ export interface NoteMeta {
 	icon: string | null;
 	tags: string[];
 	trashed: boolean;
+	/** When it went to the trash; null for notes trashed before this was recorded. */
+	trashedAt: number | null;
 	createdAt: number;
 	updatedAt: number;
 }
@@ -52,6 +54,7 @@ function readNote(id: string, m: NoteMap): NoteMeta {
 		icon: (m.get("icon") as string | null | undefined) ?? null,
 		tags: Array.isArray(tags) ? (tags as string[]) : [],
 		trashed: (m.get("trashed") as boolean | undefined) ?? false,
+		trashedAt: (m.get("trashedAt") as number | undefined) ?? null,
 		createdAt: (m.get("createdAt") as number | undefined) ?? 0,
 		updatedAt: (m.get("updatedAt") as number | undefined) ?? 0,
 	};
@@ -253,6 +256,7 @@ export function trashNote(doc: Y.Doc, id: string, now = Date.now()): void {
 	if (!m) return;
 	doc.transact(() => {
 		m.set("trashed", true);
+		m.set("trashedAt", now);
 		m.set("updatedAt", now);
 	});
 }
@@ -262,6 +266,7 @@ export function restoreNote(doc: Y.Doc, id: string, now = Date.now()): void {
 	if (!m) return;
 	doc.transact(() => {
 		m.set("trashed", false);
+		m.delete("trashedAt");
 		m.set("updatedAt", now);
 	});
 }
@@ -360,6 +365,24 @@ export function purgeAllTrashed(doc: Y.Doc): string[] {
 	const removed: string[] = [];
 	for (const n of listTrash(listNotes(doc))) {
 		if (getNote(doc, n.id)) removed.push(...purgeNote(doc, n.id));
+	}
+	return removed;
+}
+
+/**
+ * Deletes trash entries that have been there longer than `days` (older notes without a
+ * recorded time count from their last edit). Returns the removed ids.
+ */
+export function purgeExpired(
+	doc: Y.Doc,
+	days: number,
+	now = Date.now(),
+): string[] {
+	const cutoff = now - days * 86_400_000;
+	const removed: string[] = [];
+	for (const n of listTrash(listNotes(doc))) {
+		if ((n.trashedAt ?? n.updatedAt) < cutoff && getNote(doc, n.id))
+			removed.push(...purgeNote(doc, n.id));
 	}
 	return removed;
 }

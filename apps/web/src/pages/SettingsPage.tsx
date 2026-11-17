@@ -22,6 +22,7 @@ import {
 	TextField,
 	Toggle,
 } from "../components/SettingRows";
+import { exportWorkspace } from "../export";
 import { ACCENTS, type Prefs, setPref, usePrefs } from "../preferences";
 import { useHomeScreenNotice, useSyncState } from "../workspace/hooks";
 import { workspace } from "../workspace/store";
@@ -714,6 +715,9 @@ function Shortcuts() {
 function DataSettings() {
 	const { p, set } = useSet();
 	const navigate = useNavigate();
+	const [exporting, setExporting] = useState<"idle" | "busy" | "failed">(
+		"idle",
+	);
 	return (
 		<>
 			<Group name="Import and export">
@@ -727,8 +731,21 @@ function DataSettings() {
 					label="Export everything"
 					desc="A zip of Markdown files with your images and attachments."
 				>
-					<Btn disabled title={SOON}>
-						Export all
+					<Btn
+						disabled={exporting === "busy"}
+						onClick={() => {
+							setExporting("busy");
+							exportWorkspace().then(
+								() => setExporting("idle"),
+								() => setExporting("failed"),
+							);
+						}}
+					>
+						{exporting === "busy"
+							? "Exporting…"
+							: exporting === "failed"
+								? "Try again"
+								: "Export all"}
 					</Btn>
 				</Row>
 			</Group>
@@ -741,8 +758,10 @@ function DataSettings() {
 						label="Empty trash automatically"
 						value={p.trashAfter}
 						options={["After 7 days", "After 30 days", "Never"]}
-						onChange={set("trashAfter")}
-						disabled
+						onChange={(v) => {
+							set("trashAfter")(v);
+							workspace.sweepTrash();
+						}}
 					/>
 				</Row>
 				<Row

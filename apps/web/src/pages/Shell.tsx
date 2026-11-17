@@ -21,6 +21,7 @@ import { Sidebar } from "../components/Sidebar";
 import { Switcher } from "../components/Switcher";
 import { SyncStatus } from "../components/SyncStatus";
 import { useNewPage } from "../components/useNewPage";
+import { exportPage } from "../export";
 import { setPref } from "../preferences";
 import {
 	readLocal,
@@ -337,6 +338,7 @@ export function Shell() {
 								open={moreOpen}
 								onOpen={setMoreOpen}
 								onTrash={() => trashNote(workspace.index, current.id)}
+								onExport={() => void exportPage(current)}
 							/>
 						</>
 					) : null}
@@ -365,10 +367,12 @@ function MoreMenu({
 	open,
 	onOpen,
 	onTrash,
+	onExport,
 }: {
 	open: boolean;
 	onOpen: (v: boolean) => void;
 	onTrash: () => void;
+	onExport: () => void;
 }) {
 	const root = useRef<HTMLDivElement>(null);
 	useEffect(() => {
@@ -412,6 +416,17 @@ function MoreMenu({
 					role="menu"
 					className="absolute top-full right-0 z-50 mt-1 w-44 rounded-[14px] border border-line bg-raised p-1 shadow-lg"
 				>
+					<button
+						type="button"
+						role="menuitem"
+						onClick={() => {
+							onExport();
+							onOpen(false);
+						}}
+						className="block w-full rounded-[10px] px-3 py-1.5 text-left text-sm text-ink hover:bg-hover"
+					>
+						Export as Markdown
+					</button>
 					<button
 						type="button"
 						role="menuitem"

@@ -8,6 +8,7 @@ import {
 	NOTE_FRAGMENT,
 	type NoteMeta,
 	noteDocId,
+	purgeExpired,
 	SyncClient,
 } from "@seijaku/sync";
 import { IndexeddbPersistence } from "y-indexeddb";
@@ -86,6 +87,12 @@ class Workspace {
 
 		authStore.subscribe(() => this.applyAuth());
 
+		// "Empty trash automatically": once the index is loaded, then hourly while the app is open.
+		void this.ready.then(() => {
+			this.sweepTrash();
+			setInterval(() => this.sweepTrash(), 3_600_000);
+		});
+
 		// Ask the browser not to evict our data under storage pressure (matters most on iOS).
 		const asked = navigator.storage?.persist?.() ?? Promise.resolve(false);
 		asked
@@ -162,6 +169,35 @@ class Workspace {
 
 	/** Stable reference between index changes, as useSyncExternalStore requires. */
 	getNotes = (): NoteMeta[] => this.snapshot;
+
+	/** Deletes trash entries older than the "Empty trash automatically" setting. */
+	sweepTrash(): void {
+		const after = getPrefs().trashAfter;
+		const days =
+			after === "After 7 days" ? 7 : after === "After 30 days" ? 30 : 0;
+		if (days) purgeExpired(this.index, days);
+	}
+
+	/** Runs `use` on a note's content, loading it from IndexedDB if it is not open. */
+	async withFragment<T>(
+		id: string,
+		use: (fragment: Y.XmlFragment) => T | Promise<T>,
+	): Promise<T> {
+		const open = this.sessions.get(id);
+		if (open) {
+			await open.ready;
+			return use(open.fragment);
+		}
+		const doc = new Y.Doc();
+		const persistence = new IndexeddbPersistence(`seijaku-note-${id}`, doc);
+		try {
+			await persistence.whenSynced;
+			return await use(doc.getXmlFragment(NOTE_FRAGMENT));
+		} finally {
+			void persistence.destroy();
+			doc.destroy();
+		}
+	}
 
 	/** Plain text of a note, from memory if it is open, otherwise read from IndexedDB. */
 	async readText(id: string): Promise<string> {

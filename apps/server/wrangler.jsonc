@@ -3,9 +3,14 @@
 	"name": "seijaku",
 	"main": "src/worker.ts",
 	"compatibility_date": "2026-11-01",
+	"compatibility_flags": ["nodejs_compat"],
+	"d1_databases": [
+		{ "binding": "DB", "database_name": "seijaku", "database_id": "local" }
+	],
 	"r2_buckets": [{ "binding": "BLOBS", "bucket_name": "seijaku-files" }],
 	"durable_objects": {
 		"bindings": [{ "name": "WORKSPACE_ROOM", "class_name": "WorkspaceRoom" }]
 	},
+	"dev": { "port": 8791 },
 	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["WorkspaceRoom"] }]
 }

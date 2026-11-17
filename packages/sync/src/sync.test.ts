@@ -1,9 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import * as Y from "yjs";
-import { type SocketLike, SyncClient } from "./client";
+import { type DocSyncState, type SocketLike, SyncClient } from "./client";
+import { type Cipher, createCipher, newWorkspaceKey } from "./crypto";
 import { encodeResync, INDEX_DOC_ID, noteDocId } from "./protocol";
 import { Room } from "./room";
 import { MemoryUpdateStore, type UpdateStore } from "./store";
+
+/** Every test workspace shares one key, as a person's devices do. */
+const cipher: Cipher = createCipher(newWorkspaceKey());
 
 /** In-memory link between one SyncClient and a Room, with an off switch for the network. */
 class Link {
@@ -83,10 +87,11 @@ async function until(check: () => boolean, ms = 2000): Promise<void> {
 	}
 }
 
-function device(room: Room, minDelay = 5) {
+function device(room: Room, minDelay = 5, key: Cipher = cipher) {
 	const link = new Link(room);
 	const client = new SyncClient({
 		url: () => "ws://test",
+		cipher: () => key,
 		createSocket: link.createSocket,
 		minDelay,
 		maxDelay: 20,
@@ -200,13 +205,16 @@ describe("room and client", () => {
 
 	test("updates are acknowledged only after they are stored", async () => {
 		const stored: Uint8Array[] = [];
+		const inner = new MemoryUpdateStore();
 		const slow: UpdateStore = {
-			load: () => [],
-			append: async (_id, u) => {
+			append: async (id, u) => {
 				await tick(30);
 				stored.push(u);
+				return inner.append(id, u);
 			},
-			replaceAll: () => {},
+			loadAfter: (id, after) => inner.loadAfter(id, after),
+			stat: (id) => inner.stat(id),
+			replaceUpTo: (id, upto, snap) => inner.replaceUpTo(id, upto, snap),
 		};
 		const room = new Room(slow);
 		const a = device(room);
@@ -226,6 +234,7 @@ describe("room and client", () => {
 		const b = device(room);
 		const heard: string[] = [];
 		b.client.onNotify((id) => heard.push(id));
+		b.client.learn(noteDocId("far"));
 		const docA = new Y.Doc();
 		const attA = a.client.attach(noteDocId("far"), docA);
 		await attA.whenSynced();
@@ -285,32 +294,175 @@ describe("persistence", () => {
 		expect(text(fresh)).toBe("durable");
 	});
 
-	test("compaction keeps the state and shrinks the log", async () => {
+	test("a long log is folded into one entry by a device that has read it all", async () => {
 		const store = new MemoryUpdateStore();
-		const room = new Room(store, { compactAfter: 10 });
+		const room = new Room(store);
 		const a = device(room);
 		const doc = new Y.Doc();
 		const att = a.client.attach(noteDocId("k"), doc);
 		await att.whenSynced();
-		for (let i = 0; i < 50; i++) doc.getText("t").insert(0, "x");
+		for (let i = 0; i < 130; i++) doc.getText("t").insert(0, "x");
 		await until(() => a.client.getState().status === "synced");
-		await room.flush();
-		expect(store.logs.get(noteDocId("k"))?.length).toBeLessThanOrEqual(11);
+		const remote = cipher.remoteId(noteDocId("k"));
+		expect(store.logs.get(remote)?.length).toBeGreaterThan(100);
 
-		const restored = new Y.Doc();
-		for (const u of store.load(noteDocId("k"))) Y.applyUpdate(restored, u);
-		expect(text(restored)).toBe("x".repeat(50));
+		// The next time it connects it sees a long log and tidies it.
+		a.link.cut();
+		await until(() => a.client.getState().status === "offline");
+		a.link.restore();
+		await until(() => (store.logs.get(remote)?.length ?? 99) <= 2);
+
+		const fresh = device(room);
+		const copy = new Y.Doc();
+		expect(await fresh.client.attach(noteDocId("k"), copy).whenSynced()).toBe(
+			true,
+		);
+		expect(text(copy)).toBe("x".repeat(130));
 	});
 
-	test("replaying the log on load does not grow it", async () => {
+	test("a device that remembers its place neither downloads nor uploads again", async () => {
 		const store = new MemoryUpdateStore();
-		const seed = new Y.Doc();
-		seed.getText("t").insert(0, "seed");
-		store.append(noteDocId("r"), Y.encodeStateAsUpdate(seed));
 		const room = new Room(store);
-		await room.readDoc(noteDocId("r"));
-		await room.flush();
-		expect(store.logs.get(noteDocId("r"))?.length).toBe(1);
+		const a = device(room);
+		const doc = new Y.Doc();
+		let saved: DocSyncState | null = null;
+		const att = a.client.attach(noteDocId("m"), doc, {
+			onState: (s) => {
+				saved = s;
+			},
+		});
+		await att.whenSynced();
+		doc.getText("t").insert(0, "once");
+		await until(() => a.client.getState().status === "synced");
+		await tick(10);
+		a.client.stop();
+		const remote = cipher.remoteId(noteDocId("m"));
+		const before = store.logs.get(remote)?.length;
+
+		const b = device(room);
+		const again = b.client.attach(noteDocId("m"), doc, { state: saved });
+		expect(await again.whenSynced()).toBe(true);
+		expect(store.logs.get(remote)?.length).toBe(before);
+	});
+
+	test("a server that lost its data gets everything again", async () => {
+		const store = new MemoryUpdateStore();
+		const room = new Room(store);
+		const a = device(room);
+		const doc = new Y.Doc();
+		let saved: DocSyncState | null = null;
+		const att = a.client.attach(noteDocId("z"), doc, {
+			onState: (s) => {
+				saved = s;
+			},
+		});
+		await att.whenSynced();
+		doc.getText("t").insert(0, "precious");
+		await until(() => a.client.getState().status === "synced");
+		await tick(10);
+		a.client.stop();
+
+		const empty = new MemoryUpdateStore();
+		const b = device(new Room(empty));
+		expect(
+			await b.client.attach(noteDocId("z"), doc, { state: saved }).whenSynced(),
+		).toBe(true);
+		const remote = cipher.remoteId(noteDocId("z"));
+		expect((empty.logs.get(remote) ?? []).length).toBeGreaterThan(0);
+	});
+
+	test("saved state from another account's key is ignored and the doc is uploaded in full", async () => {
+		const a = device(new Room(new MemoryUpdateStore()));
+		const doc = new Y.Doc();
+		let saved: DocSyncState | null = null;
+		const att = a.client.attach(noteDocId("w"), doc, {
+			onState: (s) => {
+				saved = s;
+			},
+		});
+		await att.whenSynced();
+		doc.getText("t").insert(0, "written signed out, then signed in elsewhere");
+		await until(() => a.client.getState().status === "synced");
+		await tick(10);
+		a.client.stop();
+		expect(saved).not.toBeNull();
+
+		const other = createCipher(newWorkspaceKey());
+		const store = new MemoryUpdateStore();
+		const b = device(new Room(store), 5, other);
+		let next: DocSyncState | null = null;
+		expect(
+			await b.client
+				.attach(noteDocId("w"), doc, {
+					state: saved,
+					onState: (s) => {
+						next = s;
+					},
+				})
+				.whenSynced(),
+		).toBe(true);
+		const remote = other.remoteId(noteDocId("w"));
+		expect((store.logs.get(remote) ?? []).length).toBeGreaterThan(0);
+		await tick(10);
+		expect((next as DocSyncState | null)?.remoteId).toBe(remote);
+	});
+});
+
+describe("end-to-end encryption", () => {
+	test("the server never holds readable text or readable names", async () => {
+		const store = new MemoryUpdateStore();
+		const room = new Room(store);
+		const a = device(room);
+		const doc = new Y.Doc();
+		const att = a.client.attach(noteDocId("daily-2026-11-16"), doc);
+		await att.whenSynced();
+		doc.getText("t").insert(0, "my secret grocery list");
+		await until(() => a.client.getState().status === "synced");
+
+		const needle = new TextEncoder().encode("secret grocery");
+		for (const [id, log] of store.logs) {
+			expect(id).not.toContain("daily");
+			expect(id).toMatch(/^d[a-f0-9]{32}$/);
+			for (const e of log) {
+				const hay = Buffer.from(e.data).toString("latin1");
+				expect(hay).not.toContain(Buffer.from(needle).toString("latin1"));
+			}
+		}
+	});
+
+	test("a device with another key cannot read the notes", async () => {
+		const store = new MemoryUpdateStore();
+		const room = new Room(store);
+		const a = device(room);
+		const doc = new Y.Doc();
+		await a.client.attach(noteDocId("s"), doc).whenSynced();
+		doc.getText("t").insert(0, "private");
+		await until(() => a.client.getState().status === "synced");
+
+		const stranger = createCipher(newWorkspaceKey());
+		const b = device(room, 5, stranger);
+		const theirs = new Y.Doc();
+		b.client.attach(noteDocId("s"), theirs);
+		await tick(60);
+		expect(text(theirs)).toBe("");
+	});
+
+	test("an altered entry is refused", async () => {
+		const store = new MemoryUpdateStore();
+		const room = new Room(store);
+		const a = device(room);
+		const doc = new Y.Doc();
+		await a.client.attach(noteDocId("t"), doc).whenSynced();
+		doc.getText("t").insert(0, "honest");
+		await until(() => a.client.getState().status === "synced");
+		for (const log of store.logs.values())
+			for (const e of log) e.data[e.data.length - 1] = (e.data.at(-1) ?? 0) ^ 1;
+
+		const b = device(room);
+		const copy = new Y.Doc();
+		b.client.attach(noteDocId("t"), copy);
+		await tick(60);
+		expect(text(copy)).toBe("");
 	});
 });
 

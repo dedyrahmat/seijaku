@@ -11,6 +11,7 @@ import {
 	useRouterState,
 } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../auth/session";
 import { HistoryPanel } from "../components/HistoryPanel";
 import { Logo } from "../components/Logo";
 import { NoteFooter } from "../components/NoteFooter";
@@ -40,7 +41,8 @@ const SECTIONS: Record<string, string> = {
 const STANDALONE = [
 	"/sign-in",
 	"/setup",
-	"/recovery-codes",
+	"/recovery-phrase",
+	"/unlock",
 	"/capture",
 	"/share/",
 ];
@@ -97,6 +99,14 @@ export function Shell() {
 	);
 	const path = useRouterState({ select: (s) => s.location.pathname });
 	const noteId = useNoteId();
+	const auth = useAuth();
+	const standalone = STANDALONE.some((p) => path.startsWith(p));
+
+	// Signed in but without the notes' key: the only place to be is the unlock screen.
+	useEffect(() => {
+		if (!standalone && auth.phase === "locked")
+			void router.navigate({ to: "/unlock" });
+	}, [auth.phase, standalone, router]);
 
 	// Close the mobile drawer after navigating.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: path is the trigger
@@ -170,7 +180,9 @@ export function Shell() {
 		};
 	}, []);
 
-	if (STANDALONE.some((p) => path.startsWith(p))) return <Outlet />;
+	if (standalone) return <Outlet />;
+	if (auth.phase === "locked")
+		return <div className="h-dvh bg-paper" aria-busy="true" />;
 	if (!ready) return <div className="h-dvh bg-paper" aria-busy="true" />;
 
 	const sectionPath = path.startsWith("/settings") ? "/settings" : path;

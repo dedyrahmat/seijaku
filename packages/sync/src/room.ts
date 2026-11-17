@@ -1,11 +1,9 @@
-import * as Y from "yjs";
 import {
-	applySyncMessage,
 	decodeFrame,
 	encodeAck,
+	encodeEntry,
 	encodeNotify,
-	encodeSyncStep1,
-	encodeUpdate,
+	encodeReady,
 	FrameKind,
 	MAX_FRAME_BYTES,
 } from "./protocol";
@@ -17,19 +15,10 @@ export interface RoomConnection {
 	close?(code: number, reason: string): void;
 }
 
-export interface RoomOptions {
-	/** Merge a doc's update log into one entry once it grows past this many. */
-	compactAfter?: number;
-}
-
 interface DocEntry {
-	doc: Y.Doc;
-	ready: Promise<void>;
 	peers: Set<Peer>;
-	/** Updates currently in the store, used to decide when to compact. */
-	logged: number;
-	/** Tail of the per-doc write chain; awaiting it means everything queued is stored. */
-	writes: Promise<void>;
+	/** Everything that touches this doc's log runs here, one at a time, in arrival order. */
+	chain: Promise<void>;
 }
 
 /**
@@ -37,110 +26,76 @@ interface DocEntry {
  * Runtime-agnostic. The Bun server holds one in process; Cloudflare holds one per
  * Durable Object. Only talks to sockets through `RoomConnection` and to disk through
  * `UpdateStore`.
+ *
+ * The room is blind: it appends sealed blobs, numbers them, relays them and tells devices
+ * when a doc they are not watching changed. It never decodes a blob, so it holds no docs
+ * in memory and cannot read a note.
  */
 export class Room {
 	private docs = new Map<string, DocEntry>();
 	private peers = new Set<Peer>();
-	private compactAfter: number;
 
-	constructor(
-		private store: UpdateStore,
-		options: RoomOptions = {},
-	) {
-		this.compactAfter = options.compactAfter ?? 100;
-	}
+	constructor(private store: UpdateStore) {}
 
 	/** Registers a new device connection. */
 	join(conn: RoomConnection): Peer {
-		const peer = new Peer(this, conn);
+		const peer = new Peer(this, conn, this.store);
 		this.peers.add(peer);
 		return peer;
 	}
 
-	/** Resolves once every update received so far has been written to the store. */
+	/** Resolves once everything received so far has been written to the store. */
 	async flush(): Promise<void> {
-		await Promise.all([...this.docs.values()].map((e) => e.writes));
+		await Promise.all([...this.docs.values()].map((e) => e.chain));
 	}
 
-	/** Number of docs held in memory (docs with no subscribers are dropped). */
+	/** Number of docs with a subscriber or work in flight. */
 	get loadedDocs(): number {
 		return this.docs.size;
 	}
 
-	/** Current state of a doc, loading it if needed. For tests and server-side readers (history, share). */
-	async readDoc(docId: string): Promise<Uint8Array> {
-		const entry = this.entryFor(docId);
-		await entry.ready;
-		const state = Y.encodeStateAsUpdate(entry.doc);
-		this.evictIfUnused(docId, entry);
-		return state;
-	}
-
 	/** @internal */
 	entryFor(docId: string): DocEntry {
-		const existing = this.docs.get(docId);
-		if (existing) return existing;
-		const doc = new Y.Doc();
-		const entry: DocEntry = {
-			doc,
-			peers: new Set(),
-			logged: 0,
-			writes: Promise.resolve(),
-			ready: Promise.resolve(),
-		};
-		entry.ready = (async () => {
-			const updates = await this.store.load(docId);
-			Y.transact(doc, () => {
-				for (const u of updates) Y.applyUpdate(doc, u);
-			});
-			entry.logged = updates.length;
-			// Listen only after loading so replaying the log is not re-appended to it.
-			doc.on("update", (update: Uint8Array, origin: unknown) =>
-				this.onUpdate(docId, entry, update, origin),
-			);
-		})();
-		this.docs.set(docId, entry);
+		let entry = this.docs.get(docId);
+		if (!entry) {
+			entry = { peers: new Set(), chain: Promise.resolve() };
+			this.docs.set(docId, entry);
+		}
 		return entry;
 	}
 
-	private onUpdate(
-		docId: string,
-		entry: DocEntry,
-		update: Uint8Array,
-		origin: unknown,
-	): void {
-		entry.writes = entry.writes
-			.then(async () => {
-				await this.store.append(docId, update);
-				entry.logged += 1;
-				if (entry.logged > this.compactAfter) {
-					await this.store.replaceAll(docId, Y.encodeStateAsUpdate(entry.doc));
-					entry.logged = 1;
-				}
-			})
+	/** @internal Runs `work` after everything already queued for the doc. */
+	run(docId: string, work: (entry: DocEntry) => Promise<void>): Promise<void> {
+		const entry = this.entryFor(docId);
+		const next = entry.chain
+			.then(() => work(entry))
 			.catch((err) => {
-				// A failed write must not wedge the chain; the next update's state vector diff
-				// lets clients re-send what is missing after a reconnect.
-				console.error(`[room] failed to store update for ${docId}`, err);
+				console.error(`[room] work on ${docId} failed`, err);
 			});
-
-		for (const peer of this.peers) {
-			if (peer === origin) continue;
-			if (entry.peers.has(peer)) peer.send(encodeUpdate(docId, update));
-			else peer.notify(docId);
-		}
+		entry.chain = next;
+		void next.then(() => this.evictIfUnused(docId, entry));
+		return next;
 	}
 
 	/** @internal */
 	evictIfUnused(docId: string, entry: DocEntry): void {
-		if (entry.peers.size > 0) return;
-		void entry.writes.then(() => {
-			// Check and delete in one synchronous step so a peer that subscribed meanwhile keeps the doc.
-			if (entry.peers.size === 0 && this.docs.get(docId) === entry) {
-				this.docs.delete(docId);
-				entry.doc.destroy();
-			}
-		});
+		if (entry.peers.size === 0 && this.docs.get(docId) === entry) {
+			void entry.chain.then(() => {
+				// Check and delete in one synchronous step so a peer that subscribed meanwhile keeps it.
+				if (entry.peers.size === 0 && this.docs.get(docId) === entry)
+					this.docs.delete(docId);
+			});
+		}
+	}
+
+	/** @internal Every other device hears about a new entry: live if subscribed, else a notice. */
+	relay(docId: string, from: Peer, seq: number, blob: Uint8Array): void {
+		const entry = this.docs.get(docId);
+		for (const peer of this.peers) {
+			if (peer === from) continue;
+			if (entry?.peers.has(peer)) peer.send(encodeEntry(docId, seq, blob));
+			else peer.notify(docId);
+		}
 	}
 
 	/** @internal */
@@ -151,7 +106,7 @@ export class Room {
 }
 
 export class Peer {
-	/** Docs this device receives live updates for. */
+	/** Docs this device receives live entries for. */
 	readonly subscriptions = new Set<string>();
 	/** Docs we already sent a change notice for since the device last looked at them. */
 	private notified = new Set<string>();
@@ -161,6 +116,7 @@ export class Peer {
 	constructor(
 		private room: Room,
 		private conn: RoomConnection,
+		private store: UpdateStore,
 	) {}
 
 	/** @internal */
@@ -215,34 +171,45 @@ export class Peer {
 		if (!frame || this.closed) return;
 		const { docId } = frame;
 
-		if (frame.kind === FrameKind.Unsubscribe) {
-			if (this.subscriptions.has(docId)) this.unsubscribe(docId);
-			return;
-		}
-		if (frame.kind !== FrameKind.Sync) return;
+		switch (frame.kind) {
+			case FrameKind.Unsubscribe:
+				if (this.subscriptions.has(docId)) this.unsubscribe(docId);
+				return;
 
-		const entry = this.room.entryFor(docId);
-		// Subscribing is a synchronous step so the doc cannot be evicted while we wait for it to load.
-		const subscribing = !this.subscriptions.has(docId);
-		if (subscribing) {
-			this.subscriptions.add(docId);
-			this.notified.delete(docId);
-			entry.peers.add(this);
-		}
-		await entry.ready;
-		if (this.closed) return;
+			case FrameKind.Subscribe:
+				// History and the subscription are one step on the doc's chain, so no entry can
+				// slip in between "what was stored" and "what is live".
+				await this.room.run(docId, async (entry) => {
+					if (this.closed) return;
+					for (const e of await this.store.loadAfter(docId, frame.afterSeq))
+						this.send(encodeEntry(docId, e.seq, e.data));
+					const { head, count } = await this.store.stat(docId);
+					this.subscriptions.add(docId);
+					this.notified.delete(docId);
+					entry.peers.add(this);
+					this.send(encodeReady(docId, head, count));
+				});
+				return;
 
-		const result = applySyncMessage(docId, frame.body, entry.doc, this);
-		if (result.wasStep1) {
-			// Ask for what the device has that we lack; it answers with a step 2. Sent before our
-			// own step 2 so the device knows it still owes us data when it finishes the handshake.
-			this.send(encodeSyncStep1(docId, entry.doc));
-		}
-		if (result.reply) this.send(result.reply);
-		if (result.carriedData) {
-			// Ack only once the update is on disk, so "Synced" in the UI is honest.
-			await entry.writes;
-			this.send(encodeAck(docId));
+			case FrameKind.Push:
+				await this.room.run(docId, async () => {
+					const seq = await this.store.append(docId, frame.blob);
+					// Ack only once it is on disk, so "Synced" in the UI is honest.
+					this.send(encodeAck(docId, seq));
+					this.room.relay(docId, this, seq, frame.blob);
+				});
+				return;
+
+			case FrameKind.Snapshot:
+				await this.room.run(docId, async () => {
+					const { head } = await this.store.stat(docId);
+					if (frame.upto < 1 || frame.upto > head) return;
+					await this.store.replaceUpTo(docId, frame.upto, frame.blob);
+				});
+				return;
+
+			default:
+				return;
 		}
 	}
 }

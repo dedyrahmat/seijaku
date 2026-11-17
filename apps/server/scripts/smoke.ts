@@ -1,19 +1,36 @@
 /**
  * Black-box check of a running sync server (Bun or Cloudflare):
- *   bun scripts/smoke.ts ws://localhost:8787/sync [idleSeconds]
+ *   bun scripts/smoke.ts ws://localhost:8791/sync [idleSeconds]
+ * The server needs a session: pass the value of the "seijaku.session_token" cookie from a
+ * signed-in browser as SEIJAKU_COOKIE (e.g. "seijaku.session_token=...").
  * Two devices edit one note, then a third joins fresh and must see both edits.
  * With idleSeconds, the devices sit idle first (long enough for a Cloudflare Durable Object
  * to hibernate) and must still relay edits afterwards.
  */
-import { noteDocId, SyncClient } from "@seijaku/sync";
+import {
+	createCipher,
+	newWorkspaceKey,
+	noteDocId,
+	SyncClient,
+} from "@seijaku/sync";
 import * as Y from "yjs";
 
-const url = process.argv[2] ?? "ws://localhost:8787/sync";
+const url = process.argv[2] ?? "ws://localhost:8791/sync";
 const idle = Number(process.argv[3] ?? 0);
 const docId = noteDocId(`smoke-${Date.now()}`);
 
+// Any key will do: the server only stores sealed blobs, and these devices share this one.
+const cipher = createCipher(newWorkspaceKey());
+const cookie = process.env.SEIJAKU_COOKIE ?? "";
+
 function device() {
-	const client = new SyncClient({ url: () => url, minDelay: 100 });
+	const client = new SyncClient({
+		url: () => url,
+		cipher: () => cipher,
+		createSocket: (u) =>
+			new WebSocket(u, { headers: { Cookie: cookie } } as never) as never,
+		minDelay: 100,
+	});
 	client.start();
 	return { client, doc: new Y.Doc() };
 }

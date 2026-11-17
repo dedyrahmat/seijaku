@@ -8,8 +8,8 @@ export default defineConfig({
 		port: 5173,
 		// In development the sync server runs beside Vite; the app talks to it on the same origin.
 		proxy: {
-			"/sync": { target: "http://localhost:8787", ws: true },
-			"/api": "http://localhost:8787",
+			"/sync": { target: "http://localhost:8791", ws: true },
+			"/api": "http://localhost:8791",
 		},
 	},
 });

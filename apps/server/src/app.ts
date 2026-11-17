@@ -1,4 +1,5 @@
-import { Hono } from "hono";
+import { Hono, type MiddlewareHandler } from "hono";
+import type { AuthService } from "./auth";
 import {
 	BLOB_ID,
 	type BlobStore,
@@ -11,10 +12,25 @@ import {
 /**
  * The HTTP surface shared by both hosting targets. WebSocket upgrades are handled in the
  * runtime entry points (bun.ts, worker.ts) because they differ per runtime.
- * Auth, history and share routes join here in later phases.
+ * With `auth`, files need a session and the sign-in routes are served under /api/auth.
+ * History and share routes join here in later phases.
  */
-export function createApp(blobs: BlobStore) {
+export function createApp(blobs: BlobStore, auth?: AuthService) {
 	const app = new Hono();
+
+	if (auth) {
+		app.on(["GET", "POST"], "/api/auth/*", async (c) => {
+			await auth.ready;
+			return auth.auth.handler(c.req.raw);
+		});
+		const needSession: MiddlewareHandler = async (c, next) => {
+			if (!(await auth.userId(c.req.raw.headers)))
+				return c.json({ error: "sign in first" }, 401);
+			await next();
+		};
+		app.use("/api/files", needSession);
+		app.use("/api/files/*", needSession);
+	}
 
 	app.get("/api/health", (c) => c.json({ ok: true }));
 

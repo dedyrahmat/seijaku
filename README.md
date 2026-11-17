@@ -52,12 +52,23 @@ Each phase ends in something runnable, and work stops after every phase for revi
 - [ ] Reload offline still opens notes: needs the service worker, phase 9
 - [ ] Playwright automation of the two-context test
 
-### Phase 4: Auth
+### Phase 4: Auth (done)
 
-- [ ] Spike Better Auth passkeys on both runtimes (fallback: `@simplewebauthn` with own sessions)
-- [ ] First-run setup gated by `SETUP_TOKEN`, then registration closes
-- [ ] Passkey sign-in and recovery codes
-- [ ] Session checks on HTTP and WebSocket upgrade
+- [x] Spike Better Auth passkeys on both runtimes (fallback: `@simplewebauthn` with own sessions)
+- [x] First-run setup gated by `SETUP_TOKEN`, then registration closes
+- [x] Passkey and recovery-phrase sign-in, end-to-end encryption
+- [x] Session checks on HTTP and WebSocket upgrade
+
+### Accounts rework (accepted, not built)
+
+Sign-in becomes optional and accounts work like a wallet. Steps and checks are in [docs/AUTH-REWORK.md](docs/AUTH-REWORK.md).
+
+- [x] Move the default dev server port off 8787 (to 8791)
+- [ ] Use the app without an account; signing in turns sync on and uploads local notes
+- [ ] Anyone can create an account with a passkey or a 12-word phrase; one encrypted workspace per account
+- [ ] `SETUP_TOKEN` becomes an optional sign-up code
+- [ ] A passkey alone opens notes on a new device (WebAuthn PRF), with the phrase as fallback
+- [ ] One-container self-host: Bun serves the web build, Dockerfile and compose
 
 ### Phase 5: Attachments
 
@@ -106,8 +117,10 @@ Each phase ends in something runnable, and work stops after every phase for revi
 ### Phase 11: Deploy
 
 - [ ] `wrangler.jsonc` and D1 migrations for Cloudflare
-- [ ] Dockerfile and compose for self-hosting
+- [ ] Dockerfile and compose for self-hosting (moved into the accounts rework above)
 - [ ] Deployment docs for both paths
+
+Hosting, in order of priority: self-hosted Bun in one container (a VPS, Railway, Fly, Render or anything that runs Docker with a volume), then Cloudflare. Static-only hosts such as Vercel cannot run the server, because it needs a long-lived WebSocket and a SQLite file.
 
 ## Getting started
 
@@ -119,6 +132,14 @@ bun run --cwd apps/web dev
 ```
 
 Open http://localhost:5173.
+
+For sync and sign-in, run the server beside it:
+
+```bash
+bun run --cwd apps/server dev
+```
+
+It listens on port 8791, and Vite proxies `/api` and `/sync` to that port. If the app says it "cannot reach the server", check that another program is not already using 8791. If one is, start the server with `PORT=<other>` and change the two proxy targets in `apps/web/vite.config.ts` to match.
 
 ### Commands
 

@@ -3,7 +3,12 @@ import {
 	createRoute,
 	createRouter,
 } from "@tanstack/react-router";
-import { RecoveryPage, SetupPage, SignInPage } from "./pages/AuthPages";
+import {
+	RecoveryPage,
+	SetupPage,
+	SignInPage,
+	UnlockPage,
+} from "./pages/AuthPages";
 import { CapturePage } from "./pages/CapturePage";
 import { Home } from "./pages/Home";
 import { ImportPage } from "./pages/ImportPage";
@@ -65,8 +70,14 @@ const setupRoute = createRoute({
 
 const recoveryRoute = createRoute({
 	getParentRoute: () => rootRoute,
-	path: "/recovery-codes",
+	path: "/recovery-phrase",
 	component: RecoveryPage,
+});
+
+const unlockRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/unlock",
+	component: UnlockPage,
 });
 
 const captureRoute = createRoute({
@@ -92,6 +103,7 @@ export const router = createRouter({
 		signInRoute,
 		setupRoute,
 		recoveryRoute,
+		unlockRoute,
 		captureRoute,
 		publicRoute,
 	]),

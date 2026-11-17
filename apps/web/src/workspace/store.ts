@@ -1,8 +1,9 @@
 import {
 	type Attachment,
+	type DocSyncState,
 	fragmentText,
 	INDEX_DOC_ID,
-	isValidDocId,
+	isValidLocalDocId,
 	listNotes,
 	NOTE_FRAGMENT,
 	type NoteMeta,
@@ -11,6 +12,7 @@ import {
 } from "@seijaku/sync";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
+import { authStore } from "../auth/session";
 import { getPrefs } from "../preferences";
 import { currentSyncUrl } from "./syncUrl";
 
@@ -41,7 +43,13 @@ const CATCH_UP_PARALLEL = 4;
 class Workspace {
 	readonly index = new Y.Doc();
 	readonly ready: Promise<void>;
-	readonly sync = new SyncClient({ url: currentSyncUrl });
+	readonly sync = new SyncClient({
+		url: currentSyncUrl,
+		cipher: () => authStore.getCipher(),
+		// A refused sign-in looks like a socket that never opened: ask the server who we are.
+		onConnectFailed: () => void authStore.refresh(),
+	});
+	private attached = false;
 	private sessions = new Map<string, Held>();
 	private snapshot: NoteMeta[] = [];
 	private listeners = new Set<() => void>();
@@ -60,15 +68,23 @@ class Workspace {
 		const persistence = new IndexeddbPersistence("seijaku-index", this.index);
 		this.index.on("update", () => {
 			this.snapshot = listNotes(this.index);
+			for (const n of this.snapshot) this.sync.learn(noteDocId(n.id));
 			for (const l of this.listeners) l();
 			this.scheduleCatchUp();
 		});
 		this.ready = persistence.whenSynced.then(() => {
 			this.snapshot = listNotes(this.index);
 			// Join the server only after local data is loaded, so the handshake sends one diff.
-			this.indexAttachment = this.sync.attach(INDEX_DOC_ID, this.index);
-			if (!getPrefs().workOffline) this.sync.start();
+			this.attached = true;
+			return this.attachDoc(INDEX_DOC_ID, this.index, persistence, false).then(
+				(a) => {
+					this.indexAttachment = a;
+					this.applyAuth();
+				},
+			);
 		});
+
+		authStore.subscribe(() => this.applyAuth());
 
 		// Ask the browser not to evict our data under storage pressure (matters most on iOS).
 		const asked = navigator.storage?.persist?.() ?? Promise.resolve(false);
@@ -98,6 +114,38 @@ class Workspace {
 		document.addEventListener("visibilitychange", () => {
 			if (document.visibilityState === "visible") this.sync.reconnectNow();
 		});
+	}
+
+	/** Sync runs only while this device is signed in; signing out drops the connection. */
+	/**
+	 * Joins a doc to the sync client, remembering how far into the server's log it has read
+	 * so a reload does not transfer the whole doc again.
+	 */
+	private async attachDoc(
+		docId: string,
+		doc: Y.Doc,
+		persistence: IndexeddbPersistence,
+		quiet: boolean,
+	): Promise<Attachment> {
+		const saved = (await persistence.get("sync").catch(() => null)) as
+			| DocSyncState
+			| null
+			| undefined;
+		return this.sync.attach(docId, doc, {
+			quiet,
+			state: saved ?? null,
+			onState: (state) => void persistence.set("sync", state as never),
+		});
+	}
+
+	private applyAuth(): void {
+		if (!this.attached) return;
+		if (authStore.getState().phase === "signed-in") {
+			for (const n of this.snapshot) this.sync.learn(noteDocId(n.id));
+			if (!getPrefs().workOffline) this.sync.start();
+		} else if (authStore.getState().phase !== "checking") {
+			this.sync.stop();
+		}
 	}
 
 	subscribe = (listener: () => void): (() => void) => {
@@ -142,7 +190,16 @@ class Workspace {
 				existing.transient = false;
 				if (existing.attachment) {
 					existing.attachment.detach();
-					existing.attachment = this.sync.attach(noteDocId(id), existing.doc);
+					existing.attachment = null;
+					void this.attachDoc(
+						noteDocId(id),
+						existing.doc,
+						existing.persistence,
+						false,
+					).then((a) => {
+						if (existing.released) a.detach();
+						else existing.attachment = a;
+					});
 				}
 			}
 			return existing;
@@ -161,9 +218,16 @@ class Workspace {
 			attachment: null,
 			transient,
 			released: false,
-			ready: persistence.whenSynced.then(() => {
+			ready: persistence.whenSynced.then(async () => {
 				if (held.released) return;
-				held.attachment = this.sync.attach(noteDocId(id), doc, held.transient);
+				const a = await this.attachDoc(
+					noteDocId(id),
+					doc,
+					persistence,
+					held.transient,
+				);
+				if (held.released) a.detach();
+				else held.attachment = a;
 			}),
 		};
 		this.sessions.set(id, held);
@@ -184,7 +248,7 @@ class Workspace {
 			.map((n) => n.id)
 			.filter(
 				(id) =>
-					isValidDocId(noteDocId(id)) &&
+					isValidLocalDocId(noteDocId(id)) &&
 					!this.caughtUp.has(id) &&
 					!this.sessions.has(id),
 			);

@@ -10,10 +10,16 @@ import {
 	type UpdateStore,
 } from "@seijaku/sync";
 import { createApp } from "./app";
+import {
+	type AuthService,
+	createAuthService,
+	resolveSecret,
+	rpIdFor,
+} from "./auth";
 import { DiskBlobStore } from "./disk-blobs";
 import { type SqlDriver, SqlUpdateStore } from "./sql-store";
 
-/** Self-host entry point: Hono over `Bun.serve`, one in-process room, bun:sqlite on disk. */
+/** Self-host entry point: Hono over `Bun.serve`, one in-process room per account, bun:sqlite on disk. */
 
 function bunDriver(db: Database): SqlDriver {
 	return {
@@ -27,34 +33,55 @@ function bunDriver(db: Database): SqlDriver {
 	};
 }
 
-export function openStore(path: string): UpdateStore {
+/** Opens the database once; each account's log is the same table under its own id prefix. */
+export function openStore(path: string): (userId: string) => UpdateStore {
 	if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
 	const db = new Database(path);
 	db.exec("PRAGMA journal_mode = WAL");
-	return new SqlUpdateStore(bunDriver(db));
+	const driver = bunDriver(db);
+	return (userId) => new SqlUpdateStore(driver, userId);
 }
 
 interface SocketData {
+	userId: string;
 	peer?: Peer;
 }
 
 export function startServer(options: {
 	port: number;
-	store: UpdateStore;
+	/** The log for one account ("" when there is no sign-in). */
+	store: (userId: string) => UpdateStore;
 	hostname?: string;
 	/** Directory for uploaded files. */
 	blobDir?: string;
+	/** Sign-in. Left out only by tests: without it the server is open to anyone. */
+	auth?: AuthService;
 }) {
-	const room = new Room(options.store);
-	const app = createApp(new DiskBlobStore(options.blobDir ?? "data/blobs"));
+	const rooms = new Map<string, Room>();
+	const roomFor = (userId: string) => {
+		const found = rooms.get(userId);
+		if (found) return found;
+		const room = new Room(options.store(userId));
+		rooms.set(userId, room);
+		return room;
+	};
+	const app = createApp(
+		new DiskBlobStore(options.blobDir ?? "data/blobs"),
+		options.auth,
+	);
 
 	const server = Bun.serve<SocketData>({
 		port: options.port,
 		hostname: options.hostname,
-		fetch(req, srv) {
+		async fetch(req, srv) {
 			const url = new URL(req.url);
 			if (url.pathname === "/sync") {
-				if (srv.upgrade(req, { data: {} })) return undefined;
+				const userId = options.auth
+					? await options.auth.userId(req.headers)
+					: "";
+				if (userId === null)
+					return new Response("Sign in first", { status: 401 });
+				if (srv.upgrade(req, { data: { userId } })) return undefined;
 				return new Response("Expected a WebSocket upgrade", { status: 426 });
 			}
 			return app.fetch(req);
@@ -62,7 +89,7 @@ export function startServer(options: {
 		websocket: {
 			maxPayloadLength: MAX_FRAME_BYTES,
 			open(ws) {
-				ws.data.peer = room.join({
+				ws.data.peer = roomFor(ws.data.userId).join({
 					send: (data) => ws.sendBinary(data),
 					close: (code, reason) => ws.close(code, reason),
 				});
@@ -81,18 +108,71 @@ export function startServer(options: {
 		},
 	});
 
-	return { server, room };
+	return {
+		server,
+		flush: () => Promise.all([...rooms.values()].map((r) => r.flush())),
+	};
+}
+
+/** The sign-in service, kept in the same SQLite file as the notes. */
+export async function openAuth(
+	dbPath: string,
+	env: Record<string, string | undefined>,
+	port: number,
+): Promise<AuthService> {
+	if (dbPath !== ":memory:") mkdirSync(dirname(dbPath), { recursive: true });
+	const db = new Database(dbPath);
+	db.exec("PRAGMA journal_mode = WAL");
+	db.exec(
+		"CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
+	);
+	const secret = await resolveSecret(env.AUTH_SECRET, {
+		get: async () => {
+			const row = db
+				.query("SELECT value FROM meta WHERE key = 'auth_secret'")
+				.get() as { value: string } | null;
+			return row?.value ?? null;
+		},
+		set: async (value) => {
+			db.query(
+				"INSERT OR REPLACE INTO meta (key, value) VALUES ('auth_secret', ?)",
+			).run(value);
+		},
+	});
+	// Through the Vite dev server the page is on 5173 while this server has its own port.
+	const origins = (
+		env.SEIJAKU_ORIGIN ?? `http://localhost:5173,http://localhost:${port}`
+	)
+		.split(",")
+		.map((o) => o.trim().replace(/\/+$/, ""))
+		.filter(Boolean);
+	const service = createAuthService({
+		database: db,
+		origins,
+		rpID: rpIdFor(origins[0] as string, env.SEIJAKU_RP_ID),
+		secret,
+		setupToken: env.SETUP_TOKEN,
+	});
+	await service.ready;
+	return service;
 }
 
 if (import.meta.main) {
-	const port = Number(process.env.PORT ?? 8787);
+	const port = Number(process.env.PORT ?? 8791);
 	const dbPath = process.env.SEIJAKU_DB ?? "data/seijaku.sqlite";
+	const auth = await openAuth(dbPath, process.env, port);
 	const { server } = startServer({
 		port,
 		store: openStore(dbPath),
 		blobDir: process.env.SEIJAKU_BLOBS ?? "data/blobs",
+		auth,
 	});
 	console.log(
 		`Seijaku server on http://localhost:${server.port} (db: ${dbPath})`,
+	);
+	console.log(
+		process.env.SETUP_TOKEN
+			? "Sign-up needs the SETUP_TOKEN code."
+			: "Sign-up is open. Set SETUP_TOKEN to require a code.",
 	);
 }

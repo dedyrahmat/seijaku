@@ -1,16 +1,25 @@
 import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
-import * as syncProtocol from "y-protocols/sync";
-import type * as Y from "yjs";
 
 /**
  * Wire protocol between a device and the workspace room.
  *
- * One WebSocket carries every doc of the workspace. Each binary frame is
+ * The server cannot read notes: every payload is a sealed blob, and docs are named by an
+ * opaque id (see `Cipher.remoteId`). It keeps an ordered log of blobs per doc and hands
+ * them out; devices do the merging.
+ *
+ * One WebSocket carries every doc. Each binary frame is
  *   varString docId | varUint kind | kind-specific payload
- * where `sync` frames hold a y-protocols sync message (step 1, step 2 or update),
- * `ack` is the server confirming it has stored an update, and `notify` tells a
- * device that a doc it is not subscribed to has changed.
+ *
+ *   device -> server   Subscribe(afterSeq)   "send me entries after this, then keep me posted"
+ *                      Push(blob)            "store this"
+ *                      Snapshot(upto, blob)  "replace entries up to `upto` with this one"
+ *                      Unsubscribe
+ *   server -> device   Entry(seq, blob)      one stored entry (history or live)
+ *                      Ready(head, count)    that is everything stored at subscribe time
+ *                      Ack(seq)              your Push is stored, at this seq
+ *                      Notify                a doc you are not subscribed to changed
+ *                      Resync                the server lost your subscriptions: subscribe again
  *
  * Text frames "ping" / "pong" are the keep-alive (browsers cannot send WS ping frames).
  */
@@ -18,29 +27,44 @@ import type * as Y from "yjs";
 export const INDEX_DOC_ID = "index";
 
 export const FrameKind = {
-	Sync: 0,
 	Ack: 1,
 	Notify: 2,
-	/** Client no longer wants live updates for this doc. */
+	/** Device no longer wants live entries for this doc. */
 	Unsubscribe: 3,
-	/** Server lost its per-socket state (a Durable Object woke from hibernation): subscribe again. */
+	/** Server lost its per-socket state (a Durable Object woke from hibernation). */
 	Resync: 4,
+	Subscribe: 5,
+	Push: 6,
+	Entry: 7,
+	Ready: 8,
+	Snapshot: 9,
 } as const;
 export type FrameKind = (typeof FrameKind)[keyof typeof FrameKind];
 
-/** The index doc, or `note-<id>` where id is a generated id or `daily-YYYY-MM-DD`. */
-const DOC_ID = /^(index|note-[A-Za-z0-9_-]{1,64})$/;
+/** What the server calls a doc: `d` and 32 hex characters. Anything else is refused. */
+const REMOTE_DOC_ID = /^d[a-f0-9]{32}$/;
 
 export function isValidDocId(id: string): boolean {
-	return DOC_ID.test(id);
+	return REMOTE_DOC_ID.test(id);
 }
 
+/** A local doc id: the index, or `note-<id>` where id is generated or `daily-YYYY-MM-DD`. */
+const LOCAL_DOC_ID = /^(index|note-[A-Za-z0-9_-]{1,64})$/;
+
+export function isValidLocalDocId(id: string): boolean {
+	return LOCAL_DOC_ID.test(id);
+}
+
+/** Local (readable) id of a note's doc. Never sent to the server as is. */
 export function noteDocId(noteId: string): string {
 	return `note-${noteId}`;
 }
 
 /** Largest frame the room accepts (guards memory; a note rarely approaches this). */
 export const MAX_FRAME_BYTES = 8 * 1024 * 1024;
+
+/** Used when a doc has no resync target of its own (Resync frames name no doc). */
+export const RESYNC_DOC_ID = `d${"0".repeat(32)}`;
 
 export const PING = "ping";
 export const PONG = "pong";
@@ -52,21 +76,55 @@ function begin(docId: string, kind: FrameKind): encoding.Encoder {
 	return enc;
 }
 
-/** Step 1 of the handshake: "here is what I have, send me what I am missing". */
-export function encodeSyncStep1(docId: string, doc: Y.Doc): Uint8Array {
-	const enc = begin(docId, FrameKind.Sync);
-	syncProtocol.writeSyncStep1(enc, doc);
+export function encodeSubscribe(docId: string, afterSeq: number): Uint8Array {
+	const enc = begin(docId, FrameKind.Subscribe);
+	encoding.writeVarUint(enc, afterSeq);
 	return encoding.toUint8Array(enc);
 }
 
-export function encodeUpdate(docId: string, update: Uint8Array): Uint8Array {
-	const enc = begin(docId, FrameKind.Sync);
-	syncProtocol.writeUpdate(enc, update);
+export function encodePush(docId: string, blob: Uint8Array): Uint8Array {
+	const enc = begin(docId, FrameKind.Push);
+	encoding.writeVarUint8Array(enc, blob);
 	return encoding.toUint8Array(enc);
 }
 
-export function encodeAck(docId: string): Uint8Array {
-	return encoding.toUint8Array(begin(docId, FrameKind.Ack));
+export function encodeSnapshot(
+	docId: string,
+	upto: number,
+	blob: Uint8Array,
+): Uint8Array {
+	const enc = begin(docId, FrameKind.Snapshot);
+	encoding.writeVarUint(enc, upto);
+	encoding.writeVarUint8Array(enc, blob);
+	return encoding.toUint8Array(enc);
+}
+
+export function encodeEntry(
+	docId: string,
+	seq: number,
+	blob: Uint8Array,
+): Uint8Array {
+	const enc = begin(docId, FrameKind.Entry);
+	encoding.writeVarUint(enc, seq);
+	encoding.writeVarUint8Array(enc, blob);
+	return encoding.toUint8Array(enc);
+}
+
+export function encodeReady(
+	docId: string,
+	head: number,
+	count: number,
+): Uint8Array {
+	const enc = begin(docId, FrameKind.Ready);
+	encoding.writeVarUint(enc, head);
+	encoding.writeVarUint(enc, count);
+	return encoding.toUint8Array(enc);
+}
+
+export function encodeAck(docId: string, seq: number): Uint8Array {
+	const enc = begin(docId, FrameKind.Ack);
+	encoding.writeVarUint(enc, seq);
+	return encoding.toUint8Array(enc);
 }
 
 export function encodeNotify(docId: string): Uint8Array {
@@ -78,12 +136,31 @@ export function encodeUnsubscribe(docId: string): Uint8Array {
 }
 
 export function encodeResync(): Uint8Array {
-	return encoding.toUint8Array(begin(INDEX_DOC_ID, FrameKind.Resync));
+	return encoding.toUint8Array(begin(RESYNC_DOC_ID, FrameKind.Resync));
 }
 
 export type DecodedFrame =
-	| { kind: typeof FrameKind.Sync; docId: string; body: decoding.Decoder }
-	| { kind: typeof FrameKind.Ack; docId: string }
+	| { kind: typeof FrameKind.Subscribe; docId: string; afterSeq: number }
+	| { kind: typeof FrameKind.Push; docId: string; blob: Uint8Array }
+	| {
+			kind: typeof FrameKind.Snapshot;
+			docId: string;
+			upto: number;
+			blob: Uint8Array;
+	  }
+	| {
+			kind: typeof FrameKind.Entry;
+			docId: string;
+			seq: number;
+			blob: Uint8Array;
+	  }
+	| {
+			kind: typeof FrameKind.Ready;
+			docId: string;
+			head: number;
+			count: number;
+	  }
+	| { kind: typeof FrameKind.Ack; docId: string; seq: number }
 	| { kind: typeof FrameKind.Notify; docId: string }
 	| { kind: typeof FrameKind.Unsubscribe; docId: string }
 	| { kind: typeof FrameKind.Resync; docId: string };
@@ -95,48 +172,33 @@ export function decodeFrame(data: Uint8Array): DecodedFrame | null {
 		const docId = decoding.readVarString(dec);
 		const kind = decoding.readVarUint(dec);
 		if (!isValidDocId(docId)) return null;
-		if (kind === FrameKind.Sync) return { kind, docId, body: dec };
-		if (kind === FrameKind.Ack) return { kind, docId };
-		if (kind === FrameKind.Notify) return { kind, docId };
-		if (kind === FrameKind.Unsubscribe) return { kind, docId };
-		if (kind === FrameKind.Resync) return { kind, docId };
-		return null;
+		switch (kind) {
+			case FrameKind.Subscribe:
+				return { kind, docId, afterSeq: decoding.readVarUint(dec) };
+			case FrameKind.Push:
+				return { kind, docId, blob: decoding.readVarUint8Array(dec) };
+			case FrameKind.Snapshot: {
+				const upto = decoding.readVarUint(dec);
+				return { kind, docId, upto, blob: decoding.readVarUint8Array(dec) };
+			}
+			case FrameKind.Entry: {
+				const seq = decoding.readVarUint(dec);
+				return { kind, docId, seq, blob: decoding.readVarUint8Array(dec) };
+			}
+			case FrameKind.Ready: {
+				const head = decoding.readVarUint(dec);
+				return { kind, docId, head, count: decoding.readVarUint(dec) };
+			}
+			case FrameKind.Ack:
+				return { kind, docId, seq: decoding.readVarUint(dec) };
+			case FrameKind.Notify:
+			case FrameKind.Unsubscribe:
+			case FrameKind.Resync:
+				return { kind, docId };
+			default:
+				return null;
+		}
 	} catch {
 		return null;
 	}
-}
-
-export interface SyncResult {
-	/** Frame to send back, when the message asked for a reply. */
-	reply: Uint8Array | null;
-	/** True when the message carried document content (step 2 or update). */
-	carriedData: boolean;
-	/** True for a step 2, the answer to our step 1. */
-	wasStep2: boolean;
-	/** True for a step 1, i.e. the peer asked us for our state. */
-	wasStep1: boolean;
-}
-
-/**
- * Applies one sync message body to `doc`. Throws if the message is malformed
- * or the update cannot be applied; callers drop the frame in that case.
- */
-export function applySyncMessage(
-	docId: string,
-	body: decoding.Decoder,
-	doc: Y.Doc,
-	origin: unknown,
-): SyncResult {
-	const type = decoding.peekVarUint(body);
-	const enc = begin(docId, FrameKind.Sync);
-	const start = encoding.length(enc);
-	syncProtocol.readSyncMessage(body, enc, doc, origin);
-	return {
-		reply: encoding.length(enc) > start ? encoding.toUint8Array(enc) : null,
-		carriedData:
-			type === syncProtocol.messageYjsSyncStep2 ||
-			type === syncProtocol.messageYjsUpdate,
-		wasStep2: type === syncProtocol.messageYjsSyncStep2,
-		wasStep1: type === syncProtocol.messageYjsSyncStep1,
-	};
 }

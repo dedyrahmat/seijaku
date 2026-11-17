@@ -1,10 +1,11 @@
-import type * as Y from "yjs";
+import * as Y from "yjs";
+import type { Cipher } from "./crypto";
 import {
-	applySyncMessage,
 	decodeFrame,
-	encodeSyncStep1,
+	encodePush,
+	encodeSnapshot,
+	encodeSubscribe,
 	encodeUnsubscribe,
-	encodeUpdate,
 	FrameKind,
 	PING,
 } from "./protocol";
@@ -23,11 +24,14 @@ export interface SocketLike {
 
 const OPEN = 1;
 
+/** A device that sees this many entries stored for a doc folds them into one. */
+const COMPACT_AFTER = 100;
+
 export type SyncStatus = "offline" | "syncing" | "synced";
 
 export interface SyncState {
 	status: SyncStatus;
-	/** Messages sent to the server that it has not yet confirmed as stored. */
+	/** Pushes sent to the server that it has not yet confirmed as stored. */
 	pending: number;
 	/** When the server last confirmed everything, or null if never this session. */
 	lastSyncedAt: number | null;
@@ -36,7 +40,11 @@ export interface SyncState {
 export interface SyncClientOptions {
 	/** Re-read on every connection attempt, so a changed server address takes effect. */
 	url: () => string;
+	/** The workspace key's cipher. While it returns null the client stays offline. */
+	cipher: () => Cipher | null;
 	createSocket?: (url: string) => SocketLike;
+	/** Called when a connection attempt ends before the server ever answered, e.g. a refused sign-in. */
+	onConnectFailed?: () => void;
 	/** Reconnect delay bounds in ms. */
 	minDelay?: number;
 	maxDelay?: number;
@@ -46,14 +54,43 @@ export interface SyncClientOptions {
 	random?: () => number;
 }
 
+/**
+ * What a device remembers about one doc's relationship with the server, so a reload does not
+ * download or upload the whole doc again: how far into the server's log it has read, and which
+ * state the server is known to hold.
+ */
+export interface DocSyncState {
+	lastSeq: number;
+	/** Yjs state vector of everything the server is known to have. */
+	remoteSV: Uint8Array;
+	/** The server name these two belong to. Another account or key makes them void. */
+	remoteId?: string;
+}
+
+export interface AttachOptions {
+	/** Background catch-up of a doc nobody is looking at; does not show in the status. */
+	quiet?: boolean;
+	/** Saved by an earlier session; pass what `onState` last delivered. */
+	state?: DocSyncState | null;
+	/** Called (batched) whenever the state worth remembering changes. */
+	onState?: (state: DocSyncState) => void;
+}
+
 interface Attached {
 	docId: string;
+	remoteId: string;
 	doc: Y.Doc;
-	/** Background catch-up of a doc nobody is looking at; does not show in the status. */
 	quiet: boolean;
-	/** The server has answered our step 1 on the current connection. */
+	/** The server has sent everything it had at subscribe time. */
 	handshaken: boolean;
-	pending: number;
+	/** Pushes sent on this connection and not yet acknowledged, oldest first. */
+	queue: Uint8Array[];
+	lastSeq: number;
+	remoteSV: Map<number, number>;
+	/** The server name that `lastSeq` and `remoteSV` were recorded under. */
+	stateFor: string | undefined;
+	saveState: ((s: DocSyncState) => void) | undefined;
+	dirty: boolean;
 	onUpdate: (update: Uint8Array, origin: unknown) => void;
 	waiters: Set<(ok: boolean) => void>;
 }
@@ -64,14 +101,25 @@ export interface Attachment {
 	detach(): void;
 }
 
+/** Folds the clocks an update carries into a state vector, keeping the larger of each. */
+function mergeSV(into: Map<number, number>, update: Uint8Array): void {
+	const sv = Y.decodeStateVector(Y.encodeStateVectorFromUpdate(update));
+	for (const [client, clock] of sv)
+		if (clock > (into.get(client) ?? 0)) into.set(client, clock);
+}
+
 /**
  * One WebSocket to the workspace room, carrying every attached doc.
- * Offline-first: nothing here blocks local editing. It connects, handshakes each doc
- * by state vector, streams local edits, and reconnects with backoff when the link drops.
+ * Offline-first: nothing here blocks local editing. It connects, reads what the server has
+ * for each doc, uploads what the server lacks, streams local edits, and reconnects with
+ * backoff when the link drops. Everything on the wire is sealed with the workspace key.
  */
 export class SyncClient {
 	private socket: SocketLike | null = null;
 	private docs = new Map<string, Attached>();
+	private byRemote = new Map<string, Attached>();
+	/** Server names of docs we know about but may not have attached, for change notices. */
+	private remoteToLocal = new Map<string, string>();
 	private listeners = new Set<() => void>();
 	private notifyListeners = new Set<(docId: string) => void>();
 	private state: SyncState = {
@@ -84,8 +132,18 @@ export class SyncClient {
 	private pingTimer: ReturnType<typeof setInterval> | null = null;
 	private lastRx = 0;
 	private running = false;
-	private opts: Required<Omit<SyncClientOptions, "url" | "createSocket">> &
-		Pick<SyncClientOptions, "url" | "createSocket">;
+	/** Whether the current socket got as far as opening. */
+	private opened = false;
+	private opts: Required<
+		Omit<
+			SyncClientOptions,
+			"url" | "cipher" | "createSocket" | "onConnectFailed"
+		>
+	> &
+		Pick<
+			SyncClientOptions,
+			"url" | "cipher" | "createSocket" | "onConnectFailed"
+		>;
 
 	constructor(options: SyncClientOptions) {
 		this.opts = {
@@ -112,6 +170,12 @@ export class SyncClient {
 		return () => this.notifyListeners.delete(listener);
 	}
 
+	/** Lets change notices for this doc be reported by its local id. */
+	learn(localId: string): void {
+		const cipher = this.opts.cipher();
+		if (cipher) this.remoteToLocal.set(cipher.remoteId(localId), localId);
+	}
+
 	start(): void {
 		if (this.running) return;
 		this.running = true;
@@ -135,29 +199,44 @@ export class SyncClient {
 		this.connect();
 	}
 
-	attach(docId: string, doc: Y.Doc, quiet = false): Attachment {
+	attach(
+		docId: string,
+		doc: Y.Doc,
+		options: boolean | AttachOptions = false,
+	): Attachment {
+		const opts: AttachOptions =
+			typeof options === "boolean" ? { quiet: options } : options;
 		const prev = this.docs.get(docId);
 		if (prev) this.release(prev, false);
 
+		const remoteSV = new Map<number, number>();
+		if (opts.state?.remoteSV.length)
+			for (const [c, n] of Y.decodeStateVector(opts.state.remoteSV))
+				remoteSV.set(c, n);
 		const entry: Attached = {
 			docId,
+			remoteId: "", // known once the key is available
+
 			doc,
-			quiet,
+			quiet: opts.quiet ?? false,
 			handshaken: false,
-			pending: 0,
+			queue: [],
+			lastSeq: opts.state?.lastSeq ?? 0,
+			remoteSV,
+			stateFor: opts.state?.remoteId,
+			saveState: opts.onState,
+			dirty: false,
 			waiters: new Set(),
 			onUpdate: (update, origin) => {
 				if (origin === this) return; // came from the server
-				if (this.isOpen()) {
-					entry.pending += 1;
-					this.send(encodeUpdate(docId, update));
-				}
+				// Until the server has answered, the upload after "ready" will carry this edit.
+				if (this.isOpen() && entry.handshaken) this.push(entry, update);
 				this.recompute();
 			},
 		};
 		doc.on("update", entry.onUpdate);
 		this.docs.set(docId, entry);
-		if (this.isOpen()) this.send(encodeSyncStep1(docId, doc));
+		if (this.isOpen()) this.subscribeDoc(entry);
 		this.recompute();
 
 		return {
@@ -169,7 +248,7 @@ export class SyncClient {
 	}
 
 	private whenSynced(entry: Attached): Promise<boolean> {
-		if (this.isOpen() && entry.handshaken && entry.pending === 0)
+		if (this.isOpen() && entry.handshaken && entry.queue.length === 0)
 			return Promise.resolve(true);
 		return new Promise((resolve) => entry.waiters.add(resolve));
 	}
@@ -177,9 +256,11 @@ export class SyncClient {
 	private release(entry: Attached, tellServer: boolean): void {
 		entry.doc.off("update", entry.onUpdate);
 		this.docs.delete(entry.docId);
+		if (entry.remoteId) this.byRemote.delete(entry.remoteId);
 		for (const w of entry.waiters) w(false);
 		entry.waiters.clear();
-		if (tellServer && this.isOpen()) this.send(encodeUnsubscribe(entry.docId));
+		if (tellServer && this.isOpen() && entry.remoteId)
+			this.send(encodeUnsubscribe(entry.remoteId));
 		this.recompute();
 	}
 
@@ -193,10 +274,66 @@ export class SyncClient {
 		} catch {
 			// The close handler will reconnect.
 		}
+		this.recompute();
+	}
+
+	/** Gives the doc its server name, once there is a key to make it with. */
+	private bind(entry: Attached): boolean {
+		const cipher = this.opts.cipher();
+		if (!cipher) return false;
+		const id = cipher.remoteId(entry.docId);
+		if (id !== entry.remoteId) {
+			// First bind, or the account or key changed since: what the old server held says
+			// nothing about the new one, so read and upload the doc in full.
+			if (entry.remoteId) this.byRemote.delete(entry.remoteId);
+			if (entry.stateFor && entry.stateFor !== id) {
+				entry.lastSeq = 0;
+				entry.remoteSV = new Map();
+				this.remember(entry);
+			}
+			entry.stateFor = id;
+			entry.remoteId = id;
+			this.byRemote.set(id, entry);
+			this.remoteToLocal.set(id, entry.docId);
+		}
+		return true;
+	}
+
+	private subscribeDoc(entry: Attached): void {
+		if (!this.bind(entry)) return;
+		entry.handshaken = false;
+		entry.queue = [];
+		this.send(encodeSubscribe(entry.remoteId, entry.lastSeq));
+	}
+
+	/** Seals one update and sends it; it counts as pending until the server acknowledges it. */
+	private push(entry: Attached, update: Uint8Array): void {
+		const cipher = this.opts.cipher();
+		if (!cipher) return;
+		entry.queue.push(update);
+		this.send(encodePush(entry.remoteId, cipher.seal(entry.docId, update)));
+	}
+
+	private remember(entry: Attached): void {
+		if (!entry.saveState || entry.dirty) return;
+		entry.dirty = true;
+		queueMicrotask(() => {
+			entry.dirty = false;
+			entry.saveState?.({
+				lastSeq: entry.lastSeq,
+				remoteSV: Y.encodeStateVector(entry.remoteSV),
+				remoteId: entry.remoteId,
+			});
+		});
 	}
 
 	private connect(): void {
 		if (!this.running) return;
+		if (!this.opts.cipher()) {
+			// No key on this device yet: nothing could be sealed or opened.
+			this.scheduleReconnect();
+			return;
+		}
 		let socket: SocketLike;
 		try {
 			const url = this.opts.url();
@@ -210,9 +347,11 @@ export class SyncClient {
 		socket.binaryType = "arraybuffer";
 		this.socket = socket;
 		let heard = false;
+		this.opened = false;
 
 		socket.onopen = () => {
 			if (this.socket !== socket) return;
+			this.opened = true;
 			this.lastRx = this.opts.now();
 			this.handshakeAll();
 			this.pingTimer = setInterval(() => {
@@ -245,20 +384,18 @@ export class SyncClient {
 		this.recompute();
 	}
 
-	/** Start over with every attached doc: tell the server what we have and ask for what we lack. */
+	/** Start over with every attached doc: ask the server for what we have not read yet. */
 	private handshakeAll(): void {
-		for (const e of this.docs.values()) {
-			e.handshaken = false;
-			e.pending = 0;
-			this.send(encodeSyncStep1(e.docId, e.doc));
-		}
+		for (const e of this.docs.values()) this.subscribeDoc(e);
 		this.recompute();
 	}
 
 	private onSocketGone(socket: SocketLike): void {
 		if (this.socket !== socket) return;
+		const neverOpened = !this.opened;
 		this.dropSocket();
 		this.scheduleReconnect();
+		if (neverOpened) this.opts.onConnectFailed?.();
 	}
 
 	private dropSocket(): void {
@@ -274,7 +411,7 @@ export class SyncClient {
 		}
 		for (const e of this.docs.values()) {
 			e.handshaken = false;
-			e.pending = 0;
+			e.queue = [];
 			for (const w of e.waiters) w(false);
 			e.waiters.clear();
 		}
@@ -302,38 +439,73 @@ export class SyncClient {
 			return;
 		}
 		if (frame.kind === FrameKind.Notify) {
-			for (const l of this.notifyListeners) l(frame.docId);
+			const local = this.remoteToLocal.get(frame.docId);
+			if (local) for (const l of this.notifyListeners) l(local);
 			return;
 		}
-		const entry = this.docs.get(frame.docId);
+		const entry = this.byRemote.get(frame.docId);
 		if (!entry) return;
 
-		if (frame.kind === FrameKind.Ack) {
-			entry.pending = Math.max(0, entry.pending - 1);
-		} else if (frame.kind === FrameKind.Sync) {
-			try {
-				const result = applySyncMessage(
-					frame.docId,
-					frame.body,
-					entry.doc,
-					this,
-				);
-				if (result.wasStep2) entry.handshaken = true;
-				if (result.reply) {
-					entry.pending += 1;
-					this.send(result.reply);
-				}
-			} catch (err) {
-				console.error("[sync] bad frame from server", err);
-				return;
-			}
+		if (frame.kind === FrameKind.Entry) {
+			this.applyEntry(entry, frame.seq, frame.blob);
+		} else if (frame.kind === FrameKind.Ready) {
+			this.ready(entry, frame.head, frame.count);
+		} else if (frame.kind === FrameKind.Ack) {
+			const sent = entry.queue.shift();
+			if (sent) mergeSV(entry.remoteSV, sent);
+			this.remember(entry);
 		}
 		this.settle(entry);
 		this.recompute();
 	}
 
+	private applyEntry(entry: Attached, seq: number, blob: Uint8Array): void {
+		if (seq <= entry.lastSeq) return; // a snapshot or entry we already hold
+		const cipher = this.opts.cipher();
+		if (!cipher) return;
+		try {
+			const update = cipher.open(entry.docId, blob);
+			Y.applyUpdate(entry.doc, update, this);
+			mergeSV(entry.remoteSV, update);
+			entry.lastSeq = seq;
+			this.remember(entry);
+		} catch (err) {
+			// Wrong key, or the server handed back something altered. Never apply it.
+			console.error("[sync] could not open an entry from the server", err);
+		}
+	}
+
+	/** The server has sent everything it held: upload what it lacks, and tidy a long log. */
+	private ready(entry: Attached, head: number, count: number): void {
+		if (head < entry.lastSeq || (head === 0 && entry.remoteSV.size > 0)) {
+			// The server holds less than we know it had: its data was reset. Start over from nothing.
+			entry.lastSeq = 0;
+			entry.remoteSV = new Map();
+			this.remember(entry);
+			this.subscribeDoc(entry);
+			return;
+		}
+		const missing = Y.encodeStateAsUpdate(
+			entry.doc,
+			Y.encodeStateVector(entry.remoteSV),
+		);
+		if (missing.length > 2) this.push(entry, missing);
+		entry.handshaken = true;
+		if (count > COMPACT_AFTER && entry.lastSeq === head) {
+			const cipher = this.opts.cipher();
+			if (cipher)
+				this.send(
+					encodeSnapshot(
+						entry.remoteId,
+						head,
+						cipher.seal(entry.docId, Y.encodeStateAsUpdate(entry.doc)),
+					),
+				);
+		}
+	}
+
 	private settle(entry: Attached): void {
-		if (entry.handshaken && entry.pending === 0) {
+		if (entry.handshaken && entry.queue.length === 0) {
 			for (const w of entry.waiters) w(true);
 			entry.waiters.clear();
 		}
@@ -344,7 +516,7 @@ export class SyncClient {
 		let waiting = false;
 		for (const e of this.docs.values()) {
 			if (e.quiet) continue;
-			pending += e.pending;
+			pending += e.queue.length;
 			if (!e.handshaken) waiting = true;
 		}
 		const open = this.isOpen();

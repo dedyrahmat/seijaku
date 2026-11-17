@@ -1,4 +1,6 @@
+import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../auth/session";
 import { useHomeScreenNotice, useSyncState } from "../workspace/hooks";
 import { ago } from "./ago";
 
@@ -8,18 +10,20 @@ import { ago } from "./ago";
  * plain-language line for the current state.
  */
 
-type Kind = "synced" | "syncing" | "offline" | "keep-safe";
+type Kind = "synced" | "syncing" | "offline" | "keep-safe" | "local";
 
 export function SyncStatus() {
 	const state = useSyncState();
 	const keepSafe = useHomeScreenNotice();
+	const signedOut = useAuth().phase === "signed-out";
 	const [open, setOpen] = useState(false);
 	const [now, setNow] = useState(() => Date.now());
 	const root = useRef<HTMLDivElement>(null);
 
 	// Offline beats everything; the Home Screen notice stays until the browser agrees to keep our data.
-	const kind: Kind =
-		state.status === "offline"
+	const kind: Kind = signedOut
+		? "local"
+		: state.status === "offline"
 			? "offline"
 			: keepSafe
 				? "keep-safe"
@@ -43,6 +47,7 @@ export function SyncStatus() {
 	}, [open]);
 
 	const label = {
+		local: "On this device only",
 		synced: "Synced",
 		syncing: "Syncing…",
 		offline: "Offline · saved on this device",
@@ -50,6 +55,8 @@ export function SyncStatus() {
 	}[kind];
 
 	const detail = {
+		local:
+			"Your notes are saved on this device. Sign in or create an account to sync them to your other devices.",
 		synced: `Every note is on this device and on your server. Last sync ${ago(state.lastSyncedAt, now)}.`,
 		syncing:
 			state.pending > 0
@@ -63,7 +70,7 @@ export function SyncStatus() {
 
 	// Filled dot: settled. Ring: in progress or waiting on you. Vermilion: needs attention.
 	const accent = kind === "offline" || kind === "keep-safe";
-	const hollow = kind === "syncing" || kind === "keep-safe";
+	const hollow = kind === "syncing" || kind === "keep-safe" || kind === "local";
 	const colour = accent ? "var(--accent)" : "var(--mute)";
 
 	return (
@@ -97,6 +104,14 @@ export function SyncStatus() {
 					<p className="text-sm leading-[1.55] text-ink2 [text-wrap:pretty]">
 						{detail}
 					</p>
+					{kind === "local" ? (
+						<Link
+							to="/sign-in"
+							className="mt-2.5 inline-block text-sm text-ink underline underline-offset-[3px]"
+						>
+							Sign in to sync
+						</Link>
+					) : null}
 				</div>
 			) : null}
 		</div>

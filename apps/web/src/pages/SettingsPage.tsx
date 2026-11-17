@@ -1,5 +1,13 @@
 import { useNavigate, useParams, useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import {
+	AccountRow,
+	DevicesGroup,
+	PasskeysGroup,
+	RecoveryGroup,
+	SignOutEverywhere,
+	useSignedOut,
+} from "../components/AccountSettings";
 import { ago } from "../components/ago";
 import { Logo } from "../components/Logo";
 import {
@@ -53,7 +61,6 @@ const SECTIONS = [
 type SectionId = (typeof SECTIONS)[number][0];
 
 const SOON = "Not available yet";
-const NEEDS_SIGN_IN = "Arrives with sign-in";
 
 /** The mockup's Settings boards: a dialog over the app, sections down the left. */
 export function SettingsPage() {
@@ -500,6 +507,7 @@ function EditorSettings() {
 function SyncSettings({ syncedLine }: { syncedLine: string }) {
 	const { p, set } = useSet();
 	const sync = useSyncState();
+	const signedOut = useSignedOut();
 	const keepSafe = useHomeScreenNotice();
 	const [server, setServer] = useState(savedServerUrl);
 	const [saved, setSaved] = useState(false);
@@ -601,18 +609,13 @@ function SyncSettings({ syncedLine }: { syncedLine: string }) {
 					/>
 				</Row>
 			</Group>
-			<Group name="Signed-in devices">
-				<Row label={`${deviceName()} · Web`} desc="Active now">
-					<Btn disabled>This device</Btn>
-				</Row>
-				<Row
-					label="Other devices"
-					desc="Every device with your passkey will be listed here, each with a Sign out."
-					note={NEEDS_SIGN_IN}
-				>
-					<span />
-				</Row>
-			</Group>
+			{signedOut ? (
+				<Group name="Account">
+					<AccountRow />
+				</Group>
+			) : (
+				<DevicesGroup />
+			)}
 		</>
 	);
 }
@@ -629,50 +632,18 @@ function deviceName(): string {
 
 function Security() {
 	const { p, set } = useSet();
+	const signedOut = useSignedOut();
 	return (
 		<>
-			<Group name="Account">
-				<Row
-					label="Email"
-					desc="Used to sign in and to send recovery links."
-					note={NEEDS_SIGN_IN}
-				>
-					<TextField
-						label="Email"
-						value=""
-						onChange={() => {}}
-						placeholder="you@example.com"
-						disabled
-					/>
-				</Row>
-				<Row
-					label="Password"
-					desc="Last changed 4 months ago."
-					note={NEEDS_SIGN_IN}
-				>
-					<Btn disabled>Change password</Btn>
-				</Row>
-				<Row
-					label="Two-step sign-in"
-					desc="Ask for a code from your authenticator app on new devices."
-					note={NEEDS_SIGN_IN}
-				>
-					<Toggle
-						label="Two-step sign-in"
-						on={false}
-						onChange={() => {}}
-						disabled
-					/>
-				</Row>
-			</Group>
+			{signedOut ? (
+				<Group name="Account">
+					<AccountRow />
+				</Group>
+			) : (
+				<PasskeysGroup deviceName={deviceName()} />
+			)}
 			<Group name="Recovery and lock">
-				<Row
-					label="Recovery codes"
-					desc="Eight of ten codes are unused. Keep them somewhere offline."
-					note={NEEDS_SIGN_IN}
-				>
-					<Btn disabled>View codes</Btn>
-				</Row>
+				{signedOut ? null : <RecoveryGroup />}
 				<Row
 					label="Lock after inactivity"
 					desc="Ask for your password or Face ID after you step away."
@@ -687,19 +658,11 @@ function Security() {
 				</Row>
 			</Group>
 			<Group name="Danger zone">
-				<Row
-					label="Sign out everywhere"
-					desc="Ends every session, including this one."
-					note={NEEDS_SIGN_IN}
-				>
-					<Btn danger disabled>
-						Sign out all
-					</Btn>
-				</Row>
+				{signedOut ? null : <SignOutEverywhere />}
 				<Row
 					label="Delete account"
 					desc="Removes your notes from every device. Export first."
-					note={NEEDS_SIGN_IN}
+					note={SOON}
 				>
 					<Btn danger disabled>
 						Delete…
@@ -797,7 +760,7 @@ function DataSettings() {
 				<Row
 					label="Public pages"
 					desc="Pages shared with a link."
-					note={NEEDS_SIGN_IN}
+					note="Arrives with sharing"
 				>
 					<Btn disabled>Manage links</Btn>
 				</Row>

@@ -8,6 +8,8 @@ Seijaku (静寂) is a new note-taking app: the Japanese Zen garden concept of "a
 
 ### Decisions confirmed with the user
 
+> **Accepted on 2026-11-17, not built yet:** sign-in becomes optional, anyone can create an account (one encrypted workspace each), `SETUP_TOKEN` becomes an optional sign-up code, a passkey alone opens notes where it supports PRF, and self-hosting ships as one container. This replaces the "Audience" row and the first-run setup under "Auth" below. The steps are in [AUTH-REWORK.md](AUTH-REWORK.md); the owner is building it by hand.
+
 | Area          | Decision                                                                                                                                                                             |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Audience      | Single user (owner), many devices. Keep the schema multi-user-ready, but no sign-ups.                                                                                                |
@@ -17,11 +19,12 @@ Seijaku (静寂) is a new note-taking app: the Japanese Zen garden concept of "a
 | Hosting       | **Both** Cloudflare and self-hosted Bun, from one codebase                                                                                                                           |
 | Frontend      | Vite + React SPA, TanStack Router                                                                                                                                                    |
 | ORM / tooling | Drizzle (SQLite dialect), Bun for package manager, dev, tests, self-host runtime                                                                                                     |
-| Sign-in       | Passkey, with recovery codes                                                                                                                                                         |
+| Sign-in       | Passkey and a 12-word recovery phrase (like a crypto wallet). The phrase also restores the encryption key                                                                            |
+| Privacy       | **End-to-end encrypted** (added after phase 4): the server stores sealed blobs and cannot read notes or files                                                                        |
 | v1 features   | Nested pages, images + attachments, tags, daily notes, full-text search, Ctrl/Cmd+K switcher, trash, version history, desktop quick capture, public read-only share links, importers |
 | v1 blocks     | Text, headings, lists, to-dos, quotes, dividers, images, code (syntax highlighting), simple tables, callouts, toggles, math (KaTeX), embeds (link previews, video)                   |
 | Import        | Obsidian, Notion, Google Keep, Apple Notes, Apple Journal, Evernote, plus generic Markdown/HTML/text for everything else                                                             |
-| Later         | [[wiki links]] + backlinks, Notion-style databases, E2E encryption (not planned), collaborative sharing                                                                              |
+| Later         | [[wiki links]] + backlinks, Notion-style databases, collaborative sharing                                                                                                            |
 | Working style | **Stop after every phase**, show it running, wait for the user's go-ahead                                                                                                            |
 | Look          | "Washi & ink": warm paper light theme, sumi-ink dark theme, serif headings, follows system                                                                                           |
 
@@ -43,6 +46,17 @@ packages/sync   Shared sync protocol + Room logic (Yjs), used by server and clie
 - **Note doc** (one Y.Doc per note): the block content, bound to the editor.
 - Daily notes use a deterministic id (`daily-YYYY-MM-DD`) so two offline devices creating "today" converge on one note.
 - Client persistence: `y-indexeddb`. Call `navigator.storage.persist()`; the server remains the durable copy (matters for iOS storage eviction).
+
+### End-to-end encryption
+
+Decided after phase 4, on the user's request: notes are sealed on the device, so the server (Bun or Cloudflare) cannot read them.
+
+- One random 256-bit **workspace key** (WK). Per-doc keys come from it with HKDF; every update is sealed with AES-256-GCM (noble, synchronous so ordering is simple), the doc's local id bound in as authenticated data. Files are sealed the same way with the name and type inside.
+- The server names docs by `d` + HMAC(local id) so `daily-2026-11-16` and note ids are not visible. It keeps an ordered log of opaque blobs per doc (`doc_log`: seq, doc id, blob) and relays them. It does no merging: devices do.
+- WK reaches new devices through the **recovery phrase**: 12 BIP39 words. HKDF turns the phrase's seed into a _login key_ (the server stores only an HMAC of it, so it can recognise the phrase) and a _wrapping key_ (never leaves the device; wraps WK). The server stores WK only wrapped.
+- A passkey signs in, but cannot by itself open notes on a device that lacks WK: that device shows "Unlock" and asks for the phrase (a WebAuthn PRF shortcut was left out; see "Not yet").
+- **Limits, stated plainly:** lose the phrase and every signed-in device and the notes are gone, with no server-side reset. The server still sees sizes, timing and the number of docs. The notes and the key in this browser's IndexedDB are not encrypted at rest, so this protects against the server, not against someone using an unlocked browser. Search stays on-device, so it is unaffected. Version history and share links (phase 7) must be built around it: clients make snapshots, and a share link carries a key in the URL fragment.
+- Server data from before this change was plaintext and is dropped; devices send their copies again, sealed.
 
 ### Sync
 
@@ -66,7 +80,7 @@ Adapter interfaces chosen at the entry point:
 ### Auth
 
 - Better Auth with the passkey plugin and Drizzle adapter (fallback: `@simplewebauthn` + own session table if it fights either runtime).
-- First-run setup claims the instance (gated by a `SETUP_TOKEN` env var), issues recovery codes, then registration is closed.
+- First-run setup claims the instance (gated by a `SETUP_TOKEN` env var), issues a recovery phrase, then registration is closed. (To be replaced by open, wallet-style sign-up with an optional sign-up code: see [AUTH-REWORK.md](AUTH-REWORK.md).)
 - Web/PWA: httpOnly session cookie. WebSocket upgrade checks the session.
 - **Desktop**: WebAuthn inside the Tauri webview is unreliable, so sign-in opens the system browser and returns via `seijaku://` deep link with a one-time code, exchanged for a device token kept in the OS keychain. Desktop has a "server URL" setting (needed for self-host).
 
@@ -123,15 +137,24 @@ Each phase ends in something runnable. **Stop after each phase**, demo it, and w
    - Done: one WebSocket per device carrying every doc. Frames are `docId | kind | payload`: `sync` (y-protocols step 1/2/update), `ack` (server has stored it, so "Synced" is honest), `notify` (a doc you are not watching changed; the client fetches it in the background and drops it from memory), `unsubscribe`, `resync` (a woken Durable Object asks devices to subscribe again). Text `ping`/`pong` keep-alive detects half-open sockets. The update log compacts into one merged update after 100 entries. Title bar status, word count and "Saved on this device" footer follow the mockup's Sync-States and Main boards.
    - Changed: the DO store uses raw SQL through a small `SqlDriver` (shared with `bun:sqlite`) instead of Drizzle `durable-sqlite`; `packages/db` is still for auth and metadata in phase 4.
    - Added afterwards, from a review against the mockup (these had been wrongly deferred): the Home splash with rotating haiku (no longer redirects to the last note), the full sidebar, Ctrl/Cmd K switcher with on-device body search, daily notes (`daily-YYYY-MM-DD`, Today row), tags, a Trash page with Delete forever and Empty trash, back/forward in the title bar, a generic Import page (Markdown, HTML, plain text), a Settings page (server address), and image/file upload: `POST /api/files` and `GET /api/files/:id` on both runtimes behind a `BlobStore` (disk for self-host, R2 on Cloudflare), wired to BlockNote's `uploadFile` so the slash menu, paste and drop all upload. Uploads need a connection (no offline queue yet) and files are served with `nosniff` and a sandbox CSP, non-media types only as downloads.
-   - Not yet: the sync endpoint is open to anyone who can reach it until auth (phase 4); the server address is the page's own origin (the saved "server URL" override is read but has no settings screen until phase 10); "Keep your notes safe" only appears on iPhone/iPad Safari outside the Home Screen app, since the copy tells people to add it there; the Durable Object was checked on `wrangler dev` (including a 25 s idle) but not on a deployed Cloudflare account, and hibernation itself was not confirmed.
-4. **Auth**: spike Better Auth passkeys on both runtimes first. Setup flow, passkey sign-in, recovery codes, session checks on HTTP and WS.
+   - Not yet: the server address is the page's own origin (the saved "server URL" override is read but has no settings screen until phase 10); "Keep your notes safe" only appears on iPhone/iPad Safari outside the Home Screen app, since the copy tells people to add it there; the Durable Object was checked on `wrangler dev` (including a 25 s idle) but not on a deployed Cloudflare account, and hibernation itself was not confirmed.
+4. **Auth** (DONE): spike first, then setup, passkey and phrase sign-in, end-to-end encryption, session checks on HTTP and WS.
+   - Spike: Better Auth 1.7 with the passkey plugin loads and migrates on workerd (D1) and on Bun (`bun:sqlite`), so the SimpleWebAuthn fallback was not needed. It takes the raw database (a `bun:sqlite` Database or the D1 binding) through its built-in adapters, so **Drizzle is not used for auth**; `packages/db` stays empty until a feature needs its own tables.
+   - Done: `apps/server/src/auth.ts` (shared by both runtimes) wraps Better Auth. First-run setup uses the passkey plugin's passkey-first registration: the setup token travels as the registration `context` and `resolveUser` checks it, so there is no account until a passkey exists. "Claimed" means at least one passkey exists; after that registration needs a session. A database hook refuses a second user. (Replaced by the recovery phrase; see below.) `GET /api/auth/seijaku/status` tells the app who it is. The WebSocket upgrade (Bun and the Worker, before the Durable Object) and `/api/files` return 401 without a session. Sessions are httpOnly cookies, 90 days.
+   - Web: `apps/web/src/auth/session.ts` is the session store. A device that was signed in opens straight from IndexedDB and stays signed in while the server is unreachable; only the server saying "no" signs it out (the sync client's new `onConnectFailed` hook asks). `Shell` sends signed-out devices to `/sign-in`, and unclaimed servers to `/setup`. Settings: passkeys (list, add, remove), recovery phrase (make a new one), signed-in devices (each with Sign out), Sign out everywhere.
+   - Config: `SETUP_TOKEN` (Bun prints a one-run token when unset), `AUTH_SECRET` (otherwise made and kept in the database), `SEIJAKU_ORIGIN` (comma-separated page origins; the Bun default covers the Vite dev server, the Worker falls back to the request's origin), `SEIJAKU_RP_ID`.
+   - Changed: the mockup's Email, Password and Two-step rows in Security are replaced by Passkeys, because there is no password.
+   - **Reworked after the first version** (user asked for phrase login like a crypto wallet, and for end-to-end encryption; see "End-to-end encryption"): the eight recovery codes are gone, because a code can sign in but cannot decrypt. A 12-word phrase replaces them. Setup offers **Create passkey** or **Generate a phrase instead** (phrase-only, no passkey); both end on "Keep this phrase safe". Sign-in offers passkey or phrase; `/unlock` handles a signed-in device without the key. Endpoints: `/api/auth/seijaku/claim`, `/phrase`, `/key-wraps` (GET list, POST store), `/status`. Settings → Security has "Make a new phrase", which ends the old one. Sync protocol rewritten (Subscribe / Push / Entry / Ready / Ack / Snapshot); the server Room no longer holds Y.Docs. Devices remember how far into each doc's log they have read (`lastSeq`) and which state the server holds (a state vector) in y-indexeddb, so a reload does not move whole docs; a server that lost its data is detected and refilled. A device that sees more than 100 entries for a doc folds them into one snapshot.
+   - Fixed in the same pass: the sign-in page said "cannot reach the server" because a leftover `wrangler dev` of mine held port 8787, so the real server had silently moved to 8788 behind Vite's proxy. The sign-in page now has Try again and "New server? Set it up", and setup no longer bounces away while the server is unreachable.
+   - Not yet: a WebAuthn PRF shortcut so a passkey sign-in on a new device could unlock without typing the phrase (needs per-authenticator support and a real device to check); Delete account (disabled, "Not available yet"); "Lock after inactivity" (disabled); D1 tables are created at first request, real `wrangler d1` migrations come in phase 11; rate limiting has no client IP on a bare Bun server (one shared bucket), so self-host behind a proxy that sets `X-Forwarded-For`; signing out leaves the notes in this browser's IndexedDB; not tried on a deployed Cloudflare account.
+   - **Accounts rework (accepted 2026-11-17, not built; the owner is building it by hand):** optional sign-in, many accounts with one room each, optional sign-up code, passkey unlock through WebAuthn PRF, default dev port moved off 8787, and the one-container self-host from phase 11 brought forward. Steps and checks: [AUTH-REWORK.md](AUTH-REWORK.md).
 5. **Attachments**: BlobStore adapters, upload/download, offline cache and queue; link-preview unfurl endpoint.
 6. **Organising**: tags, daily notes, search, quick switcher, trash, Markdown import/export.
 7. **History + sharing**: version snapshots and history panel; public share links.
 8. **Importers**: intermediate format + writer, then Obsidian, Notion, Keep, Evernote, Apple Notes, Apple Journal, generic.
 9. **PWA**: service worker app-shell caching, manifest, icons, iPhone home-screen polish (safe areas, keyboard handling).
 10. **Desktop**: Tauri 2 shell, deep-link sign-in, server URL setting, quick capture (hotkey + tray), auto-updater, GitHub Actions builds for Win/Mac/Linux.
-11. **Deploy**: `wrangler.jsonc` (DO, D1, R2, assets) + D1 migrations; Dockerfile and compose for self-host; README for both paths.
+11. **Deploy**: `wrangler.jsonc` (DO, D1, R2, assets) + D1 migrations; Dockerfile and compose for self-host; README for both paths. (The Dockerfile, compose file, Bun serving the web build and the Workers assets entry move into the accounts rework; D1 migrations and a real Cloudflare deploy stay here.)
 
 ## Verification
 
@@ -139,7 +162,7 @@ Each phase ends in something runnable. **Stop after each phase**, demo it, and w
 - Playwright: two browser contexts editing the same note see each other's changes; go offline, edit both, reconnect, confirm merge; reload offline and confirm notes open.
 - Cloudflare path: `wrangler dev`, then a deployed preview; repeat the two-context test.
 - Self-host path: `docker compose up`, repeat the two-context test.
-- Auth: setup, passkey sign-in, recovery code, rejected WS without session.
+- Auth: setup, passkey sign-in, phrase sign-in, unlock, rejected WS without session.
 - History/sharing: edit, restore an older version, confirm it syncs to a second context; open a share link logged out, revoke it, confirm 404.
 - Importers: fixture exports per format under `apps/web/test/fixtures/import/`, unit-tested through the intermediate form; real exports from the user for Apple formats.
 - Desktop: quick-capture hotkey appends to today's note while the main window is closed. `tauri dev` and a built installer on Windows; deep-link sign-in round trip. Mac/Linux builds verified via CI artefacts only (cannot be run from this machine).

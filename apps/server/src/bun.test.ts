@@ -1,8 +1,15 @@
 import { afterEach, expect, test } from "bun:test";
-import { INDEX_DOC_ID, noteDocId, SyncClient } from "@seijaku/sync";
+import {
+	createCipher,
+	INDEX_DOC_ID,
+	newWorkspaceKey,
+	noteDocId,
+	SyncClient,
+} from "@seijaku/sync";
 import * as Y from "yjs";
 import { openStore, startServer } from "./bun";
 
+const cipher = createCipher(newWorkspaceKey());
 const stops: (() => void)[] = [];
 afterEach(() => {
 	for (const stop of stops.splice(0)) stop();
@@ -19,6 +26,7 @@ async function until(check: () => boolean, ms = 3000) {
 function connect(port: number) {
 	const client = new SyncClient({
 		url: () => `ws://localhost:${port}/sync`,
+		cipher: () => cipher,
 		minDelay: 20,
 		maxDelay: 100,
 	});
@@ -44,7 +52,7 @@ test("two devices sync through a real Bun server and the data survives a restart
 	docA.getText("t").insert(0, "over a real socket");
 	await until(() => docB.getText("t").toString() === "over a real socket");
 	await until(() => a.getState().status === "synced");
-	await first.room.flush();
+	await first.flush();
 
 	a.stop();
 	b.stop();
@@ -74,9 +82,10 @@ test("the client reconnects when the server comes back", async () => {
 
 	const second = startServer({ port, store });
 	await until(() => client.getState().status === "synced", 5000);
-	await second.room.flush();
+	await second.flush();
 	const stored = new Y.Doc();
-	Y.applyUpdate(stored, await second.room.readDoc(INDEX_DOC_ID));
+	for (const e of await store("").loadAfter(cipher.remoteId(INDEX_DOC_ID), 0))
+		Y.applyUpdate(stored, cipher.open(INDEX_DOC_ID, e.data));
 	expect(stored.getText("t").toString()).toBe("typed while down");
 	await second.server.stop(true);
 });
@@ -128,4 +137,12 @@ test("files upload, download with safe headers, and reject bad ids", async () =>
 		(await fetch(`${base}/api/files`, { method: "POST", body: "" })).status,
 	).toBe(400);
 	await server.stop(true);
+});
+
+test("two accounts on one server never see each other's log", () => {
+	const store = openStore(":memory:");
+	store("alice").append("doc", new Uint8Array([1, 2, 3]));
+	expect(store("alice").loadAfter("doc", 0)).toHaveLength(1);
+	expect(store("bob").loadAfter("doc", 0)).toHaveLength(0);
+	expect(store("bob").stat("doc")).toEqual({ head: 0, count: 0 });
 });

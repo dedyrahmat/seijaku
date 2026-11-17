@@ -4,11 +4,13 @@ import "@fontsource-variable/newsreader";
 import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { authStore } from "./auth/session";
 import { initPrefs } from "./preferences";
 import { router } from "./router";
 import "./styles.css";
 
 initPrefs();
+void authStore.refresh();
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root element");

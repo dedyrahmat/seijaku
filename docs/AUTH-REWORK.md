@@ -30,7 +30,7 @@ Assumed defaults:
 
 ### 0. Spike: PRF through Better Auth
 
-- [ ] In Chrome with a virtual authenticator (`hasPrf: true`), confirm `prf.results.first` comes back from `signIn.passkey`, and whether it also comes back at registration.
+- [x] In Chrome with a virtual authenticator (`hasPrf: true`), confirm `prf.results.first` comes back from `signIn.passkey`, and whether it also comes back at registration.
 
 `@better-auth/passkey` 1.7.25 already accepts `extensions` and returns `clientExtensionResults` when called with `returnWebAuthnResponse: true` (see its `dist/client.mjs`). Fallback if the spike fails: keep today's `/unlock` (phrase once per device).
 
@@ -75,10 +75,10 @@ Read the mockup boards Sign-In, Setup, Recovery, Sync-States and Settings before
 
 ### 4. Passkey opens notes (PRF)
 
-- [ ] `packages/sync`: `prfWrapKey(output)`, an HKDF of the PRF output, reusing `derive` in `crypto.ts`.
-- [ ] `apps/web/src/auth/keys.ts`: one helper that runs `signIn.passkey` / `addPasskey` with `extensions.prf.eval.first` set to a fixed salt and `returnWebAuthnResponse: true`.
-- [ ] Device holds the key and gets a PRF result: `POST /key-wraps` with `{ kind: "passkey", ref: credentialId, wrapped }` (the endpoint exists).
-- [ ] Device has no key: find the wrap by credential id in `GET /key-wraps`, unwrap, save. No result or no wrap: `/unlock` with the phrase.
+- [x] `packages/sync`: `prfWrapKey(output)`, an HKDF of the PRF output, reusing `derive` in `crypto.ts`.
+- [x] `apps/web/src/auth/keys.ts`: one helper that runs `signIn.passkey` / `addPasskey` with `extensions.prf.eval.first` set to a fixed salt and `returnWebAuthnResponse: true`.
+- [x] Device holds the key and gets a PRF result: `POST /key-wraps` with `{ kind: "passkey", ref: credentialId, wrapped }` (the endpoint exists).
+- [x] Device has no key: find the wrap by credential id in `GET /key-wraps`, unwrap, save. No result or no wrap: `/unlock` with the phrase.
 
 Use the helper from sign-up, sign-in and Settings → Add passkey.
 

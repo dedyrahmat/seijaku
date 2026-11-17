@@ -4,6 +4,7 @@ import {
 	createCipher,
 	fromBase64,
 	newWorkspaceKey,
+	prfWrapKey,
 	toBase64,
 	unwrapWorkspaceKey,
 	wrapWorkspaceKey,
@@ -102,4 +103,17 @@ test("files keep their name and type inside the sealed bytes", () => {
 	expect(back.type).toBe("application/pdf");
 	expect(back.bytes).toEqual(bytes);
 	expect(fromBase64(toBase64(bytes))).toEqual(bytes);
+});
+
+test("a passkey's PRF output wraps the workspace key, and only the same output opens it", () => {
+	const wk = newWorkspaceKey();
+	const prf = crypto.getRandomValues(new Uint8Array(32));
+	const wrapped = wrapWorkspaceKey(prfWrapKey(prf), wk);
+	expect(unwrapWorkspaceKey(prfWrapKey(prf), wrapped)).toEqual(wk);
+	expect(() =>
+		unwrapWorkspaceKey(
+			prfWrapKey(crypto.getRandomValues(new Uint8Array(32))),
+			wrapped,
+		),
+	).toThrow();
 });

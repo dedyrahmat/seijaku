@@ -110,6 +110,11 @@ export function createCipher(workspaceKey: Uint8Array): Cipher {
 	};
 }
 
+/** The wrapping key for a passkey, made from the 32 bytes its WebAuthn PRF extension returns. */
+export function prfWrapKey(prfOutput: Uint8Array): Uint8Array {
+	return derive(prfOutput, "seijaku/passkey/v1", "wrap");
+}
+
 /** Wraps the workspace key under a key made from a phrase or a passkey; safe to store on the server. */
 export function wrapWorkspaceKey(
 	wrapKey: Uint8Array,

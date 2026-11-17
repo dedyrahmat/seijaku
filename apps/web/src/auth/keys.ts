@@ -4,11 +4,13 @@ import {
 	newPhrase,
 	newWorkspaceKey,
 	phraseKeys,
+	prfWrapKey,
 	toBase64,
 	unwrapWorkspaceKey,
 	wrapWorkspaceKey,
 } from "@seijaku/sync";
 import { apiUrl } from "../workspace/syncUrl";
+import { authClient } from "./client";
 
 /**
  * The workspace key on this device, and the flows that make it, wrap it and open it.
@@ -60,6 +62,11 @@ export async function saveWorkspaceKey(key: Uint8Array): Promise<void> {
 	await withStore("readwrite", (s) => s.put(key, KEY));
 }
 
+/** Signing out also forgets the key: it belongs to the account, and the next one may differ. */
+export async function clearWorkspaceKey(): Promise<void> {
+	await withStore("readwrite", (s) => s.delete(KEY)).catch(() => undefined);
+}
+
 /** Pulls the server's message out of a failed auth call. */
 async function failure(res: Response, fallback: string): Promise<Error> {
 	const body = (await res.json().catch(() => null)) as {
@@ -95,12 +102,123 @@ export async function signUpWithPhrase(token: string): Promise<string> {
 	return phrase;
 }
 
-/** After a passkey sign-up: makes the workspace key and the phrase that can restore it. Needs a session. */
-export async function createPhraseForNewWorkspace(): Promise<string> {
+/**
+ * After a passkey sign-up: makes the workspace key and the phrase that can restore it, and
+ * lets the passkey open the key on other devices when it can. Needs a session.
+ */
+export async function createPhraseForNewWorkspace(
+	passkey?: PasskeyResult,
+): Promise<string> {
 	const workspaceKey = newWorkspaceKey();
 	const phrase = await storePhrase(workspaceKey);
+	if (passkey) await wrapForPasskey(passkey, workspaceKey);
 	await saveWorkspaceKey(workspaceKey);
 	return phrase;
+}
+
+/**
+ * Passkeys open the notes by themselves through the WebAuthn PRF extension: the authenticator
+ * turns a fixed salt into 32 secret bytes that only that passkey can make. Not every passkey
+ * supports it; without a result the phrase is asked for once per device instead.
+ */
+const PRF_SALT = new TextEncoder().encode("seijaku/passkey-prf/v1");
+const PRF_EXTENSION = { prf: { eval: { first: PRF_SALT } } };
+
+export interface PasskeyResult {
+	credentialId: string;
+	/** The authenticator's PRF output, or null when it gave none. */
+	prf: Uint8Array | null;
+}
+
+interface WebAuthnReply {
+	error?: { message?: string } | null;
+	webauthn?: {
+		response: { id: string };
+		clientExtensionResults?: {
+			prf?: { results?: { first?: ArrayBuffer | Uint8Array } };
+		};
+	};
+}
+
+function passkeyResult(res: WebAuthnReply, failed: string): PasskeyResult {
+	if (res.error || !res.webauthn)
+		throw new Error(res.error?.message?.trim() || failed);
+	const first = res.webauthn.clientExtensionResults?.prf?.results?.first;
+	return {
+		credentialId: res.webauthn.response.id,
+		prf: first ? new Uint8Array(first as ArrayBuffer) : null,
+	};
+}
+
+/** Makes a passkey on this device (signing up too when `createSession`). Throws with a readable message. */
+export async function registerPasskey(opts: {
+	name: string;
+	context?: string;
+	createSession?: boolean;
+}): Promise<PasskeyResult> {
+	const res = (await authClient().passkey.addPasskey({
+		...opts,
+		extensions: PRF_EXTENSION as never,
+		returnWebAuthnResponse: true,
+	})) as WebAuthnReply;
+	return passkeyResult(res, "The passkey could not be made.");
+}
+
+/** Signs in with a passkey. Throws with a readable message. */
+export async function authenticatePasskey(): Promise<PasskeyResult> {
+	const res = (await authClient().signIn.passkey({
+		extensions: PRF_EXTENSION as never,
+		returnWebAuthnResponse: true,
+	})) as WebAuthnReply;
+	return passkeyResult(res, "That passkey was not accepted.");
+}
+
+/** Stores the workspace key wrapped for this passkey, so it opens the notes on any device. */
+export async function wrapForPasskey(
+	passkey: PasskeyResult,
+	workspaceKey: Uint8Array,
+): Promise<void> {
+	if (!passkey.prf) return;
+	const res = await send("/key-wraps", {
+		kind: "passkey",
+		ref: passkey.credentialId,
+		wrapped: toBase64(wrapWorkspaceKey(prfWrapKey(passkey.prf), workspaceKey)),
+	});
+	if (!res.ok) throw await failure(res, "Could not save the passkey's key.");
+}
+
+/** Signed in with a passkey on a device with no key: opens it if this passkey has a wrap. */
+export async function openWithPasskey(
+	passkey: PasskeyResult,
+): Promise<boolean> {
+	if (!passkey.prf) return false;
+	const res = await send("/key-wraps", undefined, "GET");
+	if (!res.ok) return false;
+	const wraps = (await res.json()) as {
+		kind: string;
+		ref: string;
+		wrapped: string;
+	}[];
+	const mine = wraps.find(
+		(w) => w.kind === "passkey" && w.ref === passkey.credentialId,
+	);
+	if (!mine) return false;
+	try {
+		await saveWorkspaceKey(
+			unwrapWorkspaceKey(prfWrapKey(passkey.prf), fromBase64(mine.wrapped)),
+		);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/** For a passkey added from Settings while signed in and unlocked. */
+export async function wrapHeldKeyForPasskey(
+	passkey: PasskeyResult,
+): Promise<void> {
+	const key = await loadWorkspaceKey();
+	if (key) await wrapForPasskey(passkey, key);
 }
 
 /** Makes a new phrase for the key this device holds; the old phrase stops working. */

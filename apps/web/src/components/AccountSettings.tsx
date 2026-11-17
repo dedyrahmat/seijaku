@@ -1,6 +1,10 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { replacePhrase } from "../auth/keys";
+import {
+	registerPasskey,
+	replacePhrase,
+	wrapHeldKeyForPasskey,
+} from "../auth/keys";
 import { authClient, authMessage, authStore, useAuth } from "../auth/session";
 import { ago } from "./ago";
 import { PhraseActions, PhraseGrid } from "./RecoveryPhrase";
@@ -183,15 +187,15 @@ export function PasskeysGroup({ deviceName }: { deviceName: string }) {
 		setBusy(true);
 		setError(null);
 		try {
-			const res = await authClient().passkey.addPasskey({
-				name: name.trim() || `${deviceName} passkey`,
-			});
-			if (res?.error)
-				setError(authMessage(res.error, "The passkey could not be made."));
-			else setName("");
+			await wrapHeldKeyForPasskey(
+				await registerPasskey({ name: name.trim() || `${deviceName} passkey` }),
+			);
+			setName("");
 			await reload();
-		} catch {
-			setError("Could not reach the server.");
+		} catch (err) {
+			setError(
+				err instanceof Error ? err.message : "Could not reach the server.",
+			);
 		} finally {
 			setBusy(false);
 		}

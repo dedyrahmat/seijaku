@@ -67,7 +67,7 @@ Sign-in becomes optional and accounts work like a wallet. Steps and checks are i
 - [ ] Use the app without an account; signing in turns sync on and uploads local notes
 - [ ] Anyone can create an account with a passkey or a 12-word phrase; one encrypted workspace per account
 - [ ] `SETUP_TOKEN` becomes an optional sign-up code
-- [ ] A passkey alone opens notes on a new device (WebAuthn PRF), with the phrase as fallback
+- [x] A passkey alone opens notes on a new device (WebAuthn PRF), with the phrase as fallback
 - [ ] One-container self-host: Bun serves the web build, Dockerfile and compose
 
 ### Phase 5: Attachments

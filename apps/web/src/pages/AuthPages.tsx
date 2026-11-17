@@ -1,12 +1,15 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
+	authenticatePasskey,
 	createPhraseForNewWorkspace,
+	openWithPasskey,
+	registerPasskey,
 	signInWithPhrase,
 	signUpWithPhrase,
 	unlockWithPhrase,
 } from "../auth/keys";
-import { authClient, authMessage, authStore, useAuth } from "../auth/session";
+import { authStore, useAuth } from "../auth/session";
 import { Logo } from "../components/Logo";
 import {
 	PhraseActions,
@@ -134,14 +137,13 @@ export function SignInPage() {
 		setBusy(true);
 		setError(null);
 		try {
-			const res = await authClient().signIn.passkey();
-			if (res?.error) {
-				setError(authMessage(res.error, "That passkey was not accepted."));
-				return;
-			}
+			// A passkey that can make its secret opens the notes too; if not, Unlock asks for the phrase.
+			await openWithPasskey(await authenticatePasskey());
 			await authStore.changed();
-		} catch {
-			setError("Could not reach the server. Check the address below.");
+		} catch (err) {
+			setError(
+				message(err, "Could not reach the server. Check the address below."),
+			);
 		} finally {
 			setBusy(false);
 		}
@@ -283,17 +285,12 @@ export function SetupPage() {
 		setError(null);
 		try {
 			if (how === "passkey") {
-				const res = await authClient().passkey.addPasskey({
+				const passkey = await registerPasskey({
 					name: device.trim() || "This device",
 					context: auth.codeRequired ? token : "",
 					createSession: true,
 				});
-				if (res?.error) {
-					setError(authMessage(res.error, "The passkey could not be made."));
-					working.current = false;
-					return;
-				}
-				authStore.holdPhrase(await createPhraseForNewWorkspace());
+				authStore.holdPhrase(await createPhraseForNewWorkspace(passkey));
 			} else {
 				authStore.holdPhrase(
 					await signUpWithPhrase(auth.codeRequired ? token : ""),

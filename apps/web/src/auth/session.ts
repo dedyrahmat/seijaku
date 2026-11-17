@@ -1,9 +1,10 @@
-import { passkeyClient } from "@better-auth/passkey/client";
 import { type Cipher, createCipher } from "@seijaku/sync";
-import { createAuthClient } from "better-auth/client";
 import { useSyncExternalStore } from "react";
 import { apiUrl } from "../workspace/syncUrl";
-import { loadWorkspaceKey } from "./keys";
+import { authClient } from "./client";
+import { clearWorkspaceKey, loadWorkspaceKey } from "./keys";
+
+export { authClient };
 
 /**
  * Who is using this device. The app keeps working offline, so a device that was signed in
@@ -51,15 +52,6 @@ function remember(on: boolean): void {
 	} catch {
 		// Storage blocked: the next visit asks the server again.
 	}
-}
-
-/** Better Auth's client, pointed at the server this device syncs with. */
-export function authClient() {
-	return createAuthClient({
-		baseURL: apiUrl("") || location.origin,
-		plugins: [passkeyClient()],
-		fetchOptions: { credentials: "include" },
-	});
 }
 
 class AuthStore {
@@ -165,6 +157,8 @@ class AuthStore {
 			// Offline: still leave this device.
 		}
 		remember(false);
+		await clearWorkspaceKey();
+		this.cipher = null;
 		this.set({ ...this.state, phase: "signed-out" });
 		await this.refresh();
 	}

@@ -1,0 +1,15 @@
+services:
+  seijaku:
+    build: .
+    ports:
+      - "8791:8791"
+    volumes:
+      - seijaku-data:/data
+    environment:
+      # The public address people open the app at. Passkeys need HTTPS and this exact origin.
+      SEIJAKU_ORIGIN: ${SEIJAKU_ORIGIN:-http://localhost:8791}
+      # Optional: a sign-up code every new account must enter. Leave empty for open sign-up.
+      SETUP_TOKEN: ${SETUP_TOKEN:-}
+    restart: unless-stopped
+volumes:
+  seijaku-data:

@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, join, normalize } from "node:path";
 import {
 	MAX_FRAME_BYTES,
 	type Peer,
@@ -42,6 +42,31 @@ export function openStore(path: string): (userId: string) => UpdateStore {
 	return (userId) => new SqlUpdateStore(driver, userId);
 }
 
+/** A file from the web build, or its index.html for an app route; null when nothing fits. */
+function staticFile(dir: string, pathname: string): Response | null {
+	let clean: string;
+	try {
+		clean = normalize(decodeURIComponent(pathname)).replace(/^[/\\]+/, "");
+	} catch {
+		return null; // malformed % escape
+	}
+	// A path that climbs out of the folder never matches a file here.
+	const asset = clean.startsWith("..") ? null : Bun.file(join(dir, clean));
+	if (asset && clean !== "" && asset.size > 0)
+		return new Response(asset, {
+			// Vite names built assets by content, so they never change.
+			headers: clean.startsWith("assets/")
+				? { "Cache-Control": "public, max-age=31536000, immutable" }
+				: {},
+		});
+	// A missing file (a script, an image) is a 404, not the app: only extensionless paths are app routes.
+	if (/\.[a-z0-9]+$/i.test(clean)) return null;
+	const index = Bun.file(join(dir, "index.html"));
+	return index.size > 0
+		? new Response(index, { headers: { "Cache-Control": "no-cache" } })
+		: null;
+}
+
 interface SocketData {
 	userId: string;
 	peer?: Peer;
@@ -54,6 +79,8 @@ export function startServer(options: {
 	hostname?: string;
 	/** Directory for uploaded files. */
 	blobDir?: string;
+	/** A built web app to serve for any page the API does not answer (single-page fallback). */
+	webDir?: string;
 	/** Sign-in. Left out only by tests: without it the server is open to anyone. */
 	auth?: AuthService;
 }) {
@@ -84,7 +111,11 @@ export function startServer(options: {
 				if (srv.upgrade(req, { data: { userId } })) return undefined;
 				return new Response("Expected a WebSocket upgrade", { status: 426 });
 			}
-			return app.fetch(req);
+			const res = await app.fetch(req);
+			if (res.status !== 404 || !options.webDir) return res;
+			if (req.method !== "GET" && req.method !== "HEAD") return res;
+			if (url.pathname.startsWith("/api/")) return res;
+			return staticFile(options.webDir, url.pathname) ?? res;
 		},
 		websocket: {
 			maxPayloadLength: MAX_FRAME_BYTES,
@@ -165,6 +196,7 @@ if (import.meta.main) {
 		port,
 		store: openStore(dbPath),
 		blobDir: process.env.SEIJAKU_BLOBS ?? "data/blobs",
+		webDir: process.env.SEIJAKU_WEB ?? join(import.meta.dir, "../../web/dist"),
 		auth,
 	});
 	console.log(

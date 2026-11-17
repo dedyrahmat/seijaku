@@ -117,10 +117,31 @@ Sign-in becomes optional and accounts work like a wallet. Steps and checks are i
 ### Phase 11: Deploy
 
 - [ ] `wrangler.jsonc` and D1 migrations for Cloudflare
-- [ ] Dockerfile and compose for self-hosting (moved into the accounts rework above)
-- [ ] Deployment docs for both paths
+- [x] Dockerfile and compose for self-hosting
+- [x] Deployment docs for both paths
 
 Hosting, in order of priority: self-hosted Bun in one container (a VPS, Railway, Fly, Render or anything that runs Docker with a volume), then Cloudflare. Static-only hosts such as Vercel cannot run the server, because it needs a long-lived WebSocket and a SQLite file.
+
+## Deploy
+
+**Self-host (one container).** Bun serves the API, the sync socket and the web app, with notes and files on a volume:
+
+```bash
+SEIJAKU_ORIGIN=https://notes.example.com docker compose up -d
+```
+
+Set `SEIJAKU_ORIGIN` to the public address (passkeys need HTTPS and that exact origin). Set `SETUP_TOKEN` to make every new account enter a sign-up code; unset, anyone who can reach the server can create an account. The same Dockerfile works on a VPS, Railway, Fly and Render; give it a volume at `/data`.
+
+**Cloudflare.** Build the web app, then deploy the Worker, which also serves it:
+
+```bash
+bun run --cwd apps/web build
+bun run --cwd apps/server wrangler deploy
+```
+
+Create the D1 database and R2 bucket named in `apps/server/wrangler.jsonc` first, and set `SEIJAKU_ORIGIN` (and optionally the `SETUP_TOKEN` secret).
+
+Static-only hosts such as Vercel cannot run the server: it needs a long-lived WebSocket and a SQLite file.
 
 ## Getting started
 

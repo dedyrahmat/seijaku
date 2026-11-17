@@ -84,11 +84,11 @@ Use the helper from sign-up, sign-in and Settings → Add passkey.
 
 ### 5. Deploy
 
-- [ ] `apps/server/src/bun.ts`: when the Hono app answers 404 to a GET, serve the file from `SEIJAKU_WEB` (default `../web/dist`), else `index.html`.
-- [ ] `Dockerfile` at the root: `oven/bun`, install, `bun run --cwd apps/web build`, start `apps/server/src/bun.ts` on `0.0.0.0`, volume `/data` (`SEIJAKU_DB`, `SEIJAKU_BLOBS`).
-- [ ] `docker-compose.yml`: that image, the volume, `SEIJAKU_ORIGIN`, optional `SETUP_TOKEN`.
-- [ ] `apps/server/wrangler.jsonc`: `assets` pointing at `../web/dist`, single-page fallback, worker first for `/api/*` and `/sync`.
-- [ ] `README.md`: VPS, Railway, Fly and Render use the Dockerfile; Cloudflare uses `wrangler deploy`.
+- [x] `apps/server/src/bun.ts`: when the Hono app answers 404 to a GET, serve the file from `SEIJAKU_WEB` (default `../web/dist`), else `index.html`.
+- [x] `Dockerfile` at the root: `oven/bun`, install, `bun run --cwd apps/web build`, start `apps/server/src/bun.ts` on `0.0.0.0`, volume `/data` (`SEIJAKU_DB`, `SEIJAKU_BLOBS`).
+- [x] `docker-compose.yml`: that image, the volume, `SEIJAKU_ORIGIN`, optional `SETUP_TOKEN`.
+- [x] `apps/server/wrangler.jsonc`: `assets` pointing at `../web/dist`, single-page fallback, worker first for `/api/*` and `/sync`.
+- [x] `README.md`: VPS, Railway, Fly and Render use the Dockerfile; Cloudflare uses `wrangler deploy`.
 
 Vercel and other static-only hosts cannot run the server: it needs a long-lived WebSocket and a SQLite file. Passkeys need HTTPS and `SEIJAKU_ORIGIN` set to the public address.
 

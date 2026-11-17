@@ -146,3 +146,22 @@ test("two accounts on one server never see each other's log", () => {
 	expect(store("bob").loadAfter("doc", 0)).toHaveLength(0);
 	expect(store("bob").stat("doc")).toEqual({ head: 0, count: 0 });
 });
+
+test("the web build is served, with app routes falling back to index.html", async () => {
+	const web = `${process.env.TEMP ?? "/tmp"}/seijaku-web-${Date.now()}`;
+	await Bun.write(`${web}/index.html`, "<html>app</html>");
+	await Bun.write(`${web}/assets/a-1.js`, "console.log(1)");
+	const { server } = startServer({
+		port: 0,
+		store: openStore(":memory:"),
+		webDir: web,
+	});
+	const get = (p: string) => fetch(`http://localhost:${server.port}${p}`);
+	expect(await (await get("/page/Hello-abc")).text()).toBe("<html>app</html>");
+	expect(await (await get("/assets/a-1.js")).text()).toBe("console.log(1)");
+	expect((await get("/assets/missing.js")).status).toBe(404);
+	expect((await get("/api/nope")).status).toBe(404);
+	// Climbing out of the folder never serves a file.
+	expect((await get("/..%2f..%2fpackage.json")).status).toBe(404);
+	await server.stop(true);
+});

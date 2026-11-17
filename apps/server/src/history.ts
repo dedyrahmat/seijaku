@@ -1,3 +1,5 @@
+import { docVersion, shareLink } from "@seijaku/db";
+import { and, eq, inArray } from "drizzle-orm";
 import type { Hono } from "hono";
 import * as z from "zod";
 import type { AuthService } from "./auth";
@@ -63,23 +65,6 @@ function newToken(): string {
 		.replace(/\//g, "_");
 }
 
-interface VersionRow {
-	id: string;
-	doc: string;
-	meta: string;
-	blobId: string;
-	createdAt: Date | string | number;
-	userId: string;
-}
-
-interface ShareRow {
-	id: string;
-	token: string;
-	blobId: string;
-	createdAt: Date | string | number;
-	userId: string;
-}
-
 const octet = (body: BodyInit | null, extra: HeadersInit = {}) =>
 	new Response(body, {
 		headers: {
@@ -97,7 +82,7 @@ export function mountHistory(
 ): void {
 	const db = async () => {
 		await auth.ready;
-		return (await auth.auth.$context).adapter;
+		return auth.db;
 	};
 
 	const newVersion = z.object({
@@ -122,39 +107,42 @@ export function mountHistory(
 		if (bytes.byteLength > MAX_UPLOAD_BYTES)
 			return c.json({ error: "too large" }, 413);
 
-		const adapter = await db();
+		const d = await db();
 		const blobId = newBlobId();
 		await blobs.put(blobId, bytes.buffer as ArrayBuffer, {
 			type: "application/octet-stream",
 			size: bytes.byteLength,
 		});
-		const row = await adapter.create<VersionRow>({
-			model: "version",
-			data: { userId, doc, meta, blobId, createdAt: new Date() },
-		});
+		const id = crypto.randomUUID();
+		await d
+			.insert(docVersion)
+			.values({ id, userId, doc, meta, blobId, createdAt: new Date() });
 
-		const all = await adapter.findMany<VersionRow>({
-			model: "version",
-			where: [
-				{ field: "userId", value: userId },
-				{ field: "doc", value: doc },
-			],
-		});
+		const all = await d
+			.select({
+				id: docVersion.id,
+				blobId: docVersion.blobId,
+				createdAt: docVersion.createdAt,
+			})
+			.from(docVersion)
+			.where(and(eq(docVersion.userId, userId), eq(docVersion.doc, doc)));
 		const keep = versionsToKeep(
-			all.map((v) => ({ id: v.id, at: new Date(v.createdAt).getTime() })),
+			all.map((v) => ({ id: v.id, at: v.createdAt.getTime() })),
 			Date.now(),
 			keepDays ?? null,
 		);
-		keep.add(row.id); // the one just made always stays
-		for (const v of all) {
-			if (keep.has(v.id)) continue;
-			await adapter.delete({
-				model: "version",
-				where: [{ field: "id", value: v.id }],
-			});
-			await blobs.delete(v.blobId).catch(() => undefined);
+		keep.add(id); // the one just made always stays
+		const drop = all.filter((v) => !keep.has(v.id));
+		if (drop.length > 0) {
+			await d.delete(docVersion).where(
+				inArray(
+					docVersion.id,
+					drop.map((v) => v.id),
+				),
+			);
+			for (const v of drop) await blobs.delete(v.blobId).catch(() => undefined);
 		}
-		return c.json({ id: row.id });
+		return c.json({ id });
 	});
 
 	app.get("/api/versions", async (c) => {
@@ -162,18 +150,19 @@ export function mountHistory(
 		if (!userId) return c.json({ error: "sign in first" }, 401);
 		const doc = c.req.query("doc") ?? "";
 		if (!DOC.test(doc)) return c.json({ error: "bad request" }, 400);
-		const rows = await (await db()).findMany<VersionRow>({
-			model: "version",
-			where: [
-				{ field: "userId", value: userId },
-				{ field: "doc", value: doc },
-			],
-		});
+		const rows = await (await db())
+			.select({
+				id: docVersion.id,
+				createdAt: docVersion.createdAt,
+				meta: docVersion.meta,
+			})
+			.from(docVersion)
+			.where(and(eq(docVersion.userId, userId), eq(docVersion.doc, doc)));
 		return c.json(
 			rows
 				.map((v) => ({
 					id: v.id,
-					createdAt: new Date(v.createdAt).getTime(),
+					createdAt: v.createdAt.getTime(),
 					meta: v.meta,
 				}))
 				.sort((a, b) => b.createdAt - a.createdAt),
@@ -183,13 +172,16 @@ export function mountHistory(
 	app.get("/api/versions/:id", async (c) => {
 		const userId = await auth.userId(c.req.raw.headers);
 		if (!userId) return c.json({ error: "sign in first" }, 401);
-		const row = await (await db()).findOne<VersionRow>({
-			model: "version",
-			where: [
-				{ field: "id", value: c.req.param("id") },
-				{ field: "userId", value: userId },
-			],
-		});
+		const [row] = await (await db())
+			.select({ blobId: docVersion.blobId })
+			.from(docVersion)
+			.where(
+				and(
+					eq(docVersion.id, c.req.param("id")),
+					eq(docVersion.userId, userId),
+				),
+			)
+			.limit(1);
 		const found =
 			row && BLOB_ID.test(row.blobId) ? await blobs.get(row.blobId) : null;
 		if (!found) return c.json({ error: "not found" }, 404);
@@ -216,38 +208,44 @@ export function mountHistory(
 		if (bytes.byteLength > MAX_UPLOAD_BYTES)
 			return c.json({ error: "too large" }, 413);
 
-		const adapter = await db();
+		const d = await db();
 		const blobId = newBlobId();
 		await blobs.put(blobId, bytes.buffer as ArrayBuffer, {
 			type: "application/octet-stream",
 			size: bytes.byteLength,
 		});
-		const existing = parsed.data.token
-			? await adapter.findOne<ShareRow>({
-					model: "share",
-					where: [
-						{ field: "token", value: parsed.data.token },
-						{ field: "userId", value: userId },
-					],
-				})
-			: null;
+		const [existing] = parsed.data.token
+			? await d
+					.select()
+					.from(shareLink)
+					.where(
+						and(
+							eq(shareLink.token, parsed.data.token),
+							eq(shareLink.userId, userId),
+						),
+					)
+					.limit(1)
+			: [];
 		if (existing) {
-			await adapter.update({
-				model: "share",
-				where: [{ field: "id", value: existing.id }],
-				update: { blobId, updatedAt: new Date() },
-			});
+			await d
+				.update(shareLink)
+				.set({ blobId, updatedAt: new Date() })
+				.where(eq(shareLink.id, existing.id));
 			await blobs.delete(existing.blobId).catch(() => undefined);
 			return c.json({
 				token: existing.token,
-				createdAt: new Date(existing.createdAt).getTime(),
+				createdAt: existing.createdAt.getTime(),
 			});
 		}
 		const now = new Date();
 		const token = newToken();
-		await adapter.create({
-			model: "share",
-			data: { userId, token, blobId, createdAt: now, updatedAt: now },
+		await d.insert(shareLink).values({
+			id: crypto.randomUUID(),
+			userId,
+			token,
+			blobId,
+			createdAt: now,
+			updatedAt: now,
 		});
 		return c.json({ token, createdAt: now.getTime() });
 	});
@@ -255,19 +253,19 @@ export function mountHistory(
 	app.delete("/api/shares/:token", async (c) => {
 		const userId = await auth.userId(c.req.raw.headers);
 		if (!userId) return c.json({ error: "sign in first" }, 401);
-		const adapter = await db();
-		const row = await adapter.findOne<ShareRow>({
-			model: "share",
-			where: [
-				{ field: "token", value: c.req.param("token") },
-				{ field: "userId", value: userId },
-			],
-		});
+		const d = await db();
+		const [row] = await d
+			.select()
+			.from(shareLink)
+			.where(
+				and(
+					eq(shareLink.token, c.req.param("token")),
+					eq(shareLink.userId, userId),
+				),
+			)
+			.limit(1);
 		if (row) {
-			await adapter.delete({
-				model: "share",
-				where: [{ field: "id", value: row.id }],
-			});
+			await d.delete(shareLink).where(eq(shareLink.id, row.id));
 			await blobs.delete(row.blobId).catch(() => undefined);
 		}
 		return c.json({ ok: true });
@@ -277,10 +275,11 @@ export function mountHistory(
 	app.get("/api/shares/:token", async (c) => {
 		const token = c.req.param("token");
 		if (!TOKEN.test(token)) return c.json({ error: "not found" }, 404);
-		const row = await (await db()).findOne<ShareRow>({
-			model: "share",
-			where: [{ field: "token", value: token }],
-		});
+		const [row] = await (await db())
+			.select({ blobId: shareLink.blobId })
+			.from(shareLink)
+			.where(eq(shareLink.token, token))
+			.limit(1);
 		const found =
 			row && BLOB_ID.test(row.blobId) ? await blobs.get(row.blobId) : null;
 		if (!found) return c.json({ error: "not found" }, 404);

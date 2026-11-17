@@ -1,0 +1,68 @@
+{
+	"version": "7",
+	"dialect": "sqlite",
+	"id": "6c860fe0-3d0e-457e-b52d-cac5da1cafed",
+	"prevIds": ["00000000-0000-0000-0000-000000000000"],
+	"ddl": [
+		{
+			"name": "doc_log",
+			"entityType": "tables"
+		},
+		{
+			"table": "doc_log",
+			"name": "seq",
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": true,
+			"default": null,
+			"generated": null,
+			"entityType": "columns"
+		},
+		{
+			"table": "doc_log",
+			"name": "doc_id",
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"entityType": "columns"
+		},
+		{
+			"table": "doc_log",
+			"name": "data",
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"entityType": "columns"
+		},
+		{
+			"table": "doc_log",
+			"name": "doc_log_by_doc",
+			"columns": [
+				{
+					"value": "doc_id",
+					"isExpression": false
+				},
+				{
+					"value": "seq",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"entityType": "indexes"
+		},
+		{
+			"table": "doc_log",
+			"name": "doc_log_pk",
+			"columns": ["seq"],
+			"nameExplicit": false,
+			"entityType": "pks"
+		}
+	],
+	"renames": []
+}

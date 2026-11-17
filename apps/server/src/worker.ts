@@ -1,3 +1,5 @@
+import { accountMigrations } from "@seijaku/db";
+import { drizzle } from "drizzle-orm/d1";
 import { createApp } from "./app";
 import {
 	type AuthService,
@@ -21,6 +23,36 @@ interface Env {
 	/** Comma-separated addresses the app is opened at; the request's own origin when unset. */
 	SEIJAKU_ORIGIN?: string;
 	SEIJAKU_RP_ID?: string;
+}
+
+/**
+ * Applies the account migrations to D1. Drizzle's own D1 migrator reads a folder, which a
+ * Worker does not have, so this runs the bundled SQL and keeps its own list of what ran.
+ */
+async function migrateD1(d1: D1Database): Promise<void> {
+	await d1.exec(
+		"CREATE TABLE IF NOT EXISTS seijaku_migrations (name TEXT PRIMARY KEY, applied_at INTEGER NOT NULL)",
+	);
+	const { results } = await d1
+		.prepare("SELECT name FROM seijaku_migrations")
+		.all<{ name: string }>();
+	const done = new Set(results.map((r) => r.name));
+	for (const name of Object.keys(accountMigrations).sort()) {
+		if (done.has(name)) continue;
+		const statements = (accountMigrations[name] as string)
+			.split("--> statement-breakpoint")
+			.map((part) => part.trim())
+			.filter(Boolean)
+			.map((part) => d1.prepare(part));
+		statements.push(
+			d1
+				.prepare(
+					"INSERT INTO seijaku_migrations (name, applied_at) VALUES (?, ?)",
+				)
+				.bind(name, Date.now()),
+		);
+		await d1.batch(statements);
+	}
 }
 
 let service: Promise<AuthService> | undefined;
@@ -50,8 +82,10 @@ function authFor(env: Env, requestOrigin: string): Promise<AuthService> {
 			.split(",")
 			.map((o) => o.trim().replace(/\/+$/, ""))
 			.filter(Boolean);
+		await migrateD1(env.DB);
 		const made = createAuthService({
 			database: env.DB,
+			db: drizzle(env.DB),
 			origins,
 			rpID: rpIdFor(origins[0] as string, env.SEIJAKU_RP_ID),
 			secret,

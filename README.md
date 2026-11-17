@@ -94,10 +94,10 @@ Sign-in is optional and accounts work like a wallet.
 
 ### Phase 8: Importers
 
-- [ ] Common intermediate form and shared writer
-- [ ] Obsidian, Notion, Google Keep, Evernote
-- [ ] Apple Notes and Apple Journal (confirm export formats first)
-- [ ] Generic Markdown, HTML and plain text
+- [x] Common intermediate form and shared writer
+- [x] Obsidian, Notion, Google Keep, Evernote
+- [x] Apple Notes and Apple Journal (read as folders of HTML/Markdown/text; real export formats still unconfirmed)
+- [x] Generic Markdown, HTML and plain text
 
 ### Phase 9: PWA
 
@@ -178,7 +178,7 @@ bun run --cwd apps/web build
 apps/web        Vite + React SPA (TanStack Router, Tailwind v4, BlockNote)
 apps/desktop    Tauri 2 shell (placeholder)
 apps/server     Hono server, Cloudflare and Bun entry points (placeholder)
-packages/db     Drizzle schema and migrations (placeholder)
+packages/db     Drizzle schema and migrations (sync log, key wraps, history, shares)
 packages/sync   Yjs workspace model and sync protocol
 docs/PLAN.md    Scope, architecture and phase plan
 ```

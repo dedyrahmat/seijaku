@@ -2,6 +2,7 @@ import { Database } from "bun:sqlite";
 import { lookup } from "node:dns/promises";
 import { mkdirSync } from "node:fs";
 import { dirname, join, normalize } from "node:path";
+import { accountMigrations, journalOf, logMigrations } from "@seijaku/db";
 import {
 	MAX_FRAME_BYTES,
 	type Peer,
@@ -10,6 +11,8 @@ import {
 	Room,
 	type UpdateStore,
 } from "@seijaku/sync";
+import { drizzle } from "drizzle-orm/bun-sqlite";
+import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { createApp } from "./app";
 import {
 	type AuthService,
@@ -18,30 +21,22 @@ import {
 	rpIdFor,
 } from "./auth";
 import { DiskBlobStore } from "./disk-blobs";
-import { type SqlDriver, SqlUpdateStore } from "./sql-store";
+import { SqlUpdateStore } from "./sql-store";
 import { isPrivateHost } from "./unfurl";
 
 /** Self-host entry point: Hono over `Bun.serve`, one in-process room per account, bun:sqlite on disk. */
 
-function bunDriver(db: Database): SqlDriver {
-	return {
-		exec: (sql) => db.exec(sql),
-		all: <T>(sql: string, params: unknown[] = []) =>
-			db.query(sql).all(...(params as never[])) as T[],
-		run: (sql, params = []) => {
-			db.query(sql).run(...(params as never[]));
-		},
-		transaction: (fn) => db.transaction(fn)(),
-	};
-}
-
 /** Opens the database once; each account's log is the same table under its own id prefix. */
 export function openStore(path: string): (userId: string) => UpdateStore {
 	if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
-	const db = new Database(path);
-	db.exec("PRAGMA journal_mode = WAL");
-	const driver = bunDriver(db);
-	return (userId) => new SqlUpdateStore(driver, userId);
+	const client = new Database(path);
+	client.exec("PRAGMA journal_mode = WAL");
+	const db = drizzle({ client });
+	migrate(db, {
+		migrationsJournal: journalOf(logMigrations),
+		migrationsTable: "__drizzle_migrations_log",
+	});
+	return (userId) => new SqlUpdateStore(db, userId);
 }
 
 /** A file from the web build, or its index.html for an app route; null when nothing fits. */
@@ -190,8 +185,14 @@ export async function openAuth(
 		.split(",")
 		.map((o) => o.trim().replace(/\/+$/, ""))
 		.filter(Boolean);
+	const accounts = drizzle({ client: db });
+	migrate(accounts, {
+		migrationsJournal: journalOf(accountMigrations),
+		migrationsTable: "__drizzle_migrations_account",
+	});
 	const service = createAuthService({
 		database: db,
+		db: accounts,
 		origins,
 		rpID: rpIdFor(origins[0] as string, env.SEIJAKU_RP_ID),
 		secret,

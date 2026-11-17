@@ -1,112 +1,153 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { pageLink } from "../components/pageLink";
-import { ACCEPT, importFiles, type SourceKind } from "../import/generic";
+import {
+	type Picked,
+	pickedFromDrop,
+	pickedFromInput,
+} from "../import/archive";
+import { ANY_ACCEPT, readSource, SOURCES } from "../import/sources";
+import { writeNotes } from "../import/writer";
+import { workspace } from "../workspace/store";
 
-interface Source {
-	name: string;
-	mono: string;
-	hint: string;
-	/** Generic importers work today; app-specific ones arrive with the importers phase. */
-	kind?: SourceKind;
+interface Row {
+	source: string;
+	state: "active" | "done" | "warn";
+	detail: string;
 }
 
-const SOURCES: Source[] = [
-	{ name: "Obsidian", mono: "O", hint: "Coming soon" },
-	{ name: "Notion", mono: "N", hint: "Coming soon" },
-	{ name: "Google Keep", mono: "K", hint: "Coming soon" },
-	{ name: "Evernote", mono: "E", hint: "Coming soon" },
-	{ name: "Apple Notes", mono: "A", hint: "Coming soon" },
-	{ name: "Apple Journal", mono: "J", hint: "Coming soon" },
-	{ name: "Markdown", mono: "Md", hint: "Files", kind: "markdown" },
-	{ name: "HTML", mono: "</>", hint: "Files", kind: "html" },
-	{ name: "Plain text", mono: "Tx", hint: ".txt files", kind: "text" },
-];
+const MAX_ROWS = 300;
 
-const DROP_TEXT: Record<SourceKind, string> = {
-	markdown: "Drop your Markdown files here",
-	html: "Drop your HTML files here",
-	text: "Drop your text files here",
-};
-
+/**
+ * The mockup's Import boards: choose where the notes come from, drop them in, watch them land.
+ * Everything runs on this device. Each source only reads its export into a common shape; one
+ * writer makes the pages (see import/writer.ts).
+ */
 export function ImportPage() {
 	const navigate = useNavigate();
-	const [kind, setKind] = useState<SourceKind>("markdown");
-	const [files, setFiles] = useState<File[]>([]);
+	// null means "work it out from what is dropped"; picking a card overrides that.
+	const [sourceId, setSourceId] = useState<string | null>(null);
+	const chosen = SOURCES.find((s) => s.id === sourceId) ?? null;
+	const [sourceName, setSourceName] = useState("your notes");
+	const [picked, setPicked] = useState<Picked[]>([]);
 	const [dragging, setDragging] = useState(false);
-	const [progress, setProgress] = useState<[number, number] | null>(null);
 	const [error, setError] = useState<string | null>(null);
-	const [skipped, setSkipped] = useState<{ name: string; reason: string }[]>(
-		[],
-	);
+	const [stage, setStage] = useState<"idle" | "reading" | "writing">("idle");
+	const [progress, setProgress] = useState<[number, number]>([0, 0]);
+	const [rows, setRows] = useState<Row[]>([]);
+	const [stats, setStats] = useState({ images: 0, tags: 0, skipped: 0 });
 	const abort = useRef<AbortController | null>(null);
 	const background = useRef(false);
 	const picker = useRef<HTMLInputElement>(null);
+	const folderPicker = useRef<HTMLInputElement>(null);
+	const list = useRef<HTMLUListElement>(null);
 
 	useEffect(() => {
 		document.title = "Import · Seijaku";
 	}, []);
 
-	const accepted = (list: File[]) => {
-		const exts = ACCEPT[kind].split(",");
-		return list.filter((f) =>
-			exts.some((e) => f.name.toLowerCase().endsWith(e)),
-		);
-	};
+	// Keep the newest row in view as notes land.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: rows.length is the trigger
+	useEffect(() => {
+		list.current?.scrollTo({ top: list.current.scrollHeight });
+	}, [rows.length]);
 
-	const take = (list: File[]) => {
-		const ok = accepted(list);
-		setFiles(ok);
-		setError(
-			ok.length === 0 && list.length > 0
-				? `None of those files are ${ACCEPT[kind].replaceAll(",", " or ")} files.`
-				: null,
-		);
+	const take = (list: Picked[]) => {
+		setPicked(list);
+		setError(list.length === 0 ? "Nothing was found to import there." : null);
 	};
 
 	const run = async () => {
 		setError(null);
-		setSkipped([]);
+		setRows([]);
+		setStats({ images: 0, tags: 0, skipped: 0 });
 		background.current = false;
 		abort.current = new AbortController();
+		const signal = abort.current.signal;
 		try {
-			setProgress([0, files.length]);
-			const ids = await importFiles(
-				files,
-				kind,
-				(d, t) => setProgress([d, t]),
-				{
-					signal: abort.current.signal,
-					onSkip: (file, reason) =>
-						setSkipped((prev) => [...prev, { name: file.name, reason }]),
-				},
-			);
-			if (abort.current.signal.aborted) {
-				setProgress(null);
-				setFiles([]);
+			setStage("reading");
+			const { source, parsed } = await readSource(sourceId, picked);
+			setSourceName(source.name);
+			if (parsed.notes.length === 0) {
+				setError(
+					parsed.skipped.length > 0
+						? `No notes could be imported. ${parsed.skipped[0]?.reason}.`
+						: "No notes were found in what you chose.",
+				);
+				setStage("idle");
 				return;
 			}
-			const first = ids[0];
-			if (first && !background.current)
+			setStage("writing");
+			setProgress([0, parsed.notes.length]);
+			setStats((s) => ({ ...s, skipped: parsed.skipped.length }));
+			const tags = new Set<string>();
+			const summary = await writeNotes(parsed, {
+				signal,
+				onStart: (note) =>
+					setRows((prev) =>
+						[
+							...prev,
+							{
+								source: note.source,
+								state: "active" as const,
+								detail: "Reading…",
+							},
+						].slice(-MAX_ROWS),
+					),
+				onResult: (result, done, total) => {
+					setProgress([done, total]);
+					for (const t of result.note.tags) tags.add(t.toLowerCase());
+					setStats((s) => ({
+						images: s.images + result.files,
+						tags: tags.size,
+						skipped: s.skipped + (result.state === "warn" ? 1 : 0),
+					}));
+					setRows((prev) => {
+						const next = prev.slice();
+						let at = next.length - 1;
+						while (at >= 0 && next[at]?.source !== result.note.source) at--;
+						const row: Row = {
+							source: result.note.source,
+							state: result.state,
+							detail: result.detail,
+						};
+						if (at >= 0) next[at] = row;
+						else next.push(row);
+						return next;
+					});
+				},
+			});
+			if (signal.aborted) {
+				setStage("idle");
+				setPicked([]);
+				return;
+			}
+			const first = summary.ids[0];
+			const firstNote = workspace.getNotes().find((n) => n.id === first);
+			if (!background.current)
 				void navigate(
-					pageLink(first, files[0]?.name.replace(/\.[^.]+$/, "") ?? ""),
+					first ? pageLink(first, firstNote?.title ?? "") : { to: "/" },
 				);
+			setStage("idle");
+			setPicked([]);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Import failed.");
-			setProgress(null);
+			setStage("idle");
 		}
 	};
 
-	const busy = progress !== null;
+	const busy = stage !== "idle";
 
-	if (progress) {
+	if (busy) {
 		const [done, total] = progress;
 		const pct = total === 0 ? 0 : Math.round((done / total) * 100);
 		return (
 			<div className="mx-auto flex w-full max-w-[880px] flex-col gap-6 px-5 pt-10 pb-24 md:px-11">
 				<div className="flex flex-col gap-2">
 					<h1 className="font-serif text-[32px] font-medium tracking-[-0.015em]">
-						Importing your notes
+						{stage === "reading"
+							? "Reading your files"
+							: `Importing ${sourceName}`}
 					</h1>
 					<p className="text-[15px] text-ink2">
 						You can keep using Seijaku. Imported notes appear in the sidebar as
@@ -117,9 +158,13 @@ export function ImportPage() {
 				<div className="flex flex-col gap-2.5">
 					<div className="flex justify-between text-sm">
 						<span>
-							{done} of {total} {total === 1 ? "note" : "notes"}
+							{stage === "reading"
+								? "Opening files…"
+								: `${done} of ${total} ${total === 1 ? "note" : "notes"}`}
 						</span>
-						<span className="text-mute">{pct}%</span>
+						<span className="text-mute">
+							{stage === "reading" ? "" : `${pct}%`}
+						</span>
 					</div>
 					<div
 						role="progressbar"
@@ -135,100 +180,93 @@ export function ImportPage() {
 						/>
 					</div>
 					<div className="flex gap-7 pt-1 text-[13px] text-mute">
-						<span>{done - skipped.length} imported</span>
 						<span>
-							{skipped.length} {skipped.length === 1 ? "thing" : "things"}{" "}
-							skipped
+							{stats.images} {stats.images === 1 ? "file" : "files"} saved
+						</span>
+						<span>
+							{stats.tags} {stats.tags === 1 ? "tag" : "tags"} found
+						</span>
+						<span>
+							{stats.skipped} {stats.skipped === 1 ? "thing" : "things"} skipped
 						</span>
 					</div>
 				</div>
 
-				<ul className="flex max-h-[420px] flex-col overflow-y-auto rounded-[20px] border border-line bg-raised">
-					{files.map((file, i) => {
-						const skip = skipped.find((x) => x.name === file.name);
-						const state = skip
-							? "warn"
-							: i < done
-								? "done"
-								: i === done
-									? "active"
-									: "wait";
-						return (
-							<li
-								// biome-ignore lint/suspicious/noArrayIndexKey: file names can repeat across folders
-								key={`${file.name}-${i}`}
-								className="flex min-h-[46px] items-center gap-3 border-b border-line2 px-[18px] text-sm last:border-b-0"
+				<ul
+					ref={list}
+					className="flex max-h-[420px] min-h-[96px] flex-col overflow-y-auto rounded-[20px] border border-line bg-raised"
+				>
+					{rows.map((row, i) => (
+						<li
+							// biome-ignore lint/suspicious/noArrayIndexKey: sources can repeat across folders
+							key={`${row.source}-${i}`}
+							className="flex min-h-[46px] items-center gap-3 border-b border-line2 px-[18px] text-sm last:border-b-0"
+						>
+							<span className="flex size-4 flex-none items-center justify-center">
+								{row.state === "done" ? (
+									<svg
+										width="16"
+										height="16"
+										viewBox="0 0 16 16"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="1.6"
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										role="img"
+										aria-label="Done"
+										className="text-ink2"
+									>
+										<path d="M3.5 8.5l3 3 6-7" />
+									</svg>
+								) : null}
+								{row.state === "active" ? (
+									<svg
+										width="16"
+										height="16"
+										viewBox="0 0 16 16"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="1.6"
+										strokeLinecap="round"
+										role="img"
+										aria-label="In progress"
+									>
+										<path d="M8 2.5a5.5 5.5 0 105.5 5.5" />
+									</svg>
+								) : null}
+								{row.state === "warn" ? (
+									<svg
+										width="16"
+										height="16"
+										viewBox="0 0 16 16"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="1.6"
+										strokeLinecap="round"
+										role="img"
+										aria-label="Skipped"
+										className="text-accent"
+									>
+										<path d="M8 4v5M8 11.6v.4" />
+									</svg>
+								) : null}
+							</span>
+							<span className="min-w-0 flex-1 truncate font-mono text-[13px]">
+								{row.source}
+							</span>
+							<span
+								className={`max-w-[45%] truncate text-xs ${row.state === "warn" ? "text-accent" : "text-mute"}`}
 							>
-								<span className="flex size-4 flex-none items-center justify-center">
-									{state === "done" ? (
-										<svg
-											width="16"
-											height="16"
-											viewBox="0 0 16 16"
-											fill="none"
-											stroke="currentColor"
-											strokeWidth="1.6"
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											role="img"
-											aria-label="Done"
-											className="text-ink2"
-										>
-											<path d="M3.5 8.5l3 3 6-7" />
-										</svg>
-									) : null}
-									{state === "active" ? (
-										<svg
-											width="16"
-											height="16"
-											viewBox="0 0 16 16"
-											fill="none"
-											stroke="currentColor"
-											strokeWidth="1.6"
-											strokeLinecap="round"
-											role="img"
-											aria-label="In progress"
-										>
-											<path d="M8 2.5a5.5 5.5 0 105.5 5.5" />
-										</svg>
-									) : null}
-									{state === "warn" ? (
-										<svg
-											width="16"
-											height="16"
-											viewBox="0 0 16 16"
-											fill="none"
-											stroke="currentColor"
-											strokeWidth="1.6"
-											strokeLinecap="round"
-											role="img"
-											aria-label="Skipped"
-											className="text-accent"
-										>
-											<path d="M8 4v5M8 11.6v.4" />
-										</svg>
-									) : null}
-								</span>
-								<span className="min-w-0 flex-1 truncate font-mono text-[13px]">
-									{file.name}
-								</span>
-								<span
-									className={`text-xs ${state === "warn" ? "text-accent" : "text-mute"}`}
-								>
-									{state === "warn"
-										? skip?.reason
-										: state === "active"
-											? "Reading…"
-											: ""}
-								</span>
-							</li>
-						);
-					})}
+								{row.detail}
+							</span>
+						</li>
+					))}
 				</ul>
 
 				<div className="flex flex-wrap items-center gap-3">
 					<span className="text-[13px] text-mute">
-						Files that cannot be read are skipped and listed here.
+						Skipped items are listed in a note called “Import report”.
 					</span>
 					<div className="flex-1" />
 					<button
@@ -260,29 +298,25 @@ export function ImportPage() {
 					Bring your notes with you
 				</h1>
 				<p className="text-[15px] text-ink2">
-					Imports run on this device, so they work offline. Pick where your
-					notes come from.
+					Imports run on this device, so they work offline. Drop your notes in
+					and Seijaku works out where they came from, or pick a source below.
 				</p>
 			</div>
 
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
 				{SOURCES.map((s) => {
-					const on = s.kind !== undefined && s.kind === kind;
-					const disabled = s.kind === undefined;
+					const on = s.id === sourceId;
 					return (
 						<button
 							type="button"
-							key={s.name}
+							key={s.id}
 							aria-pressed={on}
-							disabled={disabled || busy}
 							onClick={() => {
-								if (s.kind) {
-									setKind(s.kind);
-									setFiles([]);
-									setError(null);
-								}
+								// Picking the same card again goes back to working it out.
+								setSourceId(on ? null : s.id);
+								setError(null);
 							}}
-							className={`flex h-20 items-center gap-3.5 rounded-[20px] border px-4 text-left text-ink disabled:cursor-default ${on ? "border-ink bg-callout" : "border-line bg-raised"} ${disabled ? "opacity-60" : "hover:border-mute"}`}
+							className={`flex h-20 items-center gap-3.5 rounded-[20px] border px-4 text-left text-ink ${on ? "border-ink bg-callout" : "border-line bg-raised hover:border-mute"}`}
 						>
 							<span
 								aria-hidden
@@ -299,7 +333,7 @@ export function ImportPage() {
 				})}
 			</div>
 
-			{/* biome-ignore lint/a11y/noStaticElementInteractions: drop target; the button inside does the same by keyboard */}
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: drop target; the buttons inside do the same by keyboard */}
 			<div
 				onDragOver={(e) => {
 					e.preventDefault();
@@ -309,31 +343,53 @@ export function ImportPage() {
 				onDrop={(e) => {
 					e.preventDefault();
 					setDragging(false);
-					take([...e.dataTransfer.files]);
+					void pickedFromDrop(e.dataTransfer).then(take);
 				}}
 				className={`flex min-h-24 flex-col items-center justify-center gap-1.5 rounded-[20px] border-[1.5px] border-dashed px-4 py-6 text-center ${dragging ? "border-ink bg-callout" : "border-line"}`}
 			>
 				<span className="text-[15px]">
-					{files.length > 0
-						? `${files.length} ${files.length === 1 ? "file" : "files"} ready`
-						: DROP_TEXT[kind]}
+					{picked.length > 0
+						? `${picked.length} ${picked.length === 1 ? "file" : "files"} ready`
+						: (chosen?.drop ??
+							"Drop your notes here: a folder, a .zip or files")}
 				</span>
-				<button
-					type="button"
-					disabled={busy}
-					onClick={() => picker.current?.click()}
-					className="text-sm underline underline-offset-[3px]"
-				>
-					or choose files
-				</button>
+				<span className="flex gap-4">
+					<button
+						type="button"
+						onClick={() => picker.current?.click()}
+						className="text-sm underline underline-offset-[3px]"
+					>
+						or choose a file
+					</button>
+					{chosen === null || chosen.folder ? (
+						<button
+							type="button"
+							onClick={() => folderPicker.current?.click()}
+							className="text-sm underline underline-offset-[3px]"
+						>
+							or choose a folder
+						</button>
+					) : null}
+				</span>
 				<input
 					ref={picker}
 					type="file"
 					multiple
-					accept={ACCEPT[kind]}
+					accept={chosen?.accept ?? ANY_ACCEPT}
 					hidden
 					onChange={(e) => {
-						take([...(e.target.files ?? [])]);
+						take(pickedFromInput(e.target.files ?? []));
+						e.target.value = "";
+					}}
+				/>
+				<input
+					ref={folderPicker}
+					type="file"
+					// @ts-expect-error: non-standard but supported by every current browser
+					webkitdirectory=""
+					hidden
+					onChange={(e) => {
+						take(pickedFromInput(e.target.files ?? []));
 						e.target.value = "";
 					}}
 				/>
@@ -347,13 +403,12 @@ export function ImportPage() {
 
 			<div className="flex flex-wrap items-center gap-3">
 				<span className="text-[13px] text-mute">
-					Each file becomes a page at the top level.
+					Tags, dates and image embeds are kept where the source has them.
 				</span>
 				<div className="flex-1" />
 				<button
 					type="button"
 					onClick={() => void navigate({ to: "/" })}
-					disabled={busy}
 					className="h-11 rounded-[14px] border border-line px-[18px] text-sm text-ink hover:bg-hover md:h-10"
 				>
 					Cancel
@@ -361,12 +416,10 @@ export function ImportPage() {
 				<button
 					type="button"
 					onClick={() => void run()}
-					disabled={files.length === 0 || busy}
+					disabled={picked.length === 0}
 					className="h-11 rounded-[14px] bg-ink px-[22px] text-sm font-medium text-paper hover:opacity-90 disabled:opacity-40 md:h-10"
 				>
-					{progress
-						? `Importing ${progress[0]} of ${progress[1]}…`
-						: "Continue"}
+					Continue
 				</button>
 			</div>
 		</div>

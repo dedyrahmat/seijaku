@@ -1,81 +1,71 @@
+import { docLog } from "@seijaku/db";
 import type { LogEntry, UpdateStore } from "@seijaku/sync";
+import { and, asc, count, eq, gt, lte, max, sql } from "drizzle-orm";
+import type { LogDb } from "./db";
 
 /**
- * The little SQL surface the log needs. Bun's `bun:sqlite` and the Cloudflare
- * Durable Object's SQLite both fit behind it, so the storage logic is written once
- * and shared code never imports a runtime-specific module.
+ * What a blob column takes: a Node Buffer where there is one (Bun, Workers with nodejs_compat).
+ * Named through globalThis so shared code does not depend on Node's types.
  */
-export interface SqlDriver {
-	exec(sql: string): void;
-	all<T>(sql: string, params?: unknown[]): T[];
-	run(sql: string, params?: unknown[]): void;
-	transaction(fn: () => void): void;
-}
+const toBlob = (bytes: Uint8Array): never => {
+	const node = (globalThis as { Buffer?: { from(b: Uint8Array): unknown } })
+		.Buffer;
+	return (node ? node.from(bytes) : bytes) as never;
+};
 
 /** Sealed blobs in order. The server never opens them: it cannot read a note. */
 export class SqlUpdateStore implements UpdateStore {
 	/** `scope` keeps accounts apart when they share one table: it prefixes every doc id. */
 	constructor(
-		private db: SqlDriver,
+		private db: LogDb,
 		private scope = "",
-	) {
-		db.exec(
-			`CREATE TABLE IF NOT EXISTS doc_log (
-				seq INTEGER PRIMARY KEY AUTOINCREMENT,
-				doc_id TEXT NOT NULL,
-				data BLOB NOT NULL
-			)`,
-		);
-		db.exec(
-			"CREATE INDEX IF NOT EXISTS doc_log_by_doc ON doc_log (doc_id, seq)",
-		);
-	}
+	) {}
 
 	append(docId: string, data: Uint8Array): number {
-		docId = this.scope + docId;
-		const rows = this.db.all<{ seq: number }>(
-			"INSERT INTO doc_log (doc_id, data) VALUES (?, ?) RETURNING seq",
-			[docId, data],
-		);
-		return Number(rows[0]?.seq);
+		const [row] = this.db
+			.insert(docLog)
+			.values({ docId: this.scope + docId, data: toBlob(data) })
+			.returning({ seq: docLog.seq })
+			.all();
+		return Number(row?.seq);
 	}
 
 	loadAfter(docId: string, afterSeq: number): LogEntry[] {
-		docId = this.scope + docId;
-		const rows = this.db.all<{
-			seq: number;
-			data: ArrayBuffer | Uint8Array;
-		}>(
-			"SELECT seq, data FROM doc_log WHERE doc_id = ? AND seq > ? ORDER BY seq",
-			[docId, afterSeq],
-		);
-		return rows.map((r) => ({
-			seq: Number(r.seq),
-			data: r.data instanceof Uint8Array ? r.data : new Uint8Array(r.data),
-		}));
+		return this.db
+			.select({ seq: docLog.seq, data: docLog.data })
+			.from(docLog)
+			.where(
+				and(eq(docLog.docId, this.scope + docId), gt(docLog.seq, afterSeq)),
+			)
+			.orderBy(asc(docLog.seq))
+			.all()
+			.map((r) => ({
+				seq: Number(r.seq),
+				data: new Uint8Array(r.data),
+			}));
 	}
 
 	stat(docId: string): { head: number; count: number } {
-		docId = this.scope + docId;
-		const [row] = this.db.all<{ head: number; count: number }>(
-			"SELECT COALESCE(MAX(seq), 0) AS head, COUNT(*) AS count FROM doc_log WHERE doc_id = ?",
-			[docId],
-		);
+		const [row] = this.db
+			.select({
+				head: sql<number>`coalesce(${max(docLog.seq)}, 0)`,
+				count: count(),
+			})
+			.from(docLog)
+			.where(eq(docLog.docId, this.scope + docId))
+			.all();
 		return { head: Number(row?.head ?? 0), count: Number(row?.count ?? 0) };
 	}
 
 	replaceUpTo(docId: string, upto: number, snapshot: Uint8Array): void {
-		docId = this.scope + docId;
-		this.db.transaction(() => {
-			this.db.run("DELETE FROM doc_log WHERE doc_id = ? AND seq <= ?", [
-				docId,
-				upto,
-			]);
-			this.db.run("INSERT INTO doc_log (seq, doc_id, data) VALUES (?, ?, ?)", [
-				upto,
-				docId,
-				snapshot,
-			]);
+		const id = this.scope + docId;
+		this.db.transaction((tx) => {
+			tx.delete(docLog)
+				.where(and(eq(docLog.docId, id), lte(docLog.seq, upto)))
+				.run();
+			tx.insert(docLog)
+				.values({ seq: upto, docId: id, data: toBlob(snapshot) })
+				.run();
 		});
 	}
 }

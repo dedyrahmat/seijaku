@@ -1,6 +1,9 @@
 import { DurableObject } from "cloudflare:workers";
+import { logMigrations } from "@seijaku/db";
 import { encodeResync, MAX_FRAME_BYTES, type Peer, Room } from "@seijaku/sync";
-import { type SqlDriver, SqlUpdateStore } from "./sql-store";
+import { drizzle } from "drizzle-orm/durable-sqlite";
+import { migrate } from "drizzle-orm/durable-sqlite/migrator";
+import { SqlUpdateStore } from "./sql-store";
 
 /**
  * Cloudflare entry for the workspace room: one Durable Object per workspace, update log in
@@ -19,29 +22,15 @@ function toBuffer(u: Uint8Array): ArrayBuffer {
 	) as ArrayBuffer;
 }
 
-function doDriver(storage: DurableObjectStorage): SqlDriver {
-	const prepare = (params: unknown[] = []) =>
-		params.map((p) => (p instanceof Uint8Array ? toBuffer(p) : p));
-	return {
-		exec: (sql) => {
-			storage.sql.exec(sql);
-		},
-		all: <T>(sql: string, params?: unknown[]) =>
-			storage.sql.exec(sql, ...(prepare(params) as never[])).toArray() as T[],
-		run: (sql, params) => {
-			storage.sql.exec(sql, ...(prepare(params) as never[]));
-		},
-		transaction: (fn) => storage.transactionSync(fn),
-	};
-}
-
 export class WorkspaceRoom extends DurableObject {
 	private room: Room;
 	private peers = new Map<WebSocket, Peer>();
 
 	constructor(ctx: DurableObjectState, env: unknown) {
 		super(ctx, env as never);
-		this.room = new Room(new SqlUpdateStore(doDriver(ctx.storage)));
+		const db = drizzle(ctx.storage);
+		migrate(db, { migrations: logMigrations });
+		this.room = new Room(new SqlUpdateStore(db));
 		// Keep-alive pings are answered without waking the object.
 		ctx.setWebSocketAutoResponse(
 			new WebSocketRequestResponsePair("ping", "pong"),

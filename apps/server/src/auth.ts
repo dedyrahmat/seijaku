@@ -1,4 +1,5 @@
 import { passkey } from "@better-auth/passkey";
+import { keyWrap } from "@seijaku/db";
 import {
 	type BetterAuthOptions,
 	type BetterAuthPlugin,
@@ -13,7 +14,9 @@ import {
 } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { getMigrations } from "better-auth/db/migration";
+import { and, eq } from "drizzle-orm";
 import * as z from "zod";
+import type { AccountDb } from "./db";
 
 /**
  * Accounts for an instance: anyone can create one. Better Auth owns users, sessions and passkeys;
@@ -34,6 +37,8 @@ import * as z from "zod";
 export interface AuthConfig {
 	/** A Bun `Database` or a D1 binding: whatever Better Auth's built-in adapters accept. */
 	database: BetterAuthOptions["database"];
+	/** Drizzle over the same database, for the tables this server adds (key wraps, history, shares). */
+	db: AccountDb;
 	/** Addresses people open the app at. The first is the canonical one. */
 	origins: string[];
 	/** WebAuthn relying-party id: the bare domain passkeys are bound to. */
@@ -108,53 +113,6 @@ async function newAccount(
 function seijakuPlugin(config: AuthConfig): BetterAuthPlugin {
 	return {
 		id: "seijaku",
-		schema: {
-			keyWrap: {
-				fields: {
-					userId: {
-						type: "string",
-						required: true,
-						references: { model: "user", field: "id" },
-					},
-					kind: { type: "string", required: true },
-					ref: { type: "string", required: true },
-					/** Phrase only: a hash of the login key. */
-					loginHash: { type: "string", required: false },
-					wrapped: { type: "string", required: true },
-					createdAt: { type: "date", required: true },
-				},
-			},
-			/** A sealed snapshot of one note. The bytes live in the blob store. */
-			version: {
-				fields: {
-					userId: {
-						type: "string",
-						required: true,
-						references: { model: "user", field: "id" },
-					},
-					/** The note's server name (an HMAC), never its id. */
-					doc: { type: "string", required: true, index: true },
-					/** Sealed words and device: small enough to list without opening snapshots. */
-					meta: { type: "string", required: true },
-					blobId: { type: "string", required: true },
-					createdAt: { type: "date", required: true },
-				},
-			},
-			/** A published copy of one note, sealed under a key only the link holds. */
-			share: {
-				fields: {
-					userId: {
-						type: "string",
-						required: true,
-						references: { model: "user", field: "id" },
-					},
-					token: { type: "string", required: true, unique: true },
-					blobId: { type: "string", required: true },
-					createdAt: { type: "date", required: true },
-					updatedAt: { type: "date", required: true },
-				},
-			},
-		},
 		endpoints: {
 			seijakuStatus: createAuthEndpoint(
 				"/seijaku/status",
@@ -182,16 +140,14 @@ function seijakuPlugin(config: AuthConfig): BetterAuthPlugin {
 				},
 				async (ctx) => {
 					const user = await newAccount(ctx, config, ctx.body.token);
-					await ctx.context.adapter.create({
-						model: "keyWrap",
-						data: {
-							userId: user.id,
-							kind: "phrase",
-							ref: "",
-							loginHash: await hashLogin(config.secret, ctx.body.loginKey),
-							wrapped: ctx.body.wrapped,
-							createdAt: new Date(),
-						},
+					await config.db.insert(keyWrap).values({
+						id: crypto.randomUUID(),
+						userId: user.id,
+						kind: "phrase",
+						ref: "",
+						loginHash: await hashLogin(config.secret, ctx.body.loginKey),
+						wrapped: ctx.body.wrapped,
+						createdAt: new Date(),
 					});
 					const session = await ctx.context.internalAdapter.createSession(
 						user.id,
@@ -209,19 +165,14 @@ function seijakuPlugin(config: AuthConfig): BetterAuthPlugin {
 					body: z.object({ loginKey: z.string().min(20).max(200) }),
 				},
 				async (ctx) => {
-					const row = await ctx.context.adapter.findOne<{
-						userId: string;
-						wrapped: string;
-					}>({
-						model: "keyWrap",
-						where: [
-							{ field: "kind", value: "phrase" },
-							{
-								field: "loginHash",
-								value: await hashLogin(config.secret, ctx.body.loginKey),
-							},
-						],
-					});
+					const loginHash = await hashLogin(config.secret, ctx.body.loginKey);
+					const [row] = await config.db
+						.select({ userId: keyWrap.userId, wrapped: keyWrap.wrapped })
+						.from(keyWrap)
+						.where(
+							and(eq(keyWrap.kind, "phrase"), eq(keyWrap.loginHash, loginHash)),
+						)
+						.limit(1);
 					if (!row)
 						throw new APIError("UNAUTHORIZED", {
 							message: "That recovery phrase is not right.",
@@ -244,10 +195,14 @@ function seijakuPlugin(config: AuthConfig): BetterAuthPlugin {
 				"/seijaku/key-wraps",
 				{ method: "GET", use: [sessionMiddleware] },
 				async (ctx) => {
-					const rows = await ctx.context.adapter.findMany<KeyWrap>({
-						model: "keyWrap",
-						where: [{ field: "userId", value: ctx.context.session.user.id }],
-					});
+					const rows = await config.db
+						.select({
+							kind: keyWrap.kind,
+							ref: keyWrap.ref,
+							wrapped: keyWrap.wrapped,
+						})
+						.from(keyWrap)
+						.where(eq(keyWrap.userId, ctx.context.session.user.id));
 					return ctx.json(
 						rows.map(({ kind, ref, wrapped }) => ({ kind, ref, wrapped })),
 					);
@@ -278,30 +233,28 @@ function seijakuPlugin(config: AuthConfig): BetterAuthPlugin {
 				},
 				async (ctx) => {
 					const userId = ctx.context.session.user.id;
-					const adapter = ctx.context.adapter;
 					const body = ctx.body;
 					const ref = body.kind === "passkey" ? body.ref : "";
-					await adapter.deleteMany({
-						model: "keyWrap",
-						where: [
-							{ field: "userId", value: userId },
-							{ field: "kind", value: body.kind },
-							{ field: "ref", value: ref },
-						],
-					});
-					await adapter.create({
-						model: "keyWrap",
-						data: {
-							userId,
-							kind: body.kind,
-							ref,
-							loginHash:
-								body.kind === "phrase"
-									? await hashLogin(config.secret, body.loginKey)
-									: null,
-							wrapped: body.wrapped,
-							createdAt: new Date(),
-						},
+					await config.db
+						.delete(keyWrap)
+						.where(
+							and(
+								eq(keyWrap.userId, userId),
+								eq(keyWrap.kind, body.kind),
+								eq(keyWrap.ref, ref),
+							),
+						);
+					await config.db.insert(keyWrap).values({
+						id: crypto.randomUUID(),
+						userId,
+						kind: body.kind,
+						ref,
+						loginHash:
+							body.kind === "phrase"
+								? await hashLogin(config.secret, body.loginKey)
+								: null,
+						wrapped: body.wrapped,
+						createdAt: new Date(),
 					});
 					return ctx.json({ ok: true });
 				},
@@ -360,6 +313,8 @@ export type Auth = ReturnType<typeof createAuth>;
 
 export interface AuthService {
 	auth: Auth;
+	/** The account tables, for routes that keep their own data. */
+	db: AccountDb;
 	/** Resolves once the auth tables exist. Await before the first request is served. */
 	ready: Promise<void>;
 	/** The signed-in account's id, or null when the request carries no valid session. */
@@ -371,6 +326,7 @@ export function createAuthService(config: AuthConfig): AuthService {
 	const ready = getMigrations(auth.options).then((m) => m.runMigrations());
 	return {
 		auth,
+		db: config.db,
 		ready,
 		userId: async (headers) => {
 			await ready;

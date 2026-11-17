@@ -191,3 +191,23 @@ test("a file is stored under its own address, and a wrong address is refused", a
 	expect(new Uint8Array(await back.arrayBuffer())).toEqual(bytes);
 	await server.stop(true);
 });
+
+test("the Drizzle log store appends, reads after a point, counts and folds into a snapshot", async () => {
+	const store = openStore(":memory:")("alice");
+	const a = await store.append("doc", new Uint8Array([1]));
+	const b = await store.append("doc", new Uint8Array([2, 2]));
+	const c = await store.append("doc", new Uint8Array([3, 3, 3]));
+	expect(await store.stat("doc")).toEqual({ head: c, count: 3 });
+	const later = await store.loadAfter("doc", a);
+	expect(later.map((e) => [...e.data])).toEqual([
+		[2, 2],
+		[3, 3, 3],
+	]);
+
+	await store.replaceUpTo("doc", b, new Uint8Array([9, 9]));
+	expect(await store.stat("doc")).toEqual({ head: c, count: 2 });
+	const after = await store.loadAfter("doc", 0);
+	expect(after.map((e) => e.seq)).toEqual([b, c]);
+	expect([...(after[0]?.data ?? [])]).toEqual([9, 9]);
+	expect(after[0]?.data).toBeInstanceOf(Uint8Array);
+});

@@ -5,6 +5,13 @@
 	"type": "module",
 	"main": "src/index.ts",
 	"scripts": {
+		"db:generate": "drizzle-kit generate --config drizzle.log.config.ts && drizzle-kit generate --config drizzle.account.config.ts && bun scripts/bundle.ts",
 		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"drizzle-orm": "^1.0.0-rc.5"
+	},
+	"devDependencies": {
+		"drizzle-kit": "^1.0.0-rc.5"
 	}
 }

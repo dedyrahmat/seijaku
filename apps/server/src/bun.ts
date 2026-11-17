@@ -1,4 +1,5 @@
 import { Database } from "bun:sqlite";
+import { lookup } from "node:dns/promises";
 import { mkdirSync } from "node:fs";
 import { dirname, join, normalize } from "node:path";
 import {
@@ -18,6 +19,7 @@ import {
 } from "./auth";
 import { DiskBlobStore } from "./disk-blobs";
 import { type SqlDriver, SqlUpdateStore } from "./sql-store";
+import { isPrivateHost } from "./unfurl";
 
 /** Self-host entry point: Hono over `Bun.serve`, one in-process room per account, bun:sqlite on disk. */
 
@@ -67,6 +69,16 @@ function staticFile(dir: string, pathname: string): Response | null {
 		: null;
 }
 
+/** A name is fetched only if everything it resolves to is outside the local network. */
+async function publicHost(host: string): Promise<boolean> {
+	try {
+		const found = await lookup(host, { all: true });
+		return found.length > 0 && !found.some((a) => isPrivateHost(a.address));
+	} catch {
+		return false;
+	}
+}
+
 interface SocketData {
 	userId: string;
 	peer?: Peer;
@@ -95,6 +107,7 @@ export function startServer(options: {
 	const app = createApp(
 		new DiskBlobStore(options.blobDir ?? "data/blobs"),
 		options.auth,
+		{ allowHost: publicHost },
 	);
 
 	const server = Bun.serve<SocketData>({

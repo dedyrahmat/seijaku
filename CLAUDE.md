@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Phases 1 (scaffold), 2 (local editor), 3 (sync) and 4 (auth) are done. `apps/web` is a local-first editor that mirrors every note to a sync server over one WebSocket: nested pages, the block editor, trash, IndexedDB persistence, and the title-bar sync status. `apps/server` runs on Bun (`src/bun.ts`) and on Cloudflare (`src/worker.ts` + Durable Object); sign-in is passkeys plus a 12-word recovery phrase (Better Auth), and notes are end-to-end encrypted: the server stores sealed blobs. `packages/db` is still empty (auth uses Better Auth's own tables). [docs/PLAN.md](docs/PLAN.md) is the source of truth for scope, architecture and phase order; read it before doing anything. Next is phase 5 (attachments), which starts after the user's go-ahead.
+Phases 1 (scaffold), 2 (local editor), 3 (sync), 4 (auth) and 5 (attachments) are done. `apps/web` is a local-first editor that mirrors every note to a sync server over one WebSocket: nested pages, the block editor, trash, IndexedDB persistence, and the title-bar sync status. `apps/server` runs on Bun (`src/bun.ts`) and on Cloudflare (`src/worker.ts` + Durable Object); sign-in is passkeys plus a 12-word recovery phrase (Better Auth), and notes are end-to-end encrypted: the server stores sealed blobs. `packages/db` is still empty (auth uses Better Auth's own tables). [docs/PLAN.md](docs/PLAN.md) is the source of truth for scope, architecture and phase order; read it before doing anything. Phase 5 (attachments) is done; next is phase 6 (organising), which starts after the user's go-ahead.
 
-**Accounts rework: accepted, not built.** [docs/AUTH-REWORK.md](docs/AUTH-REWORK.md) is the accepted plan to make sign-in optional, let anyone create an account (one encrypted workspace each), make `SETUP_TOKEN` an optional sign-up code, unlock with a passkey alone through WebAuthn PRF, and ship a one-container self-host. **The user is building it by hand: do not implement any of it unless asked.** Until its boxes are ticked, the code and the notes below describe the old behaviour (one owner, setup token required, app locked until signed in). When helping with it, follow that file's steps and tick them off.
+**Accounts:** sign-in is optional (notes live on the device until you sign in, then sync turns on and uploads them). Anyone can create an account (passkey or 12-word phrase), each with one encrypted workspace; `SETUP_TOKEN` is an optional sign-up code. A passkey with WebAuthn PRF opens notes on a new device by itself, otherwise the phrase is asked once. The Bun server also serves the web build, and a Dockerfile and compose file ship one container. Signing out forgets the workspace key on that device (notes stay).
 
 `apps/desktop` is only a placeholder `package.json`. Tauri needs Rust, which is not installed on this machine; install it (rustup) before phase 10.
 
@@ -26,7 +26,7 @@ bun run --cwd apps/web dev             # Vite dev server on http://localhost:517
 bun run --cwd apps/web build           # production build (apps/web/dist)
 bun run --cwd apps/server dev          # sync server on http://localhost:8791 (data/seijaku.sqlite)
 bun run --cwd apps/server dev:worker   # same server on local workerd via wrangler (port 8791 by default)
-SETUP_TOKEN=... bun run --cwd apps/server dev   # claim a new server in the app with this token (Bun prints one if unset)
+SETUP_TOKEN=... bun run --cwd apps/server dev   # require this sign-up code for new accounts (unset: open sign-up)
 bun apps/server/scripts/smoke.ts ws://localhost:8791/sync [idleSeconds]   # black-box check of a running server
 ```
 
@@ -38,7 +38,7 @@ Conventions: Biome defaults (tabs, double quotes), with Tailwind directives enab
 
 Seijaku (静寂) is a local-first note-taking app. The name means the Japanese Zen garden concept of "active calm" and stillness, the opposite of noise and disturbance. That meaning drives the tagline (working: "Active calm. The opposite of noise.") and the design goal: rich and powerful like Notion or Obsidian, with a UI that never confuses or shouts.
 
-Single user (the owner) on many devices: web, iPhone as an installable PWA (no App Store), and desktop on Windows, macOS and Linux via Tauri 2.
+Many accounts, each with its own encrypted workspace, on many devices: web, iPhone as an installable PWA (no App Store), and desktop on Windows, macOS and Linux via Tauri 2. Signing in is optional.
 
 ## How to work here
 
@@ -88,7 +88,7 @@ How phase 3 is put together:
 
 How phase 4 and end-to-end encryption are put together:
 
-- `apps/server/src/auth.ts` is shared by both runtimes and takes whichever database the entry point has (`bun:sqlite` in `bun.ts`, the D1 binding in `worker.ts`). Its plugin adds `/api/auth/seijaku/status`, `/claim` (phrase-only setup), `/phrase` (phrase sign-in), `/key-wraps`. Passkey registration with no session works only with the setup token as `context`; once a passkey or phrase exists it needs a session. Entry points call `auth.signedIn(headers)` before upgrading `/sync`; `createApp` guards `/api/files`.
+- `apps/server/src/auth.ts` is shared by both runtimes and takes whichever database the entry point has (`bun:sqlite` in `bun.ts`, the D1 binding in `worker.ts`). Its plugin adds `/api/auth/seijaku/status` (`{ signedIn, codeRequired }`), `/sign-up` (phrase-only; the passkey plugin's `resolveUser` makes accounts for passkey sign-up), `/phrase` (phrase sign-in), `/key-wraps`. `newAccount` checks the sign-up code only when `SETUP_TOKEN` is set. Entry points call `auth.userId(headers)` before upgrading `/sync`: Bun keeps a `Room` per user id over `SqlUpdateStore(driver, userId)`, the Worker uses one Durable Object per user id. `createApp` guards `/api/files`. Passkeys: `apps/web/src/auth/keys.ts` asks for the WebAuthn PRF extension and wraps the workspace key under `prfWrapKey` (`crypto.ts`) per passkey.
 - Keys: `packages/sync/src/crypto.ts` (Cipher: seal/open per doc, server doc ids, file sealing, key wrapping) and `phrase.ts` (BIP39 phrase, login key and wrapping key from it). The server stores only an HMAC of the login key and the wrapped workspace key. Web side: `apps/web/src/auth/keys.ts` (key in IndexedDB `seijaku-keys`, claim / sign in / unlock / replace phrase) and `session.ts` (`authStore`: phases checking, unclaimed, signed-out, **locked** = signed in but no key, signed-in; `getCipher()` feeds sync and file upload).
 - Sync is a blind log: `protocol.ts` frames Subscribe / Push / Entry / Ready / Ack / Snapshot / Notify; `room.ts` holds no Y.Docs; `UpdateStore` is `append / loadAfter / stat / replaceUpTo`. `client.ts` seals updates, opens entries, uploads `encodeStateAsUpdate(doc, serverStateVector)` after Ready, and persists `lastSeq` + state vector per doc (`attachDoc` in `workspace/store.ts`, stored in y-indexeddb's custom store). The client attaches docs before a key exists; they get their server name once it does.
 - Tests: `auth.test.ts` (refusals, claim, phrase login, key wraps, rate limit), `sync.test.ts` (including "server never holds readable text or names", wrong key, tampered entry, long-log folding, server reset), `crypto.test.ts` (BIP39 vector, wrap round trip). The passkey and phrase ceremonies were checked in a real browser with a virtual authenticator, on Bun and on `wrangler dev`.

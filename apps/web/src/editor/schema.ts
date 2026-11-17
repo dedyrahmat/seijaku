@@ -6,6 +6,7 @@ import {
 	defaultBlockSpecs,
 } from "@blocknote/core";
 import katex from "katex";
+import { fetchPreview, webAddress } from "./preview";
 
 export const CALLOUT_TONES = ["note", "tip", "warning"] as const;
 export type CalloutTone = (typeof CALLOUT_TONES)[number];
@@ -117,12 +118,88 @@ const createMathBlock = createBlockSpec(
 	},
 );
 
+/**
+ * A link shown as a card: site, title and a line of description. Insert it empty and paste a
+ * link; the server is asked once and the answer is stored in the block, so the card reads the
+ * same offline and for everyone the note syncs to.
+ */
+const createLinkPreviewBlock = createBlockSpec(
+	{
+		type: "linkPreview",
+		propSchema: {
+			url: { default: "" },
+			title: { default: "" },
+			description: { default: "" },
+			site: { default: "" },
+		},
+		content: "none",
+	},
+	{
+		render: (block, editor) => {
+			const dom = document.createElement("div");
+			dom.className = "seijaku-linkcard";
+			dom.contentEditable = "false";
+
+			if (!block.props.url) {
+				const input = document.createElement("input");
+				input.type = "url";
+				input.className = "seijaku-linkcard__input";
+				input.placeholder = "Paste a link and press Enter";
+				input.setAttribute("aria-label", "Link to preview");
+				const note = document.createElement("span");
+				note.className = "seijaku-linkcard__note";
+				note.textContent =
+					"Your server fetches the page once to read its title.";
+				input.addEventListener("keydown", async (e) => {
+					e.stopPropagation(); // typing here is not editing the note
+					if (e.key !== "Enter") return;
+					e.preventDefault();
+					const url = webAddress(input.value);
+					if (!url) {
+						note.textContent = "That does not look like a web address.";
+						return;
+					}
+					input.disabled = true;
+					const found = await fetchPreview(url);
+					editor.updateBlock(block, {
+						props: { url, ...(found ?? {}) },
+					});
+				});
+				dom.append(input, note);
+				return { dom };
+			}
+
+			const card = document.createElement("a");
+			card.href = block.props.url;
+			card.target = "_blank";
+			card.rel = "noopener noreferrer";
+			card.className = "seijaku-linkcard__card";
+			const site = document.createElement("span");
+			site.className = "seijaku-linkcard__site";
+			site.textContent = block.props.site || new URL(block.props.url).hostname;
+			const title = document.createElement("span");
+			title.className = "seijaku-linkcard__title";
+			title.textContent = block.props.title || block.props.url;
+			card.append(site, title);
+			if (block.props.description) {
+				const text = document.createElement("span");
+				text.className = "seijaku-linkcard__text";
+				text.textContent = block.props.description;
+				card.append(text);
+			}
+			dom.append(card);
+			return { dom };
+		},
+	},
+);
+
 export const schema = BlockNoteSchema.create({
 	blockSpecs: {
 		...defaultBlockSpecs,
 		codeBlock: createCodeBlockSpec(codeBlockOptions),
 		callout: createCalloutBlock(),
 		math: createMathBlock(),
+		linkPreview: createLinkPreviewBlock(),
 	},
 });
 

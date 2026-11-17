@@ -23,6 +23,18 @@ export function newBlobId(): string {
 	return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/**
+ * The address of a sealed file is the first 12 bytes of its SHA-256. The client can compute it
+ * before uploading, so a file added offline already has its final address, and the server can
+ * check the bytes match it.
+ */
+export async function blobIdFor(data: ArrayBuffer): Promise<string> {
+	const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", data));
+	return Array.from(digest.subarray(0, 12), (b) =>
+		b.toString(16).padStart(2, "0"),
+	).join("");
+}
+
 export const BLOB_ID = /^[a-f0-9]{24}$/;
 
 /** Types the browser may display in place. Anything else is only ever offered as a download. */

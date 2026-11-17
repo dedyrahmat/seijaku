@@ -7,6 +7,7 @@ import {
 	SyncClient,
 } from "@seijaku/sync";
 import * as Y from "yjs";
+import { blobIdFor } from "./blobs";
 import { openStore, startServer } from "./bun";
 
 const cipher = createCipher(newWorkspaceKey());
@@ -163,5 +164,30 @@ test("the web build is served, with app routes falling back to index.html", asyn
 	expect((await get("/api/nope")).status).toBe(404);
 	// Climbing out of the folder never serves a file.
 	expect((await get("/..%2f..%2fpackage.json")).status).toBe(404);
+	await server.stop(true);
+});
+
+test("a file is stored under its own address, and a wrong address is refused", async () => {
+	const dir = `${process.env.TEMP ?? "/tmp"}/seijaku-put-${Date.now()}`;
+	const { server } = startServer({
+		port: 0,
+		store: openStore(":memory:"),
+		blobDir: dir,
+	});
+	const base = `http://localhost:${server.port}`;
+	const bytes = new Uint8Array([9, 8, 7, 6]);
+	const id = await blobIdFor(bytes.buffer as ArrayBuffer);
+	const put = (path: string) =>
+		fetch(`${base}/api/files/${path}`, {
+			method: "PUT",
+			headers: { "Content-Type": "application/octet-stream" },
+			body: bytes,
+		});
+	expect((await put(id)).status).toBe(200);
+	expect((await put(id)).status).toBe(200); // a retried upload is harmless
+	expect((await put("a".repeat(24))).status).toBe(400);
+	expect((await put("short")).status).toBe(400);
+	const back = await fetch(`${base}/api/files/${id}`);
+	expect(new Uint8Array(await back.arrayBuffer())).toEqual(bytes);
 	await server.stop(true);
 });

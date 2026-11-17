@@ -59,23 +59,23 @@ Each phase ends in something runnable, and work stops after every phase for revi
 - [x] Passkey and recovery-phrase sign-in, end-to-end encryption
 - [x] Session checks on HTTP and WebSocket upgrade
 
-### Accounts rework (accepted, not built)
+### Accounts rework (done)
 
-Sign-in becomes optional and accounts work like a wallet. Steps and checks are in [docs/AUTH-REWORK.md](docs/AUTH-REWORK.md).
+Sign-in is optional and accounts work like a wallet.
 
 - [x] Move the default dev server port off 8787 (to 8791)
-- [ ] Use the app without an account; signing in turns sync on and uploads local notes
-- [ ] Anyone can create an account with a passkey or a 12-word phrase; one encrypted workspace per account
-- [ ] `SETUP_TOKEN` becomes an optional sign-up code
+- [x] Use the app without an account; signing in turns sync on and uploads local notes
+- [x] Anyone can create an account with a passkey or a 12-word phrase; one encrypted workspace per account
+- [x] `SETUP_TOKEN` becomes an optional sign-up code
 - [x] A passkey alone opens notes on a new device (WebAuthn PRF), with the phrase as fallback
-- [ ] One-container self-host: Bun serves the web build, Dockerfile and compose
+- [x] One-container self-host: Bun serves the web build, Dockerfile and compose
 
 ### Phase 5: Attachments
 
-- [ ] `BlobStore` adapters: R2 and local disk
-- [ ] Upload and download for images and files
-- [ ] Offline cache and an upload queue that flushes on reconnect
-- [ ] Link-preview unfurl endpoint
+- [x] `BlobStore` adapters: R2 and local disk
+- [x] Upload and download for images and files (sealed on the device, addressed by their hash)
+- [x] Offline cache and an upload queue that flushes on reconnect
+- [x] Link-preview unfurl endpoint and a Link preview block
 
 ### Phase 6: Organising
 

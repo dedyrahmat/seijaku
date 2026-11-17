@@ -10,12 +10,13 @@ import {
 	useRouter,
 	useRouterState,
 } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../auth/session";
-import { HistoryPanel } from "../components/HistoryPanel";
+import { HistoryPanel, type Preview } from "../components/HistoryPanel";
 import { Logo } from "../components/Logo";
 import { NoteFooter } from "../components/NoteFooter";
 import { pageLink } from "../components/pageLink";
+import { ReadOnlyNote } from "../components/ReadOnlyNote";
 import { SharePopover } from "../components/SharePopover";
 import { Sidebar } from "../components/Sidebar";
 import { Switcher } from "../components/Switcher";
@@ -94,6 +95,15 @@ export function Shell() {
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	const [panel, setPanel] = useState<"none" | "history" | "share">("none");
 	const [moreOpen, setMoreOpen] = useState(false);
+	const [preview, setPreview] = useState<{ id: string; view: Preview } | null>(
+		null,
+	);
+	const [restoring, setRestoring] = useState(false);
+	const showPreview = useCallback(
+		(id: string | null, view: Preview | null) =>
+			setPreview(id && view ? { id, view } : null),
+		[],
+	);
 	const newPage = useNewPage();
 	const [sidebarHidden, setSidebarHidden] = useState(
 		() => readLocal(SIDEBAR_HIDDEN_KEY) === "1",
@@ -118,7 +128,10 @@ export function Shell() {
 
 	// A panel belongs to one page; renaming it rewrites the address but keeps the panel open.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: noteId is the trigger
-	useEffect(() => setPanel("none"), [noteId]);
+	useEffect(() => {
+		setPanel("none");
+		setPreview(null);
+	}, [noteId]);
 
 	const toggleSidebar = () =>
 		setSidebarHidden((v) => {
@@ -346,7 +359,43 @@ export function Shell() {
 
 				<div className="relative min-h-0 flex-1">
 					<main className="h-full overflow-y-auto">
-						<Outlet />
+						{preview && panel === "history" ? (
+							<>
+								<div className="sticky top-0 z-10 flex min-h-[52px] flex-wrap items-center gap-x-4 gap-y-2 border-b border-line2 bg-callout px-6 py-2">
+									<span className="text-sm text-ink">
+										Previewing {preview.view.label}. Read-only. Your current
+										page is unchanged.
+									</span>
+									<div className="flex-1" />
+									<button
+										type="button"
+										onClick={() => setPreview(null)}
+										className="h-[34px] rounded-[14px] border border-line px-3.5 text-[13px] text-ink hover:bg-hover"
+									>
+										Back to current
+									</button>
+									<button
+										type="button"
+										disabled={restoring}
+										onClick={() => {
+											setRestoring(true);
+											void preview.view
+												.restore()
+												.finally(() => setRestoring(false));
+										}}
+										className="h-[34px] rounded-[14px] bg-ink px-4 text-[13px] font-medium text-paper disabled:opacity-40"
+									>
+										Restore this version
+									</button>
+								</div>
+								<ReadOnlyNote
+									title={preview.view.title}
+									blocks={preview.view.blocks}
+								/>
+							</>
+						) : (
+							<Outlet />
+						)}
 					</main>
 					{current && !current.trashed ? (
 						<NoteFooter key={current.id} noteId={current.id} />
@@ -354,10 +403,15 @@ export function Shell() {
 				</div>
 			</div>
 			{panel === "history" && current && !current.trashed ? (
-				<HistoryPanel noteId={current.id} onClose={() => setPanel("none")} />
+				<HistoryPanel
+					noteId={current.id}
+					previewId={preview?.id ?? null}
+					onPreview={showPreview}
+					onClose={() => setPanel("none")}
+				/>
 			) : null}
 			{panel === "share" && current && !current.trashed ? (
-				<SharePopover onClose={() => setPanel("none")} />
+				<SharePopover noteId={current.id} onClose={() => setPanel("none")} />
 			) : null}
 		</div>
 	);

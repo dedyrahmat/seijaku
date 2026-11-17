@@ -17,6 +17,8 @@ import "katex/dist/katex.min.css";
 import { type MutableRefObject, useEffect, useRef } from "react";
 import { useColorScheme } from "../theme";
 import { resolveFileUrl, uploadFile } from "../workspace/files";
+import { flushSnapshot, noteEdited } from "../workspace/history";
+import { sharedNoteEdited } from "../workspace/shares";
 import type { NoteSession } from "../workspace/store";
 import { workspace } from "../workspace/store";
 import { schema } from "./schema";
@@ -64,7 +66,13 @@ export function Editor({ session, focusRef }: Props) {
 		};
 	}, [editor, focusRef]);
 
-	useEffect(() => () => clearTimeout(touchTimer.current), []);
+	useEffect(() => {
+		const id = session.id;
+		return () => {
+			clearTimeout(touchTimer.current);
+			flushSnapshot(id); // leaving the page: keep what was written as a version
+		};
+	}, [session.id]);
 
 	return (
 		<BlockNoteView
@@ -72,6 +80,8 @@ export function Editor({ session, focusRef }: Props) {
 			theme={scheme}
 			slashMenu={false}
 			onChange={() => {
+				noteEdited(session.id);
+				sharedNoteEdited(session.id);
 				clearTimeout(touchTimer.current);
 				touchTimer.current = setTimeout(
 					() => touchNote(workspace.index, session.id),

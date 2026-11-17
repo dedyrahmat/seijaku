@@ -4,7 +4,9 @@ import {
 	createCipher,
 	fromBase64,
 	newWorkspaceKey,
+	openShare,
 	prfWrapKey,
+	sealShare,
 	toBase64,
 	unwrapWorkspaceKey,
 	wrapWorkspaceKey,
@@ -116,4 +118,14 @@ test("a passkey's PRF output wraps the workspace key, and only the same output o
 			wrapped,
 		),
 	).toThrow();
+});
+
+test("a shared page opens with its link key and with nothing else", () => {
+	const key = newWorkspaceKey();
+	const page = new TextEncoder().encode('{"title":"hi"}');
+	const sealed = sealShare(key, page);
+	expect(openShare(key, sealed)).toEqual(page);
+	expect(() => openShare(newWorkspaceKey(), sealed)).toThrow();
+	// The workspace's own sealing cannot be passed off as a share, or the reverse.
+	expect(() => unwrapWorkspaceKey(key, sealed)).toThrow();
 });

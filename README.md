@@ -88,9 +88,9 @@ Sign-in is optional and accounts work like a wallet.
 
 ### Phase 7: History and sharing
 
-- [ ] Version snapshots on the server and a history panel
-- [ ] Restore as a new edit
-- [ ] Public read-only share links (`/share/:token`), revocable
+- [x] Version snapshots on the server and a history panel (sealed on the device)
+- [x] Restore as a new edit
+- [x] Public read-only share links (`/share/:token#key`), revocable
 
 ### Phase 8: Importers
 

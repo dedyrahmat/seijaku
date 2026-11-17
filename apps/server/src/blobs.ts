@@ -9,6 +9,7 @@ export interface BlobInfo {
 
 export interface BlobStore {
 	put(id: string, data: ArrayBuffer, info: BlobInfo): Promise<void>;
+	delete(id: string): Promise<void>;
 	get(
 		id: string,
 	): Promise<{ body: ReadableStream | ArrayBuffer; info: BlobInfo } | null>;

@@ -22,8 +22,17 @@ export interface NoteMeta {
 	trashed: boolean;
 	/** When it went to the trash; null for notes trashed before this was recorded. */
 	trashedAt: number | null;
+	/** Set while the page is shared to the web: the link's token and the key in its #fragment. */
+	share: ShareInfo | null;
 	createdAt: number;
 	updatedAt: number;
+}
+
+export interface ShareInfo {
+	token: string;
+	/** Base64url key that seals the published copy. Lives only here (sealed) and in the link. */
+	key: string;
+	at: number;
 }
 
 export interface TreeNode {
@@ -55,6 +64,7 @@ function readNote(id: string, m: NoteMap): NoteMeta {
 		tags: Array.isArray(tags) ? (tags as string[]) : [],
 		trashed: (m.get("trashed") as boolean | undefined) ?? false,
 		trashedAt: (m.get("trashedAt") as number | undefined) ?? null,
+		share: (m.get("share") as ShareInfo | undefined) ?? null,
 		createdAt: (m.get("createdAt") as number | undefined) ?? 0,
 		updatedAt: (m.get("updatedAt") as number | undefined) ?? 0,
 	};
@@ -367,6 +377,20 @@ export function purgeAllTrashed(doc: Y.Doc): string[] {
 		if (getNote(doc, n.id)) removed.push(...purgeNote(doc, n.id));
 	}
 	return removed;
+}
+
+/** Records (or with null, clears) the page's share link, so every device knows it and can revoke it. */
+export function setShare(
+	doc: Y.Doc,
+	id: string,
+	share: ShareInfo | null,
+): void {
+	const m = notesMap(doc).get(id);
+	if (!m) return;
+	doc.transact(() => {
+		if (share) m.set("share", share);
+		else m.delete("share");
+	});
 }
 
 /**

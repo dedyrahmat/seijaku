@@ -95,13 +95,16 @@ Adapter interfaces chosen at the entry point:
 
 ### Version history
 
-- Server stores periodic per-note snapshots (full Yjs state) in a `versions` table: on idle after edits, capped and thinned with age.
-- History panel lists versions, previews one read-only, and restores by writing the old content as a new edit (so restore itself syncs and is undoable). Browsing history needs a connection.
+- A snapshot is a note's whole Yjs state, **sealed on the device** (the server cannot open it). It is taken once a note has been quiet for 2 minutes, when you leave the page, and when the History panel opens (skipped if nothing changed since the last one sent from this tab). The server keeps rows `version` (user, server doc name, sealed meta with words and device, blob id, time) and the bytes in the blob store.
+- Thinning (`versionsToKeep`): everything from the last hour; then one per 10 minutes for a day, one per day for a month, one per week after; at most 200 per note. "Keep version history" (30 days, 90 days, Forever) is sent with each snapshot and drops older ones.
+- The panel lists Today / Yesterday / Earlier with time, words added and "Synced from this device / another device / Page created". Picking one previews it read-only above the page ("Previewing…", Back to current, Restore this version). Restore snapshots the current page first, then replaces the live content with the old one in a single Yjs transaction, so it syncs and can be undone from the list. Listing needs a connection.
 
 ### Public share links
 
-- `shares` table in the metadata DB: note id, random token, created/revoked. Toggle per note, revocable.
-- `/share/:token` serves a read-only render of that one note (no sidebar, no auth), with its images served through share-scoped URLs. Child pages are not exposed.
+- A shared page is a **sealed copy** published under a random key. The link is `/share/<token>#<key>`: the key sits in the fragment, which browsers never send, so the server hosts bytes it cannot read. The key is also stored on the page's record in the index doc (sealed, synced) so any device can republish or revoke.
+- Server: `share` table (user, token, blob id, times) and `PUT /api/shares` (create or replace under the same token), `DELETE /api/shares/:token` (owner only), public `GET /api/shares/:token` (`noindex`, unguessable token). Revoking deletes the copy.
+- Images are embedded in the copy (3 MB each, 12 MB total; larger ones are left out), so a shared page needs no other request. Sub-pages are not included. While shared, edits are republished 8 seconds after you stop typing.
+- The viewer treats the page as untrusted data: links that are not http(s) or mailto become text and media must be a web address or an embedded image/video/audio before the page is drawn (read-only BlockNote).
 
 ### Desktop quick capture
 
@@ -158,7 +161,9 @@ Each phase ends in something runnable. **Stop after each phase**, demo it, and w
    - **Markdown export:** `apps/web/src/export.ts`. "Export as Markdown" in a page's ··· menu, and Settings → Data → Export all (a zip laid out like the page tree, a folder per page that has sub-pages). Images and files are opened on the device and put in `attachments/`, the zip is made in the browser (fflate), and nothing goes to the server. Callouts become quotes, math becomes `$$ … $$`, link previews become links. Trashed pages are left out.
    - **Search:** kept the own on-device implementation (`packages/sync/src/search.ts`: every word must match, titles rank first, `#tag` lists a tag) instead of MiniSearch; it needs no dependency and is tested. Swap it in if fuzzy matching is wanted.
    - Not yet: the Seijaku archive importer (Settings still lists it) and re-importing an export zip; export uses BlockNote's lossy Markdown, so some formatting (colours, column layout) is dropped; permanent delete removes the page from the index but leaves its content doc on the server.
-7. **History + sharing**: version snapshots and history panel; public share links.
+7. **History + sharing** (DONE): version snapshots and history panel; public share links.
+   - Done: see "Version history" and "Public share links" above. Tables `version` and `share` come from the Better Auth plugin schema, so they migrate on both Bun and D1; blobs gained `delete`. Checked in a real browser: snapshots, preview, restore, share, opening the link in a fresh session, the link without its key, and revoking.
+   - Not yet: no per-account quota on snapshots or shares; a link works for anyone who has it until revoked (no expiry or password); the public page shows no "last updated" time; sharing a page does not share its attachments larger than 3 MB; a shared page is a copy, so it lags edits made while offline until you are online and idle for 8 seconds; version history on Cloudflare was not run on `wrangler dev`.
 8. **Importers**: intermediate format + writer, then Obsidian, Notion, Keep, Evernote, Apple Notes, Apple Journal, generic.
 9. **PWA**: service worker app-shell caching, manifest, icons, iPhone home-screen polish (safe areas, keyboard handling).
 10. **Desktop**: Tauri 2 shell, deep-link sign-in, server URL setting, quick capture (hotkey + tray), auto-updater, GitHub Actions builds for Win/Mac/Linux.

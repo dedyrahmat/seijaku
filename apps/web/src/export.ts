@@ -1,5 +1,3 @@
-import { BlockNoteEditor } from "@blocknote/core";
-import { yXmlFragmentToBlocks } from "@blocknote/core/yjs";
 import {
 	buildTree,
 	listNotes,
@@ -7,7 +5,7 @@ import {
 	type TreeNode,
 } from "@seijaku/sync";
 import { strToU8, zipSync } from "fflate";
-import { schema } from "./editor/schema";
+import { type Block, fragmentBlocks, headless } from "./editor/headless";
 import { readFile } from "./workspace/files";
 import { workspace } from "./workspace/store";
 
@@ -17,22 +15,7 @@ import { workspace } from "./workspace/store";
  * device: the files are sealed on the server, so the zip is made here.
  */
 
-interface Block {
-	type: string;
-	props: Record<string, unknown>;
-	content?: unknown;
-	children: Block[];
-}
-
 const MEDIA = new Set(["image", "video", "audio", "file"]);
-
-let editor: BlockNoteEditor<never, never, never> | null = null;
-const headless = () =>
-	(editor ??= BlockNoteEditor.create({ schema }) as unknown as BlockNoteEditor<
-		never,
-		never,
-		never
-	>);
 
 function textOf(content: unknown): string {
 	if (!Array.isArray(content)) return "";
@@ -118,14 +101,8 @@ async function pageMarkdown(
 	depth: number,
 ): Promise<string> {
 	const ed = headless();
-	const blocks = await workspace.withFragment(note.id, (fragment) =>
-		yXmlFragmentToBlocks(ed, fragment),
-	);
-	const flat = await flatten(
-		blocks as unknown as Block[],
-		attachments,
-		"../".repeat(depth),
-	);
+	const blocks = await workspace.withFragment(note.id, fragmentBlocks);
+	const flat = await flatten(blocks, attachments, "../".repeat(depth));
 	const body = ed.blocksToMarkdownLossy(flat as never).trim();
 	const tags = note.tags.length
 		? `${note.tags.map((t) => `#${t}`).join(" ")}\n\n`

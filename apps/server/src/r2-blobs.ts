@@ -10,6 +10,10 @@ export class R2BlobStore implements BlobStore {
 		});
 	}
 
+	async delete(id: string): Promise<void> {
+		await this.bucket.delete(id);
+	}
+
 	async get(id: string) {
 		const obj = await this.bucket.get(id);
 		if (!obj) return null;

@@ -124,6 +124,36 @@ function seijakuPlugin(config: AuthConfig): BetterAuthPlugin {
 					createdAt: { type: "date", required: true },
 				},
 			},
+			/** A sealed snapshot of one note. The bytes live in the blob store. */
+			version: {
+				fields: {
+					userId: {
+						type: "string",
+						required: true,
+						references: { model: "user", field: "id" },
+					},
+					/** The note's server name (an HMAC), never its id. */
+					doc: { type: "string", required: true, index: true },
+					/** Sealed words and device: small enough to list without opening snapshots. */
+					meta: { type: "string", required: true },
+					blobId: { type: "string", required: true },
+					createdAt: { type: "date", required: true },
+				},
+			},
+			/** A published copy of one note, sealed under a key only the link holds. */
+			share: {
+				fields: {
+					userId: {
+						type: "string",
+						required: true,
+						references: { model: "user", field: "id" },
+					},
+					token: { type: "string", required: true, unique: true },
+					blobId: { type: "string", required: true },
+					createdAt: { type: "date", required: true },
+					updatedAt: { type: "date", required: true },
+				},
+			},
 		},
 		endpoints: {
 			seijakuStatus: createAuthEndpoint(

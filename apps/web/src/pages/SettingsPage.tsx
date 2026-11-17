@@ -773,7 +773,6 @@ function DataSettings() {
 						value={p.historyFor}
 						options={["30 days", "90 days", "Forever"]}
 						onChange={set("historyFor")}
-						disabled
 					/>
 				</Row>
 				<Row

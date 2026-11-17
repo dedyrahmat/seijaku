@@ -9,6 +9,7 @@ import {
 	MAX_UPLOAD_BYTES,
 	newBlobId,
 } from "./blobs";
+import { mountHistory } from "./history";
 import { UnfurlError, type UnfurlOptions, unfurl } from "./unfurl";
 
 /**
@@ -37,6 +38,7 @@ export function createApp(
 		app.use("/api/files", needSession);
 		app.use("/api/files/*", needSession);
 		app.use("/api/unfurl", needSession);
+		mountHistory(app, auth, blobs);
 	}
 
 	app.get("/api/health", (c) => c.json({ ok: true }));

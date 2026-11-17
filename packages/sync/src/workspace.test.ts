@@ -172,6 +172,7 @@ import {
 	purgeAllTrashed,
 	purgeExpired,
 	purgeNote,
+	setShare,
 } from "./workspace";
 
 describe("purge, daily notes and tags", () => {
@@ -243,4 +244,16 @@ describe("trash expiry", () => {
 		expect(getNote(doc, fresh)?.trashed).toBe(true);
 		expect(getNote(doc, restored)).toBeDefined();
 	});
+});
+
+test("a share record travels with the page and can be cleared", () => {
+	const a = new Y.Doc();
+	const id = createNote(a, { title: "shared" });
+	expect(getNote(a, id)?.share).toBeNull();
+	setShare(a, id, { token: "tok", key: "k", at: 5 });
+	const b = new Y.Doc();
+	Y.applyUpdate(b, Y.encodeStateAsUpdate(a));
+	expect(getNote(b, id)?.share).toEqual({ token: "tok", key: "k", at: 5 });
+	setShare(b, id, null);
+	expect(getNote(b, id)?.share).toBeNull();
 });

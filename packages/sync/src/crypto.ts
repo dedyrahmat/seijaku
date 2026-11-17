@@ -115,6 +115,19 @@ export function prfWrapKey(prfOutput: Uint8Array): Uint8Array {
 	return derive(prfOutput, "seijaku/passkey/v1", "wrap");
 }
 
+/**
+ * A shared page is sealed under a random key of its own, which travels only in the link's
+ * #fragment (browsers never send it to the server). Anyone with the link can read it; the
+ * server cannot.
+ */
+export function sealShare(shareKey: Uint8Array, plain: Uint8Array): Uint8Array {
+	return seal(shareKey, "share", plain);
+}
+
+export function openShare(shareKey: Uint8Array, blob: Uint8Array): Uint8Array {
+	return open(shareKey, "share", blob);
+}
+
 /** Wraps the workspace key under a key made from a phrase or a passkey; safe to store on the server. */
 export function wrapWorkspaceKey(
 	wrapKey: Uint8Array,

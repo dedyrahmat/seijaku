@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { BLOB_ID, type BlobInfo, type BlobStore } from "./blobs";
 
@@ -15,6 +15,11 @@ export class DiskBlobStore implements BlobStore {
 		await mkdir(this.dir, { recursive: true });
 		await writeFile(this.path(id), new Uint8Array(data));
 		await writeFile(`${this.path(id)}.json`, JSON.stringify(info));
+	}
+
+	async delete(id: string): Promise<void> {
+		await rm(this.path(id), { force: true });
+		await rm(`${this.path(id)}.json`, { force: true });
 	}
 
 	async get(id: string) {

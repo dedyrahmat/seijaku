@@ -50,7 +50,13 @@ export function NoteMetaRow({ note }: { note: NoteMeta }) {
 					onChange={(e) => setDraft(e.target.value)}
 					onBlur={commit}
 					onKeyDown={(e) => {
-						if (e.key === "Enter") commit();
+						// keyCode 229: Safari reports the IME-confirming Enter after isComposing resets
+						if (
+							e.key === "Enter" &&
+							!e.nativeEvent.isComposing &&
+							e.keyCode !== 229
+						)
+							commit();
 						if (e.key === "Escape") {
 							setDraft("");
 							setAdding(false);

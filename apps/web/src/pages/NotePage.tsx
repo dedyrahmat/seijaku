@@ -163,6 +163,8 @@ function TitleField({
 			onKeyDown={(e) => {
 				if (e.key === "Enter") {
 					e.preventDefault();
+					// keyCode 229: Safari reports the IME-confirming Enter after isComposing resets
+					if (e.nativeEvent.isComposing || e.keyCode === 229) return;
 					onEnter();
 				}
 			}}

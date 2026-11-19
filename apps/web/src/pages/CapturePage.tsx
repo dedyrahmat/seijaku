@@ -109,6 +109,8 @@ export function CapturePage() {
 						onKeyDown={(e) => {
 							if (e.key === "Enter" && !e.shiftKey) {
 								e.preventDefault();
+								// keyCode 229: Safari reports the IME-confirming Enter after isComposing resets
+								if (e.nativeEvent.isComposing || e.keyCode === 229) return;
 								void save();
 							} else if (e.key === "Escape") close();
 						}}

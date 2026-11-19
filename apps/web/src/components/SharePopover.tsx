@@ -85,7 +85,7 @@ export function SharePopover({
 			ref={root}
 			role="dialog"
 			aria-label="Share this page"
-			className="fixed top-[46px] right-3 z-50 flex w-[400px] max-w-[calc(100vw-24px)] flex-col gap-4 rounded-3xl border border-line bg-raised p-5 shadow-[0_18px_50px_rgba(40,30,15,0.16),0_2px_6px_rgba(40,30,15,0.08)]"
+			className="fixed top-[calc(env(safe-area-inset-top)+56px)] right-3 md:top-[46px] z-50 flex w-[400px] max-w-[calc(100vw-24px)] flex-col gap-4 rounded-2xl border border-line bg-raised p-5 shadow-[0_18px_50px_rgba(40,30,15,0.16),0_2px_6px_rgba(40,30,15,0.08)]"
 		>
 			<div className="flex items-start gap-4">
 				<div className="flex flex-1 flex-col gap-1">
@@ -124,7 +124,7 @@ export function SharePopover({
 					value={link}
 					onFocus={(e) => e.currentTarget.select()}
 					placeholder="Appears when sharing is on"
-					className="h-[38px] min-w-0 flex-1 rounded-[14px] border border-line bg-paper px-3 font-mono text-[12.5px] text-ink placeholder:text-mute"
+					className="h-[38px] min-w-0 flex-1 rounded-2xl border border-line bg-paper px-3 font-mono text-[12.5px] text-ink placeholder:text-mute"
 				/>
 				<button
 					type="button"
@@ -135,7 +135,7 @@ export function SharePopover({
 							setTimeout(() => setCopied(false), 1800);
 						});
 					}}
-					className="h-[38px] rounded-[14px] bg-ink px-4 text-[13px] font-medium text-paper disabled:cursor-default disabled:opacity-40"
+					className="h-[38px] rounded-2xl bg-ink px-4 text-[13px] font-medium text-paper disabled:cursor-default disabled:opacity-40"
 				>
 					{copied ? "Copied" : "Copy link"}
 				</button>

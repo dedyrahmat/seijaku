@@ -13,7 +13,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../auth/session";
 import { HistoryPanel, type Preview } from "../components/HistoryPanel";
-import { Logo } from "../components/Logo";
+import { NewNoteDialog } from "../components/NewNoteDialog";
 import { NoteFooter } from "../components/NoteFooter";
 import { pageLink } from "../components/pageLink";
 import { ReadOnlyNote } from "../components/ReadOnlyNote";
@@ -21,7 +21,6 @@ import { SharePopover } from "../components/SharePopover";
 import { Sidebar } from "../components/Sidebar";
 import { Switcher } from "../components/Switcher";
 import { SyncStatus } from "../components/SyncStatus";
-import { useNewPage } from "../components/useNewPage";
 import { exportPage } from "../export";
 import { setPref } from "../preferences";
 import {
@@ -94,7 +93,6 @@ export function Shell() {
 	const [typing, setTyping] = useState(false);
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	const [panel, setPanel] = useState<"none" | "history" | "share">("none");
-	const [moreOpen, setMoreOpen] = useState(false);
 	const [preview, setPreview] = useState<{ id: string; view: Preview } | null>(
 		null,
 	);
@@ -104,7 +102,7 @@ export function Shell() {
 			setPreview(id && view ? { id, view } : null),
 		[],
 	);
-	const newPage = useNewPage();
+	const [newNoteOpen, setNewNoteOpen] = useState(false);
 	const [sidebarHidden, setSidebarHidden] = useState(
 		() => readLocal(SIDEBAR_HIDDEN_KEY) === "1",
 	);
@@ -123,7 +121,6 @@ export function Shell() {
 	// biome-ignore lint/correctness/useExhaustiveDependencies: path is the trigger
 	useEffect(() => {
 		setDrawerOpen(false);
-		setMoreOpen(false);
 	}, [path]);
 
 	// A panel belongs to one page; renaming it rewrites the address but keeps the panel open.
@@ -140,8 +137,8 @@ export function Shell() {
 		});
 
 	// The shortcuts listed in Settings. Ctrl or Cmd K opens search from anywhere, as the sidebar button promises.
-	const latest = useRef({ noteId, newPage, toggleSidebar });
-	latest.current = { noteId, newPage, toggleSidebar };
+	const latest = useRef({ noteId, toggleSidebar });
+	latest.current = { noteId, toggleSidebar };
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
 			if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
@@ -168,7 +165,7 @@ export function Shell() {
 					const id = ensureDailyNote(workspace.index, today);
 					void router.navigate(pageLink(id, dailyTitle(today)));
 				});
-			else if (key === "n") run(() => latest.current.newPage(null));
+			else if (key === "n") run(() => setNewNoteOpen(true));
 			else if (e.shiftKey && key === "h" && latest.current.noteId)
 				run(() => setPanel((p) => (p === "history" ? "none" : "history")));
 		};
@@ -202,6 +199,7 @@ export function Shell() {
 	const sectionPath = path.startsWith("/settings") ? "/settings" : path;
 	const crumbs = trail(notes, noteId);
 	const current = noteId ? notes.find((n) => n.id === noteId) : undefined;
+	const parent = crumbs.length > 1 ? crumbs[crumbs.length - 2] : undefined;
 	return (
 		<div
 			data-typing={typing && !drawerOpen}
@@ -215,7 +213,17 @@ export function Shell() {
 					setDrawerOpen(false);
 					setSwitcher({ open: true, query });
 				}}
+				onNewNote={() => {
+					setDrawerOpen(false);
+					setNewNoteOpen(true);
+				}}
 			/>
+			{newNoteOpen ? (
+				<NewNoteDialog
+					defaultParentId={current?.parentId ?? null}
+					onClose={() => setNewNoteOpen(false)}
+				/>
+			) : null}
 			<Switcher
 				open={switcher.open}
 				initialQuery={switcher.query}
@@ -223,22 +231,45 @@ export function Shell() {
 			/>
 			<div className="flex min-w-0 flex-1 flex-col">
 				{/* Phone: open the drawer. */}
-				<header className="chrome flex h-12 items-center gap-3 border-b border-line2 bg-panel px-3 pt-[env(safe-area-inset-top)] md:hidden">
+				<header className="chrome flex h-[calc(52px+env(safe-area-inset-top))] items-center gap-0.5 border-b border-line2 bg-panel px-1.5 pt-[env(safe-area-inset-top)] md:hidden">
 					<button
 						type="button"
 						onClick={() => setDrawerOpen(true)}
-						className="flex size-11 items-center justify-center rounded-[10px] text-ink2 hover:bg-hover"
+						className="flex size-11 items-center justify-center rounded-2xl text-ink2 hover:bg-hover"
 						aria-label="Open pages"
 					>
-						<Icon>
-							<rect x="2" y="3" width="12" height="10" rx="2" />
-							<path d="M6 3v10" />
-						</Icon>
+						<svg
+							width="22"
+							height="22"
+							viewBox="0 0 22 22"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="1.5"
+							strokeLinecap="round"
+							aria-hidden="true"
+						>
+							<path d="M4 7h14M4 11h14M4 15h9" />
+						</svg>
 					</button>
-					<Logo size={24} />
-					<span className="font-serif text-lg font-medium">Seijaku</span>
-					<div className="flex-1" />
+					<span className="min-w-0 flex-1 truncate px-1.5 text-[13px] text-mute">
+						{parent ? (
+							<Link {...pageLink(parent.id, parent.title)}>
+								{parent.title || "Untitled"}
+							</Link>
+						) : noteId ? null : (
+							(SECTIONS[sectionPath] ?? "Seijaku")
+						)}
+					</span>
 					<SyncStatus />
+					{current && !current.trashed ? (
+						<MoreMenu
+							touch
+							onHistory={() => setPanel("history")}
+							onShare={() => setPanel("share")}
+							onTrash={() => trashNote(workspace.index, current.id)}
+							onExport={() => void exportPage(current)}
+						/>
+					) : null}
 				</header>
 
 				{/* Desktop: sidebar toggle, breadcrumb, status. */}
@@ -248,7 +279,7 @@ export function Shell() {
 						onClick={toggleSidebar}
 						aria-label={sidebarHidden ? "Show sidebar" : "Hide sidebar"}
 						aria-pressed={!sidebarHidden}
-						className="flex h-7 w-8 items-center justify-center rounded-[10px] text-ink2 hover:bg-hover"
+						className="flex h-7 w-8 items-center justify-center rounded-2xl text-ink2 hover:bg-hover"
 					>
 						<Icon>
 							<rect x="2" y="3" width="12" height="10" rx="2" />
@@ -259,7 +290,7 @@ export function Shell() {
 						type="button"
 						onClick={() => router.history.back()}
 						aria-label="Back"
-						className="flex size-7 items-center justify-center rounded-[10px] text-ink2 hover:bg-hover"
+						className="flex size-7 items-center justify-center rounded-2xl text-ink2 hover:bg-hover"
 					>
 						<Icon>
 							<path d="M10 3L5 8l5 5" />
@@ -269,7 +300,7 @@ export function Shell() {
 						type="button"
 						onClick={() => router.history.forward()}
 						aria-label="Forward"
-						className="flex size-7 items-center justify-center rounded-[10px] text-ink2 hover:bg-hover"
+						className="flex size-7 items-center justify-center rounded-2xl text-ink2 hover:bg-hover"
 					>
 						<Icon>
 							<path d="M6 3l5 5-5 5" />
@@ -328,7 +359,7 @@ export function Shell() {
 								onClick={() =>
 									setPanel(panel === "history" ? "none" : "history")
 								}
-								className={`flex h-7 w-8 items-center justify-center rounded-[10px] text-ink2 hover:bg-hover ${panel === "history" ? "bg-hover" : ""}`}
+								className={`flex h-7 w-8 items-center justify-center rounded-2xl text-ink2 hover:bg-hover ${panel === "history" ? "bg-hover" : ""}`}
 							>
 								<Icon>
 									<circle cx="8" cy="8" r="5.5" />
@@ -340,7 +371,7 @@ export function Shell() {
 								data-share-trigger
 								aria-expanded={panel === "share"}
 								onClick={() => setPanel(panel === "share" ? "none" : "share")}
-								className={`mx-0.5 flex h-7 items-center gap-1.5 rounded-[10px] border border-line px-3 text-[13px] text-ink hover:bg-hover ${panel === "share" ? "bg-hover" : ""}`}
+								className={`mx-0.5 flex h-7 items-center gap-1.5 rounded-2xl border border-line px-3 text-[13px] text-ink hover:bg-hover ${panel === "share" ? "bg-hover" : ""}`}
 							>
 								<Icon>
 									<path d="M6.5 9.5l3-3M5 7.5L3.8 8.7a2.5 2.5 0 003.5 3.5L8.5 11M11 8.5l1.2-1.2a2.5 2.5 0 00-3.5-3.5L7.5 5" />
@@ -348,8 +379,6 @@ export function Shell() {
 								Share
 							</button>
 							<MoreMenu
-								open={moreOpen}
-								onOpen={setMoreOpen}
 								onTrash={() => trashNote(workspace.index, current.id)}
 								onExport={() => void exportPage(current)}
 							/>
@@ -370,7 +399,7 @@ export function Shell() {
 									<button
 										type="button"
 										onClick={() => setPreview(null)}
-										className="h-[34px] rounded-[14px] border border-line px-3.5 text-[13px] text-ink hover:bg-hover"
+										className="h-[34px] rounded-2xl border border-line px-3.5 text-[13px] text-ink hover:bg-hover"
 									>
 										Back to current
 									</button>
@@ -383,7 +412,7 @@ export function Shell() {
 												.restore()
 												.finally(() => setRestoring(false));
 										}}
-										className="h-[34px] rounded-[14px] bg-ink px-4 text-[13px] font-medium text-paper disabled:opacity-40"
+										className="h-[34px] rounded-2xl bg-ink px-4 text-[13px] font-medium text-paper disabled:opacity-40"
 									>
 										Restore this version
 									</button>
@@ -417,31 +446,37 @@ export function Shell() {
 	);
 }
 
+/** `touch` is the phone header: bigger targets, and History and Share live here because the phone has no room for their buttons. */
 function MoreMenu({
-	open,
-	onOpen,
 	onTrash,
 	onExport,
+	touch,
+	onHistory,
+	onShare,
 }: {
-	open: boolean;
-	onOpen: (v: boolean) => void;
 	onTrash: () => void;
 	onExport: () => void;
+	touch?: boolean;
+	onHistory?: () => void;
+	onShare?: () => void;
 }) {
+	// Own state: the phone and desktop headers both render one, and a shared flag let the hidden one close the visible menu.
+	const [open, setOpen] = useState(false);
+	const item = `block w-full rounded-2xl px-3 text-left text-sm hover:bg-hover ${touch ? "py-3" : "py-1.5"}`;
 	const root = useRef<HTMLDivElement>(null);
 	useEffect(() => {
 		if (!open) return;
 		const close = (e: Event) => {
-			if (!root.current?.contains(e.target as Node)) onOpen(false);
+			if (!root.current?.contains(e.target as Node)) setOpen(false);
 		};
-		const esc = (e: KeyboardEvent) => e.key === "Escape" && onOpen(false);
+		const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
 		document.addEventListener("pointerdown", close);
 		document.addEventListener("keydown", esc);
 		return () => {
 			document.removeEventListener("pointerdown", close);
 			document.removeEventListener("keydown", esc);
 		};
-	}, [open, onOpen]);
+	}, [open]);
 
 	return (
 		<div ref={root} className="relative">
@@ -450,12 +485,12 @@ function MoreMenu({
 				aria-label="More"
 				aria-haspopup="menu"
 				aria-expanded={open}
-				onClick={() => onOpen(!open)}
-				className="flex h-7 w-8 items-center justify-center rounded-[10px] text-ink2 hover:bg-hover"
+				onClick={() => setOpen(!open)}
+				className={`flex items-center justify-center text-ink2 hover:bg-hover ${touch ? "size-11 rounded-2xl" : "h-7 w-8 rounded-2xl"}`}
 			>
 				<svg
-					width="16"
-					height="16"
+					width={touch ? 22 : 16}
+					height={touch ? 22 : 16}
 					viewBox="0 0 16 16"
 					fill="currentColor"
 					aria-hidden="true"
@@ -468,16 +503,42 @@ function MoreMenu({
 			{open ? (
 				<div
 					role="menu"
-					className="absolute top-full right-0 z-50 mt-1 w-44 rounded-[14px] border border-line bg-raised p-1 shadow-lg"
+					className="absolute top-full right-0 z-50 mt-1 w-52 rounded-2xl border border-line bg-raised p-1 shadow-lg md:w-44"
 				>
+					{touch && onHistory ? (
+						<button
+							type="button"
+							role="menuitem"
+							onClick={() => {
+								onHistory();
+								setOpen(false);
+							}}
+							className={`${item} text-ink`}
+						>
+							Version history
+						</button>
+					) : null}
+					{touch && onShare ? (
+						<button
+							type="button"
+							role="menuitem"
+							onClick={() => {
+								onShare();
+								setOpen(false);
+							}}
+							className={`${item} text-ink`}
+						>
+							Share
+						</button>
+					) : null}
 					<button
 						type="button"
 						role="menuitem"
 						onClick={() => {
 							onExport();
-							onOpen(false);
+							setOpen(false);
 						}}
-						className="block w-full rounded-[10px] px-3 py-1.5 text-left text-sm text-ink hover:bg-hover"
+						className={`${item} text-ink`}
 					>
 						Export as Markdown
 					</button>
@@ -486,9 +547,9 @@ function MoreMenu({
 						role="menuitem"
 						onClick={() => {
 							onTrash();
-							onOpen(false);
+							setOpen(false);
 						}}
-						className="block w-full rounded-[10px] px-3 py-1.5 text-left text-sm text-accent hover:bg-hover"
+						className={`${item} text-accent`}
 					>
 						Move to trash
 					</button>

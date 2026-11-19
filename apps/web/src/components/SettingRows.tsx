@@ -98,7 +98,7 @@ export function Select<T extends string>({
 				value={value}
 				disabled={disabled}
 				onChange={(e) => onChange(e.target.value as T)}
-				className={`h-9 cursor-pointer appearance-none rounded-xl border border-line bg-raised pr-9 pl-3.5 text-[13px] text-ink ${DISABLED}`}
+				className={`h-9 cursor-pointer appearance-none rounded-2xl border border-line bg-raised pr-9 pl-3.5 text-[13px] text-ink ${DISABLED}`}
 			>
 				{options.map((o) => (
 					<option key={o} value={o}>
@@ -141,7 +141,7 @@ export function Segmented<T extends string>({
 		<div
 			role="radiogroup"
 			aria-label={label}
-			className="flex gap-0.5 rounded-[14px] bg-tag p-[3px]"
+			className="flex gap-0.5 rounded-2xl bg-tag p-[3px]"
 		>
 			{options.map((o) => {
 				const on = o === value;
@@ -153,7 +153,7 @@ export function Segmented<T extends string>({
 						role="radio"
 						aria-checked={on}
 						onClick={() => onChange(o)}
-						className={`h-[30px] rounded-[11px] px-3.5 text-[13px] ${on ? "bg-raised font-semibold text-ink shadow-[0_0_0_1px_var(--line)]" : "font-medium text-ink2 hover:text-ink"}`}
+						className={`h-[30px] rounded-2xl px-3.5 text-[13px] ${on ? "bg-raised font-semibold text-ink shadow-[0_0_0_1px_var(--line)]" : "font-medium text-ink2 hover:text-ink"}`}
 					>
 						{labels?.[o] ?? o}
 					</button>
@@ -252,7 +252,7 @@ export function Btn({
 			onClick={onClick}
 			disabled={disabled}
 			title={title}
-			className={`h-9 rounded-xl border bg-raised px-4 text-[13px] font-medium hover:bg-hover ${DISABLED} ${danger ? "border-accent text-accent" : "border-line text-ink"}`}
+			className={`h-9 rounded-2xl border bg-raised px-4 text-[13px] font-medium hover:bg-hover ${DISABLED} ${danger ? "border-accent text-accent" : "border-line text-ink"}`}
 		>
 			{children}
 		</button>
@@ -284,7 +284,7 @@ export function TextField({
 			spellCheck={false}
 			autoComplete="off"
 			onChange={(e) => onChange(e.target.value)}
-			className={`h-9 max-w-full min-w-0 ${width} rounded-xl border border-line bg-raised px-3.5 text-[13px] text-ink outline-none placeholder:text-mute focus:border-mute ${DISABLED}`}
+			className={`h-9 max-w-full min-w-0 ${width} rounded-2xl border border-line bg-raised px-3.5 text-[13px] text-ink outline-none placeholder:text-mute focus:border-mute ${DISABLED}`}
 		/>
 	);
 }
@@ -295,7 +295,7 @@ export function Keys({ keys }: { keys: string[] }) {
 			{keys.map((k) => (
 				<kbd
 					key={k}
-					className="flex h-7 min-w-7 items-center justify-center rounded-[9px] border border-b-2 border-line bg-raised px-2 font-mono text-xs text-ink2"
+					className="flex h-7 min-w-7 items-center justify-center rounded-2xl border border-b-2 border-line bg-raised px-2 font-mono text-xs text-ink2"
 				>
 					{k}
 				</kbd>

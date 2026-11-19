@@ -11,9 +11,21 @@ export const NOTES_KEY = "notes";
 /** Name of the Y.XmlFragment holding editor content inside a note doc. */
 export const NOTE_FRAGMENT = "blocknote";
 
+/** The shapes a note can start as, from the "New note" picker. A note without one is a page. */
+export const NOTE_KINDS = [
+	"quick",
+	"page",
+	"checklist",
+	"journal",
+	"meeting",
+	"study",
+] as const;
+export type NoteKind = (typeof NOTE_KINDS)[number];
+
 export interface NoteMeta {
 	id: string;
 	title: string;
+	kind: NoteKind;
 	parentId: string | null;
 	/** Position among siblings; lower comes first. Ties break by id. */
 	order: number;
@@ -55,9 +67,11 @@ export function newId(): string {
 
 function readNote(id: string, m: NoteMap): NoteMeta {
 	const tags = m.get("tags");
+	const kind = m.get("kind") as NoteKind | undefined;
 	return {
 		id,
 		title: (m.get("title") as string | undefined) ?? "",
+		kind: kind && NOTE_KINDS.includes(kind) ? kind : "page",
 		parentId: (m.get("parentId") as string | null | undefined) ?? null,
 		order: (m.get("order") as number | undefined) ?? 0,
 		icon: (m.get("icon") as string | null | undefined) ?? null,
@@ -105,6 +119,7 @@ export interface CreateNoteInput {
 	/** Supply a deterministic id (e.g. daily notes). Existing ids are left untouched. */
 	id?: string;
 	title?: string;
+	kind?: NoteKind;
 	parentId?: string | null;
 	icon?: string | null;
 	tags?: string[];
@@ -123,6 +138,7 @@ export function createNote(doc: Y.Doc, input: CreateNoteInput = {}): string {
 		const m: NoteMap = new Y.Map();
 		notes.set(id, m);
 		m.set("title", input.title ?? "");
+		if (input.kind && input.kind !== "page") m.set("kind", input.kind);
 		m.set("parentId", parentId);
 		m.set("order", last ? last.order + 1 : 1);
 		m.set("icon", input.icon ?? null);
@@ -231,7 +247,10 @@ export function nudgeNote(doc: Y.Doc, id: string, dir: Nudge): boolean {
 	const notes = listNotes(doc);
 	const note = notes.find((n) => n.id === id);
 	if (!note) return false;
-	const sibs = siblingsOf(notes, note.parentId);
+	// Daily notes sit at the top level but live behind "Today", not in the page tree: never a neighbour.
+	const sibs = siblingsOf(notes, note.parentId).filter(
+		(n) => !isDailyNoteId(n.id),
+	);
 	const i = sibs.findIndex((n) => n.id === id);
 	if (i < 0) return false;
 
@@ -253,7 +272,9 @@ export function nudgeNote(doc: Y.Doc, id: string, dir: Nudge): boolean {
 				? notes.find((n) => n.id === note.parentId)
 				: undefined;
 			if (!parent) return false;
-			const uncles = siblingsOf(notes, parent.parentId);
+			const uncles = siblingsOf(notes, parent.parentId).filter(
+				(n) => !isDailyNoteId(n.id),
+			);
 			const pi = uncles.findIndex((n) => n.id === parent.id);
 			return moveNote(doc, id, parent.parentId, uncles[pi + 1]?.id ?? null);
 		}
@@ -413,8 +434,20 @@ export function purgeExpired(
 
 /** `daily-2026-11-15`: the same id on every device, so offline devices converge on one note. */
 export function dailyNoteId(date: Date): string {
+	return `daily-${dayStamp(date)}`;
+}
+
+function dayStamp(date: Date): string {
 	const p = (n: number) => String(n).padStart(2, "0");
-	return `daily-${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`;
+	return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`;
+}
+
+/** The page every journal entry is filed under. A fixed id, so devices share one. */
+export const JOURNAL_ID = "journal";
+
+/** `journal-2026-11-15`: one entry per day, the same on every device. */
+export function journalEntryId(date: Date): string {
+	return `journal-${dayStamp(date)}`;
 }
 
 export function isDailyNoteId(id: string): boolean {
@@ -436,6 +469,29 @@ export function ensureDailyNote(doc: Y.Doc, date: Date): string {
 	const existing = getNote(doc, id);
 	if (!existing) createNote(doc, { id, title: dailyTitle(date) });
 	else if (existing.trashed) restoreNote(doc, id);
+	return id;
+}
+
+/**
+ * Opens (creating if needed) the journal entry for `date`, filed under the "Journal" page, and
+ * returns its id. Separate from the daily note behind "Today": that one is a scratch page.
+ */
+export function ensureJournalEntry(doc: Y.Doc, date: Date): string {
+	const id = journalEntryId(date);
+	doc.transact(() => {
+		const parent = getNote(doc, JOURNAL_ID);
+		if (!parent) createNote(doc, { id: JOURNAL_ID, title: "Journal" });
+		else if (parent.trashed) restoreNote(doc, JOURNAL_ID);
+		const entry = getNote(doc, id);
+		if (!entry)
+			createNote(doc, {
+				id,
+				title: dailyTitle(date),
+				kind: "journal",
+				parentId: JOURNAL_ID,
+			});
+		else if (entry.trashed) restoreNote(doc, id);
+	});
 	return id;
 }
 

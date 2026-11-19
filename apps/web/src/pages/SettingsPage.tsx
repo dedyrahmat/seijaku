@@ -121,7 +121,7 @@ export function SettingsPage() {
 				role="dialog"
 				aria-modal="true"
 				aria-label="Settings"
-				className="relative flex h-full w-full flex-col overflow-hidden border-line bg-paper text-ink shadow-[0_30px_80px_rgba(40,30,15,0.28),0_2px_8px_rgba(40,30,15,0.1)] md:h-[min(720px,calc(100dvh-48px))] md:w-[min(1040px,calc(100vw-48px))] md:flex-row md:rounded-[28px] md:border"
+				className="relative flex h-full w-full flex-col overflow-hidden border-line bg-paper text-ink shadow-[0_30px_80px_rgba(40,30,15,0.28),0_2px_8px_rgba(40,30,15,0.1)] md:h-[min(720px,calc(100dvh-48px))] md:w-[min(1040px,calc(100vw-48px))] md:flex-row md:rounded-2xl md:border"
 			>
 				<nav
 					aria-label="Settings sections"
@@ -145,7 +145,7 @@ export function SettingsPage() {
 											replace: true,
 										})
 									}
-									className={`h-11 flex-none rounded-[14px] px-3 text-left text-sm whitespace-nowrap md:h-10 md:w-full ${on ? "bg-hover font-semibold text-ink" : "font-medium text-ink2 hover:bg-hover/60"}`}
+									className={`h-11 flex-none rounded-2xl px-3 text-left text-sm whitespace-nowrap md:h-10 md:w-full ${on ? "bg-hover font-semibold text-ink" : "font-medium text-ink2 hover:bg-hover/60"}`}
 								>
 									{label}
 								</button>
@@ -556,7 +556,7 @@ function SyncSettings({ syncedLine }: { syncedLine: string }) {
 							// The connection is made once at start-up; reload to use the new address.
 							setTimeout(() => location.reload(), 400);
 						}}
-						className="h-9 rounded-xl bg-ink px-[18px] text-[13px] font-semibold text-paper hover:opacity-90"
+						className="h-9 rounded-2xl bg-ink px-[18px] text-[13px] font-semibold text-paper hover:opacity-90"
 					>
 						{saved ? "Saved" : "Save"}
 					</button>
@@ -925,7 +925,7 @@ function About() {
 						href="https://github.com/dedyrahmat/seijaku/issues"
 						target="_blank"
 						rel="noreferrer"
-						className="flex h-9 items-center rounded-xl border border-line bg-raised px-4 text-[13px] font-medium text-ink hover:bg-hover"
+						className="flex h-9 items-center rounded-2xl border border-line bg-raised px-4 text-[13px] font-medium text-ink hover:bg-hover"
 					>
 						Write to us
 					</a>

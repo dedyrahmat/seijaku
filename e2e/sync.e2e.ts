@@ -23,6 +23,15 @@ async function signIn(page: Page, phrase: string) {
 	await page.waitForURL((u) => u.pathname === "/");
 }
 
+/** The sidebar + opens the picker; Page is card 2. */
+async function newPage(page: Page, title: string) {
+	await page.getByRole("button", { name: "New page" }).first().click();
+	await page.getByRole("dialog", { name: "New note" }).waitFor();
+	await page.keyboard.press("2");
+	await page.getByRole("button", { name: "Create page" }).click();
+	await page.locator("[data-title]").fill(title);
+}
+
 const editor = (page: Page) => page.locator(".bn-editor");
 
 async function type(page: Page, text: string) {
@@ -38,14 +47,15 @@ test("two devices share one workspace: live edits, offline merge, offline reload
 	const phrase = await newAccount(a);
 
 	// Device A writes a page.
-	await a.getByRole("button", { name: "New page" }).first().click();
-	await a.locator("[data-title]").fill("Shared plan");
+	await newPage(a, "Shared plan");
 	await a.locator("[data-title]").press("Enter");
 	await type(a, "from A.");
 
 	// Device B signs in with the phrase and sees it.
 	const b = await (await browser.newContext()).newPage();
 	await signIn(b, phrase);
+	// The worker needs a moment to install; going offline before it has would leave nothing cached.
+	await b.evaluate(() => navigator.serviceWorker.ready);
 	await b
 		.getByRole("link", { name: /Shared plan/ })
 		.first()
@@ -69,8 +79,41 @@ test("two devices share one workspace: live edits, offline merge, offline reload
 	}
 
 	// The shell and the notes open with no network at all.
-	await b.evaluate(() => navigator.serviceWorker.ready);
 	await b.context().setOffline(true);
 	await b.reload();
 	await expect(editor(b)).toContainText("B-offline.", { timeout: 20_000 });
+});
+
+test("a journal entry and a bulk move to trash reach the other device", async ({
+	browser,
+}) => {
+	const a = await (await browser.newContext()).newPage();
+	const phrase = await newAccount(a);
+
+	await newPage(a, "One");
+	await newPage(a, "Two");
+	await a.getByRole("button", { name: "New page" }).first().click();
+	await a.keyboard.press("4");
+	await a.getByRole("button", { name: "Create journal entry" }).click();
+
+	const b = await (await browser.newContext()).newPage();
+	await signIn(b, phrase);
+	for (const name of ["One", "Two", "Journal"])
+		await expect(
+			b.getByRole("link", { name, exact: true }).first(),
+		).toBeVisible({
+			timeout: 20_000,
+		});
+
+	// Select both pages on A and move them to the trash in one go.
+	await a.getByRole("button", { name: "Actions for One" }).click();
+	await a.getByRole("menuitem", { name: "Select pages" }).click();
+	await a.getByRole("button", { name: "Two", pressed: false }).click();
+	await expect(a.getByText("2 pages selected")).toBeVisible();
+	await a.getByRole("button", { name: "Move to trash" }).click();
+
+	for (const name of ["One", "Two"])
+		await expect(b.getByRole("link", { name, exact: true })).toHaveCount(0, {
+			timeout: 20_000,
+		});
 });

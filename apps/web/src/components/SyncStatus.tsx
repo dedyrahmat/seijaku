@@ -81,7 +81,7 @@ export function SyncStatus() {
 				aria-expanded={open}
 				aria-haspopup="dialog"
 				data-sync={kind}
-				className="flex h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-xs text-ink2 hover:bg-hover md:h-7"
+				className="flex h-8 items-center gap-1.5 rounded-2xl px-2.5 text-xs text-ink2 hover:bg-hover md:h-7"
 			>
 				<span
 					aria-hidden
@@ -99,7 +99,7 @@ export function SyncStatus() {
 				<div
 					role="dialog"
 					aria-label="Sync status"
-					className="absolute top-full right-0 z-50 mt-1 w-72 max-w-[calc(100vw-24px)] rounded-[14px] border border-line bg-raised p-4 shadow-lg"
+					className="absolute top-full right-0 z-50 mt-1 w-72 max-w-[calc(100vw-24px)] rounded-2xl border border-line bg-raised p-4 shadow-lg"
 				>
 					<p className="text-sm leading-[1.55] text-ink2 [text-wrap:pretty]">
 						{detail}

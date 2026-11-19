@@ -142,7 +142,7 @@ function SwitcherDialog({
 				aria-modal="true"
 				aria-label="Search and jump"
 				onKeyDown={onKeyDown}
-				className="absolute inset-x-3 top-[max(12px,env(safe-area-inset-top))] mx-auto flex max-h-[calc(100dvh-24px)] max-w-[640px] flex-col overflow-hidden rounded-3xl border border-line bg-raised shadow-[0_24px_60px_rgba(40,30,15,0.22),0_2px_8px_rgba(40,30,15,0.1)] md:top-[112px] md:max-h-[calc(100dvh-160px)]"
+				className="absolute inset-x-3 top-[max(12px,env(safe-area-inset-top))] mx-auto flex max-h-[calc(100dvh-24px)] max-w-[640px] flex-col overflow-hidden rounded-2xl border border-line bg-raised shadow-[0_24px_60px_rgba(40,30,15,0.22),0_2px_8px_rgba(40,30,15,0.1)] md:top-[112px] md:max-h-[calc(100dvh-160px)]"
 			>
 				<div className="flex h-[60px] flex-none items-center gap-3 border-b border-line2 px-[18px]">
 					<svg
@@ -169,7 +169,7 @@ function SwitcherDialog({
 						spellCheck={false}
 						className="min-w-0 flex-1 bg-transparent text-lg text-ink outline-none placeholder:text-mute"
 					/>
-					<kbd className="rounded-lg border border-line px-1.5 py-0.5 font-mono text-[11px] text-mute">
+					<kbd className="rounded-2xl border border-line px-1.5 py-0.5 font-mono text-[11px] text-mute">
 						Esc
 					</kbd>
 				</div>
@@ -207,7 +207,7 @@ function SwitcherDialog({
 								{hit.snippet ? (
 									<span className="line-clamp-2 text-[13px] leading-normal text-ink2">
 										{hit.snippet.before}
-										<mark className="rounded-[5px] bg-mark px-0.5 text-inherit">
+										<mark className="rounded-2xl bg-mark px-0.5 text-inherit">
 											{hit.snippet.match}
 										</mark>
 										{hit.snippet.after}

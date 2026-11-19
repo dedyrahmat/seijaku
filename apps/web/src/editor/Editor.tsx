@@ -37,9 +37,11 @@ interface Props {
 	session: NoteSession;
 	/** Lets the title field hand focus to the editor on Enter. */
 	focusRef?: MutableRefObject<(() => void) | null>;
+	/** Start with the cursor in the body (a new quick note). */
+	autoFocus?: boolean;
 }
 
-export function Editor({ session, focusRef }: Props) {
+export function Editor({ session, focusRef, autoFocus }: Props) {
 	const scheme = useColorScheme();
 	const touchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
 		undefined,
@@ -58,6 +60,10 @@ export function Editor({ session, focusRef }: Props) {
 		}),
 		[session.id],
 	);
+
+	useEffect(() => {
+		if (autoFocus) editor.focus();
+	}, [editor, autoFocus]);
 
 	useEffect(() => {
 		if (!focusRef) return;

@@ -203,16 +203,37 @@ Each phase ends in something runnable. **Stop after each phase**, demo it, and w
 
 From an audit of every mockup board against `apps/web/src`, plus the disabled Settings rows, the "Later" list and the "Not yet" notes above. Same rules: start a phase only on the user's go-ahead, stop after each, match the boards. A feature with no board gets a "draw the board, get the user's OK" step first. Trash, History, Share, Public-Page, Sync-States and Home match their boards; Sign-In, Setup and Recovery differ on purpose (phrase instead of codes).
 
-12. **New note picker** (board "Desktop · New note"). Today `useNewPage` makes a blank top-level "Untitled" page.
-    - [ ] `components/NewNoteDialog.tsx`: "What are you writing?", six type cards with the board's icons and copy, keys 1–6, Enter creates, Esc/Cancel closes, "Create {type}", radiogroup semantics
-    - [ ] "Save in" picker (default: the open page's parent, else top level) feeding `createNote(index, { parentId })`
-    - [ ] Templates as block presets written with `withFragment`: Quick note, Page (blank), Checklist, Meeting notes (who / said / next), Study note (summary callout, then math, code, questions)
-    - [ ] Journal entry reuses `ensureDailyNote` (`daily-YYYY-MM-DD`), filed under a "Journal" parent
-    - [ ] Unfinished checklist to-dos show in Today (read on the device)
-    - [ ] Sidebar +, Ctrl+N and the phone menu open the dialog
-    - [ ] Browser check against the board: light, dark, phone width
+12. **New note with a type, bulk delete and a clearer page menu** (agreed and built 2026-11-19). Today `useNewPage` makes a blank top-level "Untitled" page, the sidebar row menu says "Indent" / "Outdent", and pages can only be trashed one at a time.
+    - **Boards first** (mockup https://claude.ai/artifact/2oncbwyZeMDyVdZkDGwNJQ), then stop for the user's OK before building:
+      - [x] Sidebar · Select (checkboxes on rows, bottom bar "N selected · Move to trash · Cancel", phone drawer version)
+      - [x] Trash · Select (checkboxes, "Restore N" and "Delete N forever", the confirmation "Delete N pages forever? This can't be undone.")
+      - [x] Today · Still to do (a quiet section under today's title listing unchecked to-dos, each with its page name as a link)
+    - **Clearer page menu** (`Sidebar.tsx`, `RowMenu`):
+      - [x] Words for everyone: "Add a page inside", "Move up", "Move down", "Put inside "<page above>"", "Move out of "<parent>"", a divider, "Move to trash"; long titles are cut with an ellipsis, empty ones read "Untitled"
+      - [x] Items that cannot apply are hidden (Move up / Put inside on the first page, Move down on the last, Move out of on a top-level page), using `siblingsOf`; `nudgeNote` is unchanged
+      - [x] New item "Select pages" starts Select mode with this row ticked; `aria-label`s match the words
+    - **Bulk delete**:
+      - [x] `components/useSelection.ts`: the selected set, an anchor for Shift ranges, toggle / range / clear; unit test for the range logic
+      - [x] Sidebar: Select mode (checkboxes, 44 px targets on touch), Ctrl/Cmd-click ticks a row, Shift-click ticks the range in visible order, a plain click toggles while selecting, drag-reorder off while selecting, Esc or Cancel leaves
+      - [x] Sidebar bar: "Move to trash" trashes every selected page in one `workspace.index` transaction (a ticked page under a ticked parent is skipped); go Home if the open page was trashed
+      - [x] Trash page: "Select" and "Select all", Ctrl/Cmd and Shift-click, "Restore N" (one transaction), "Delete N forever" with the confirmation, reusing the existing purge and server cleanup
+    - **New note with a type** (board "Desktop · New note"):
+      - [x] `NoteMeta.kind` and `CreateNoteInput.kind` (`quick`, `page`, `checklist`, `journal`, `meeting`, `study`) in `packages/sync/src/workspace.ts`; a missing kind means page; tests
+      - [x] `ensureJournalEntry(doc, date)`: a deterministic "Journal" parent and an entry `journal-YYYY-MM-DD`, so two offline devices converge on one entry per day; separate from Today's daily note; tests
+      - [x] `components/NewNoteDialog.tsx`: "What are you writing?", six cards with the board's icons and copy, keys 1–6, arrow keys, Enter creates, Esc / Cancel closes, "Create {type}", radiogroup semantics, full-height sheet on phones
+      - [x] "Save in" picker (indented page list plus "Top level"; default the open page's parent); Journal always files under Journal
+      - [x] `editor/templates.ts`, written with `withFragment`: Quick note (cursor in the body; an untitled note takes its first line as the title), Page (blank), Checklist (three empty to-dos), Meeting notes (who was there / what was said / what happens next), Study note (summary callout, maths, code, questions in a toggle)
+      - [x] `useNewPage(parentId, kind)` is the one place that creates, fills and opens a note; the sidebar +, Ctrl/Cmd+N and the phone drawer + open the dialog; "Add a page inside" still makes a plain page at once
+      - [x] Today · Still to do: on a daily note, unchecked to-dos from non-trashed Checklist notes, read on the device (`withFragment` + `fragmentBlocks`), refreshed as they change; ticking one updates the checklist; nothing goes to the server
+    - **Checks**:
+      - [x] `bun test`, `bun run typecheck`, `bun run lint`
+      - [x] Browser check against each board in light, dark and at 375 px: menu words and hidden items; select 3 pages by mode, Ctrl-click and Shift-click, trash them, restore and delete forever from Trash; a parent and child ticked together; all six note types; a journal entry twice in one day opens the same entry; a checklist's unchecked items show on Today
+      - [x] `bun run test:e2e`: a bulk trash and a new journal entry reach the second device
+      - [x] Update this file and the "Built so far" line in `CLAUDE.md`
+    - Notes on how it came out: boards were added to the mockup first (Select pages desktop and phone, Sidebar select component, Trash select, Delete forever confirm, Today still to do). Select mode ticks with a checkbox on any device; Ctrl/Cmd-click or Shift-click on a row starts it. In Trash, "Delete N forever" asks first in a dialog (single "Delete forever" and "Empty trash" still use the browser confirm). A daily note is no longer counted as "the page above" by Put inside and Move up (it sits at the top level but lives behind Today, so the first page used to move into an invisible note). Journal ids needed `parsePageSlug` to know `journal-YYYY-MM-DD`. "Save in" starts at the open page's parent, so a note made while a journal entry is open lands in Journal unless you change it. Ticking a to-do on Today opens that checklist for editing so the change syncs. A new quick note opens in its body; if untitled, its first line becomes its title when you leave. The e2e test now waits for the service worker before going offline (it raced the install) and has a journal and bulk-trash test.
+    - Not yet: "You can change it later" on the picker is only true in the sense that the content is editable (the kind cannot be changed after creation); the single "Delete forever" and "Empty trash" confirms are still browser dialogs; Today's list reads the checklists you can see in the tree, not ones in the trash.
 13. **Mockup gaps on existing screens**
-    - [ ] Phone header (Phone-Light): parent breadcrumb and More, so History, Share, Export and Trash are reachable on a phone (today they are not)
+    - [x] Phone header (Phone-Light): menu icon, parent breadcrumb, sync status and a More menu with Version history, Share, Export and Trash (done 2026-11-19; checked at 375 px in the browser pane; the Logo and wordmark left the phone header, as on the board)
     - [ ] Sidebar: open/closed folder icons for parents, page icon for leaves, instead of the chevron
     - [ ] Slash menu (Blocks): one "Blocks" group in the board's order (Text, Heading, To-do list, Bulleted list, Toggle, Quote, Code, Math, Table, Callout), Markdown hints, footer "Type to filter · ↑ ↓ move · Enter insert · Esc close"; other blocks still found by typing
     - [ ] Switcher: "N of M matches"; "Ctrl Enter open beside" needs split view (decision: build it or drop the hint)

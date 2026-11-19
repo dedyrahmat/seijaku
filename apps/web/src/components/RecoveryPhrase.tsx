@@ -8,7 +8,7 @@ export function PhraseGrid({ phrase }: { phrase: string }) {
 	return (
 		<ol
 			aria-label="Recovery phrase"
-			className="grid grid-cols-2 gap-x-4 gap-y-2.5 rounded-[20px] border border-line bg-raised p-5 font-mono text-[15px] text-ink select-all sm:grid-cols-3"
+			className="grid grid-cols-2 gap-x-4 gap-y-2.5 rounded-2xl border border-line bg-raised p-5 font-mono text-[15px] text-ink select-all sm:grid-cols-3"
 		>
 			{words.map((word, i) => (
 				// biome-ignore lint/suspicious/noArrayIndexKey: the same word can appear twice; position is the identity
@@ -22,7 +22,7 @@ export function PhraseGrid({ phrase }: { phrase: string }) {
 }
 
 const GHOST =
-	"h-10 rounded-[14px] border border-line px-[18px] text-sm text-ink hover:bg-hover disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent";
+	"h-10 rounded-2xl border border-line px-[18px] text-sm text-ink hover:bg-hover disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent";
 
 export function PhraseActions({ phrase }: { phrase: string }) {
 	const [copied, setCopied] = useState(false);

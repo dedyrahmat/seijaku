@@ -5,7 +5,7 @@
  */
 
 const MAX_TITLE_CHARS = 60;
-const DAILY_ID = /daily-\d{4}-\d{2}-\d{2}$/;
+const DAILY_ID = /(?:daily|journal)-\d{4}-\d{2}-\d{2}$/;
 
 /** Letters and numbers from any script survive (so Japanese titles stay readable). */
 export function titleSlug(title: string): string {
@@ -22,7 +22,7 @@ export function pageSlug(title: string, id: string): string {
 	return `${titleSlug(title)}-${id}`;
 }
 
-/** The note id at the end of a page slug. A bare id is accepted too. */
+/** The note id at the end of a page slug. A bare id is accepted too. Daily and journal ids hold dashes of their own. */
 export function parsePageSlug(slug: string): string {
 	const daily = DAILY_ID.exec(slug);
 	if (daily) return daily[0];

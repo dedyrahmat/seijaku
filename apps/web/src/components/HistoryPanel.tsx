@@ -159,7 +159,7 @@ export function HistoryPanel({
 					type="button"
 					onClick={onClose}
 					aria-label="Close history"
-					className="flex size-11 items-center justify-center rounded-[10px] text-ink2 hover:bg-hover md:size-[30px]"
+					className="flex size-11 items-center justify-center rounded-2xl text-ink2 hover:bg-hover md:size-[30px]"
 				>
 					<svg
 						width="14"
@@ -183,7 +183,7 @@ export function HistoryPanel({
 					type="button"
 					aria-current={currentSelected ? "true" : undefined}
 					onClick={() => onPreview(null, null)}
-					className={`flex w-full flex-col gap-0.5 rounded-[14px] px-3 py-2.5 text-left hover:bg-hover ${currentSelected ? "bg-hover" : ""}`}
+					className={`flex w-full flex-col gap-0.5 rounded-2xl px-3 py-2.5 text-left hover:bg-hover ${currentSelected ? "bg-hover" : ""}`}
 				>
 					<span className="flex justify-between text-sm font-medium">
 						<span>Current</span>
@@ -210,7 +210,7 @@ export function HistoryPanel({
 								disabled={busy}
 								aria-current={previewId === v.id ? "true" : undefined}
 								onClick={() => void pick(v)}
-								className={`flex w-full flex-col gap-0.5 rounded-[14px] px-3 py-2.5 text-left hover:bg-hover ${previewId === v.id ? "bg-hover" : ""}`}
+								className={`flex w-full flex-col gap-0.5 rounded-2xl px-3 py-2.5 text-left hover:bg-hover ${previewId === v.id ? "bg-hover" : ""}`}
 							>
 								<span className="flex justify-between text-sm font-medium">
 									<span>{stamp(v.at, now)}</span>

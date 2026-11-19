@@ -103,6 +103,14 @@ describe("nudgeNote", () => {
 		expect(getNote(doc, b)?.parentId).toBeNull();
 		expect(titles(doc)).toEqual(["C", "A", "B"]);
 	});
+
+	test("a daily note is never the page above, so the first page cannot move into it", () => {
+		const doc = new Y.Doc();
+		ensureDailyNote(doc, new Date(2026, 10, 19));
+		const a = createNote(doc, { title: "A" });
+		expect(nudgeNote(doc, a, "indent")).toBe(false);
+		expect(nudgeNote(doc, a, "up")).toBe(false);
+	});
 });
 
 describe("trash", () => {
@@ -167,6 +175,9 @@ describe("merging devices", () => {
 import {
 	dailyNoteId,
 	ensureDailyNote,
+	ensureJournalEntry,
+	JOURNAL_ID,
+	journalEntryId,
 	listTags,
 	normalizeTag,
 	purgeAllTrashed,
@@ -256,4 +267,52 @@ test("a share record travels with the page and can be cleared", () => {
 	expect(getNote(b, id)?.share).toEqual({ token: "tok", key: "k", at: 5 });
 	setShare(b, id, null);
 	expect(getNote(b, id)?.share).toBeNull();
+});
+
+describe("note kinds and the journal", () => {
+	test("a note without a kind is a page; a chosen kind is kept", () => {
+		const doc = new Y.Doc();
+		const plain = createNote(doc, { title: "plain" });
+		const list = createNote(doc, { title: "list", kind: "checklist" });
+		expect(getNote(doc, plain)?.kind).toBe("page");
+		expect(getNote(doc, list)?.kind).toBe("checklist");
+	});
+
+	test("an entry is filed under one Journal page, once per day", () => {
+		const doc = new Y.Doc();
+		const day = new Date(2026, 10, 19);
+		const first = ensureJournalEntry(doc, day);
+		expect(ensureJournalEntry(doc, day)).toBe(first);
+		expect(first).toBe(journalEntryId(day));
+		ensureJournalEntry(doc, new Date(2026, 10, 20));
+
+		const notes = listNotes(doc);
+		expect(notes.filter((n) => n.id === JOURNAL_ID)).toHaveLength(1);
+		const entry = getNote(doc, first);
+		expect(entry?.parentId).toBe(JOURNAL_ID);
+		expect(entry?.kind).toBe("journal");
+		expect(notes).toHaveLength(3);
+	});
+
+	test("a trashed entry comes back when its day is opened again", () => {
+		const doc = new Y.Doc();
+		const day = new Date(2026, 10, 19);
+		const id = ensureJournalEntry(doc, day);
+		trashNote(doc, JOURNAL_ID);
+		trashNote(doc, id);
+		ensureJournalEntry(doc, day);
+		expect(getNote(doc, id)?.trashed).toBe(false);
+		expect(getNote(doc, JOURNAL_ID)?.trashed).toBe(false);
+	});
+
+	test("two offline devices opening today's entry end up with one", () => {
+		const a = new Y.Doc();
+		const b = new Y.Doc();
+		const day = new Date(2026, 10, 19);
+		ensureJournalEntry(a, day);
+		ensureJournalEntry(b, day);
+		sync(a, b);
+		expect(listNotes(a)).toHaveLength(2);
+		expect(listNotes(b)).toHaveLength(2);
+	});
 });

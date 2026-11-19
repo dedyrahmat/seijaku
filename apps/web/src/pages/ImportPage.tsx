@@ -194,7 +194,7 @@ export function ImportPage() {
 
 				<ul
 					ref={list}
-					className="flex max-h-[420px] min-h-[96px] flex-col overflow-y-auto rounded-[20px] border border-line bg-raised"
+					className="flex max-h-[420px] min-h-[96px] flex-col overflow-y-auto rounded-2xl border border-line bg-raised"
 				>
 					{rows.map((row, i) => (
 						<li
@@ -272,7 +272,7 @@ export function ImportPage() {
 					<button
 						type="button"
 						onClick={() => abort.current?.abort()}
-						className="h-11 rounded-[14px] border border-line px-[18px] text-sm text-accent hover:bg-hover md:h-10"
+						className="h-11 rounded-2xl border border-line px-[18px] text-sm text-accent hover:bg-hover md:h-10"
 					>
 						Cancel import
 					</button>
@@ -282,7 +282,7 @@ export function ImportPage() {
 							background.current = true;
 							void navigate({ to: "/" });
 						}}
-						className="h-11 rounded-[14px] bg-ink px-[22px] text-sm font-medium text-paper hover:opacity-90 md:h-10"
+						className="h-11 rounded-2xl bg-ink px-[22px] text-sm font-medium text-paper hover:opacity-90 md:h-10"
 					>
 						Keep going in background
 					</button>
@@ -316,11 +316,11 @@ export function ImportPage() {
 								setSourceId(on ? null : s.id);
 								setError(null);
 							}}
-							className={`flex h-20 items-center gap-3.5 rounded-[20px] border px-4 text-left text-ink ${on ? "border-ink bg-callout" : "border-line bg-raised hover:border-mute"}`}
+							className={`flex h-20 items-center gap-3.5 rounded-2xl border px-4 text-left text-ink ${on ? "border-ink bg-callout" : "border-line bg-raised hover:border-mute"}`}
 						>
 							<span
 								aria-hidden
-								className="flex size-[38px] flex-none items-center justify-center rounded-[15px] border border-line bg-paper font-serif text-lg text-ink2"
+								className="flex size-[38px] flex-none items-center justify-center rounded-2xl border border-line bg-paper font-serif text-lg text-ink2"
 							>
 								{s.mono}
 							</span>
@@ -345,7 +345,7 @@ export function ImportPage() {
 					setDragging(false);
 					void pickedFromDrop(e.dataTransfer).then(take);
 				}}
-				className={`flex min-h-24 flex-col items-center justify-center gap-1.5 rounded-[20px] border-[1.5px] border-dashed px-4 py-6 text-center ${dragging ? "border-ink bg-callout" : "border-line"}`}
+				className={`flex min-h-24 flex-col items-center justify-center gap-1.5 rounded-2xl border-[1.5px] border-dashed px-4 py-6 text-center ${dragging ? "border-ink bg-callout" : "border-line"}`}
 			>
 				<span className="text-[15px]">
 					{picked.length > 0
@@ -409,7 +409,7 @@ export function ImportPage() {
 				<button
 					type="button"
 					onClick={() => void navigate({ to: "/" })}
-					className="h-11 rounded-[14px] border border-line px-[18px] text-sm text-ink hover:bg-hover md:h-10"
+					className="h-11 rounded-2xl border border-line px-[18px] text-sm text-ink hover:bg-hover md:h-10"
 				>
 					Cancel
 				</button>
@@ -417,7 +417,7 @@ export function ImportPage() {
 					type="button"
 					onClick={() => void run()}
 					disabled={picked.length === 0}
-					className="h-11 rounded-[14px] bg-ink px-[22px] text-sm font-medium text-paper hover:opacity-90 disabled:opacity-40 md:h-10"
+					className="h-11 rounded-2xl bg-ink px-[22px] text-sm font-medium text-paper hover:opacity-90 disabled:opacity-40 md:h-10"
 				>
 					Continue
 				</button>

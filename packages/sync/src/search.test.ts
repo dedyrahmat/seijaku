@@ -6,6 +6,7 @@ function note(id: string, over: Partial<NoteMeta> = {}): NoteMeta {
 	return {
 		id,
 		title: id,
+		kind: "page",
 		parentId: null,
 		order: 0,
 		icon: null,

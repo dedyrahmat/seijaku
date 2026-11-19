@@ -65,13 +65,13 @@ export function CapturePage() {
 			<div
 				role="dialog"
 				aria-label="Quick capture"
-				className="flex h-60 w-[440px] max-w-full flex-col overflow-hidden rounded-[28px] border border-line bg-paper text-ink shadow-[0_24px_60px_rgba(40,30,15,0.25),0_2px_8px_rgba(40,30,15,0.12)]"
+				className="flex h-60 w-[440px] max-w-full flex-col overflow-hidden rounded-2xl border border-line bg-paper text-ink shadow-[0_24px_60px_rgba(40,30,15,0.25),0_2px_8px_rgba(40,30,15,0.12)]"
 			>
 				<div className="flex h-12 flex-none items-center gap-2.5 border-b border-line2 px-4">
 					<Logo size={18} />
 					<span
 						title={dailyTitle(today)}
-						className="flex h-[30px] items-center gap-1.5 rounded-[10px] bg-tag px-2.5 text-[13px]"
+						className="flex h-[30px] items-center gap-1.5 rounded-2xl bg-tag px-2.5 text-[13px]"
 					>
 						Add to Today
 						<svg

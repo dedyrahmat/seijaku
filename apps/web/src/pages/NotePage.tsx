@@ -1,4 +1,9 @@
-import { pageSlug, restoreNote, updateNote } from "@seijaku/sync";
+import {
+	isDailyNoteId,
+	pageSlug,
+	restoreNote,
+	updateNote,
+} from "@seijaku/sync";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { NoteMetaRow } from "../components/NoteMetaRow";
@@ -7,6 +12,21 @@ import { pageLink } from "../components/pageLink";
 const Editor = lazy(() =>
 	import("../editor/Editor").then((m) => ({ default: m.Editor })),
 );
+// Reads note content through the editor's converters, so it loads on demand like the editor.
+const StillToDo = lazy(() =>
+	import("../components/StillToDo").then((m) => ({ default: m.StillToDo })),
+);
+
+/** A quick note has no title field of its own: its first line names it once you leave. */
+async function nameFromFirstLine(id: string) {
+	const note = workspace.getNotes().find((n) => n.id === id);
+	if (!note || note.trashed || note.title !== "") return;
+	const first = (await workspace.readText(id))
+		.split("\n")
+		.find((line) => line.trim());
+	if (first)
+		updateNote(workspace.index, id, { title: first.trim().slice(0, 80) });
+}
 
 import {
 	useNoteId,
@@ -32,6 +52,12 @@ export function NotePage() {
 	useEffect(() => {
 		if (note && !note.trashed) writeLocal(LAST_NOTE_KEY, noteId);
 	}, [note, noteId]);
+
+	const isQuick = note?.kind === "quick";
+	useEffect(() => {
+		if (!isQuick) return;
+		return () => void nameFromFirstLine(noteId);
+	}, [isQuick, noteId]);
 
 	// Keep the address readable: once the title settles, rewrite the URL to match it.
 	const title = note?.title;
@@ -78,14 +104,22 @@ export function NotePage() {
 				id={note.id}
 				title={note.title}
 				onEnter={() => focusEditor.current?.()}
+				// A new quick note opens in its body, not on a title.
+				autoFocus={note.title === "" && !isQuick}
 			/>
 			<NoteMetaRow key={`meta-${noteId}`} note={note} />
+			{isDailyNoteId(noteId) ? (
+				<Suspense fallback={null}>
+					<StillToDo />
+				</Suspense>
+			) : null}
 			{session?.id === noteId ? (
 				<Suspense fallback={null}>
 					<Editor
 						key={`editor-${noteId}`}
 						session={session}
 						focusRef={focusEditor}
+						autoFocus={note.title === "" && isQuick}
 					/>
 				</Suspense>
 			) : null}
@@ -97,10 +131,12 @@ function TitleField({
 	id,
 	title,
 	onEnter,
+	autoFocus,
 }: {
 	id: string;
 	title: string;
 	onEnter: () => void;
+	autoFocus: boolean;
 }) {
 	const [value, setValue] = useState(title);
 	const input = useRef<HTMLInputElement>(null);
@@ -117,7 +153,7 @@ function TitleField({
 			value={value}
 			// A brand-new page opens ready for its title.
 			// biome-ignore lint/a11y/noAutofocus: intentional for new, empty pages
-			autoFocus={title === ""}
+			autoFocus={autoFocus}
 			placeholder="Untitled"
 			aria-label="Page title"
 			onChange={(e) => {

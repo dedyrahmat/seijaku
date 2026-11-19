@@ -28,6 +28,11 @@ describe("page slugs", () => {
 		expect(parsePageSlug(id)).toBe(id);
 	});
 
+	test("journal entry ids round-trip too", () => {
+		const id = "journal-2026-11-19";
+		expect(parsePageSlug(pageSlug("Thu 19 Nov", id))).toBe(id);
+	});
+
 	test("a bare id is accepted", () => {
 		expect(parsePageSlug("40a07db1786d80a68e2a")).toBe("40a07db1786d80a68e2a");
 	});

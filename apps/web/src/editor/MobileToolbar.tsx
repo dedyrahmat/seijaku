@@ -81,7 +81,7 @@ export function MobileToolbar({ editor }: { editor: SeijakuEditor }) {
 				style={{
 					bottom: `calc(${inset}px + max(12px, env(safe-area-inset-bottom)))`,
 				}}
-				className="fixed inset-x-4 z-30 flex h-14 items-center justify-around rounded-[28px] border border-line bg-raised px-1.5 shadow-[0_10px_30px_rgba(40,30,15,0.14),0_2px_6px_rgba(40,30,15,0.08)] md:hidden"
+				className="fixed inset-x-4 z-30 flex h-14 items-center justify-around rounded-2xl border border-line bg-raised px-1.5 shadow-[0_10px_30px_rgba(40,30,15,0.14),0_2px_6px_rgba(40,30,15,0.08)] md:hidden"
 			>
 				<Btn label="Insert block" onPress={run(insertBlock)}>
 					<path d="M8 3v10M3 8h10" />

@@ -4,6 +4,7 @@ export * from "./phrase";
 export * from "./protocol";
 export * from "./room";
 export * from "./search";
+export * from "./selection";
 export * from "./slug";
 export * from "./store";
 export * from "./text";

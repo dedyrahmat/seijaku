@@ -1,17 +1,22 @@
 /**
  * Black-box check of a running sync server (Bun or Cloudflare):
  *   bun scripts/smoke.ts ws://localhost:8791/sync [idleSeconds]
- * The server needs a session: pass the value of the "seijaku.session_token" cookie from a
- * signed-in browser as SEIJAKU_COOKIE (e.g. "seijaku.session_token=...").
+ * The server needs a session. By default this makes a throwaway account (set SEIJAKU_SIGNUP_CODE
+ * when the server asks for a sign-up code); or pass a signed-in cookie as SEIJAKU_COOKIE
+ * (e.g. "seijaku.session_token=...").
  * Two devices edit one note, then a third joins fresh and must see both edits.
  * With idleSeconds, the devices sit idle first (long enough for a Cloudflare Durable Object
  * to hibernate) and must still relay edits afterwards.
  */
 import {
 	createCipher,
+	newPhrase,
 	newWorkspaceKey,
 	noteDocId,
+	phraseKeys,
 	SyncClient,
+	toBase64,
+	wrapWorkspaceKey,
 } from "@seijaku/sync";
 import * as Y from "yjs";
 
@@ -21,7 +26,26 @@ const docId = noteDocId(`smoke-${Date.now()}`);
 
 // Any key will do: the server only stores sealed blobs, and these devices share this one.
 const cipher = createCipher(newWorkspaceKey());
-const cookie = process.env.SEIJAKU_COOKIE ?? "";
+const cookie = process.env.SEIJAKU_COOKIE ?? (await signUp());
+
+async function signUp(): Promise<string> {
+	const origin = new URL(url.replace(/^ws/, "http")).origin;
+	const keys = phraseKeys(newPhrase());
+	const res = await fetch(`${origin}/api/auth/seijaku/sign-up`, {
+		method: "POST",
+		headers: { Origin: origin, "Content-Type": "application/json" },
+		body: JSON.stringify({
+			token: process.env.SEIJAKU_SIGNUP_CODE,
+			loginKey: keys.loginKey,
+			wrapped: toBase64(wrapWorkspaceKey(keys.wrapKey, newWorkspaceKey())),
+		}),
+	});
+	if (!res.ok) throw new Error(`sign-up failed: ${res.status}`);
+	return res.headers
+		.getSetCookie()
+		.map((c) => c.split(";")[0])
+		.join("; ");
+}
 
 function device() {
 	const client = new SyncClient({

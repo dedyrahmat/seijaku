@@ -16,7 +16,8 @@ import {
 	PhraseField,
 	PhraseGrid,
 } from "../components/RecoveryPhrase";
-import { savedServerUrl } from "../workspace/syncUrl";
+import { isDesktop, signInInBrowser } from "../desktop";
+import { apiUrl, savedServerUrl } from "../workspace/syncUrl";
 
 /**
  * The mockup's Sign-In, Setup and Recovery boards, wired to the server's passkeys and the
@@ -128,7 +129,15 @@ export function SignInPage() {
 		void authStore.refresh();
 	}, []);
 	useEffect(() => {
-		if (auth.phase === "signed-in") void navigate({ to: "/" });
+		// The browser half of desktop sign-in sends people back to its own page once they are in.
+		const next = new URLSearchParams(location.search).get("next");
+		if (
+			next === "/desktop-link" &&
+			auth.phase !== "signed-out" &&
+			auth.phase !== "checking"
+		)
+			void navigate({ to: "/desktop-link" });
+		else if (auth.phase === "signed-in") void navigate({ to: "/" });
 		else if (auth.phase === "locked") void navigate({ to: "/unlock" });
 	}, [auth.phase, navigate]);
 	const server = savedServerUrl().replace(/^https?:\/\//, "") || location.host;
@@ -183,15 +192,32 @@ export function SignInPage() {
 				</p>
 
 				<div className="mt-[18px] flex w-full flex-col gap-3.5 text-left">
-					<button
-						type="button"
-						disabled={busy}
-						onClick={() => void withPasskey()}
-						className={PRIMARY}
-					>
-						<PasskeyIcon />
-						Sign in with passkey
-					</button>
+					{isDesktop ? (
+						<button
+							type="button"
+							disabled={busy}
+							onClick={() => {
+								setError(null);
+								signInInBrowser().catch((err) =>
+									setError(message(err, "Could not open the browser.")),
+								);
+							}}
+							className={PRIMARY}
+						>
+							<PasskeyIcon />
+							Sign in with your browser
+						</button>
+					) : (
+						<button
+							type="button"
+							disabled={busy}
+							onClick={() => void withPasskey()}
+							className={PRIMARY}
+						>
+							<PasskeyIcon />
+							Sign in with passkey
+						</button>
+					)}
 					{usePhrase ? (
 						<form onSubmit={withPhrase} className="flex flex-col gap-2.5">
 							<PhraseField
@@ -533,6 +559,67 @@ export function UnlockPage() {
 					</button>
 				</div>
 			</form>
+		</Page>
+	);
+}
+
+/**
+ * Browser half of desktop sign-in: once signed in here, hands the desktop app a short-lived
+ * code through a seijaku:// link. The app trades it for its own session.
+ */
+export function DesktopLinkPage() {
+	const navigate = useNavigate();
+	const auth = useAuth();
+	const [link, setLink] = useState<string | null>(null);
+	const [error, setError] = useState<string | null>(null);
+
+	useEffect(() => {
+		document.title = "Open Seijaku · Seijaku";
+		void authStore.refresh();
+	}, []);
+	useEffect(() => {
+		if (auth.phase === "signed-out")
+			void navigate({
+				to: "/sign-in",
+				search: { next: "/desktop-link" } as never,
+			});
+		if (auth.phase !== "signed-in" && auth.phase !== "locked") return;
+		void (async () => {
+			try {
+				const res = await fetch(apiUrl("/api/auth/seijaku/desktop-code"), {
+					method: "POST",
+					credentials: "include",
+					headers: { "Content-Type": "application/json" },
+					body: "{}",
+				});
+				if (!res.ok)
+					throw new Error("The server would not make a sign-in link.");
+				const { code } = (await res.json()) as { code: string };
+				const url = `seijaku://signin?code=${encodeURIComponent(code)}`;
+				setLink(url);
+				location.href = url;
+			} catch (err) {
+				setError(message(err, "Could not reach the server."));
+			}
+		})();
+	}, [auth.phase, navigate]);
+
+	return (
+		<Page>
+			<div className="flex w-full flex-1 flex-col items-center justify-center gap-[18px] text-center">
+				<Logo size={72} />
+				<h1 className="font-serif text-[30px] font-medium">Opening Seijaku</h1>
+				<p className="max-w-[360px] text-ink2">
+					Your desktop app should come forward and sign in. You can close this
+					tab afterwards.
+				</p>
+				{link ? (
+					<a href={link} className={SECONDARY}>
+						Open Seijaku
+					</a>
+				) : null}
+				{error ? <Notice error>{error}</Notice> : null}
+			</div>
 		</Page>
 	);
 }

@@ -1,9 +1,13 @@
 import { pageSlug, restoreNote, updateNote } from "@seijaku/sync";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { NoteMetaRow } from "../components/NoteMetaRow";
 import { pageLink } from "../components/pageLink";
-import { Editor } from "../editor/Editor";
+
+const Editor = lazy(() =>
+	import("../editor/Editor").then((m) => ({ default: m.Editor })),
+);
+
 import {
 	useNoteId,
 	useNoteSession,
@@ -77,11 +81,13 @@ export function NotePage() {
 			/>
 			<NoteMetaRow key={`meta-${noteId}`} note={note} />
 			{session?.id === noteId ? (
-				<Editor
-					key={`editor-${noteId}`}
-					session={session}
-					focusRef={focusEditor}
-				/>
+				<Suspense fallback={null}>
+					<Editor
+						key={`editor-${noteId}`}
+						session={session}
+						focusRef={focusEditor}
+					/>
+				</Suspense>
 			) : null}
 		</article>
 	);

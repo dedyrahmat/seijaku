@@ -6,6 +6,7 @@ import {
 	createAuthService,
 	resolveSecret,
 	rpIdFor,
+	socketHeaders,
 } from "./auth";
 import { R2BlobStore } from "./r2-blobs";
 
@@ -113,7 +114,7 @@ export default {
 			if (request.headers.get("Upgrade") !== "websocket") {
 				return new Response("Expected a WebSocket upgrade", { status: 426 });
 			}
-			const userId = await auth.userId(request.headers);
+			const userId = await auth.userId(socketHeaders(request));
 			if (!userId) return new Response("Sign in first", { status: 401 });
 			const id = env.WORKSPACE_ROOM.idFromName(userId);
 			return env.WORKSPACE_ROOM.get(id).fetch(request);

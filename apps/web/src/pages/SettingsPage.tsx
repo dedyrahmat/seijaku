@@ -22,6 +22,12 @@ import {
 	TextField,
 	Toggle,
 } from "../components/SettingRows";
+import {
+	captureShortcut,
+	isDesktop,
+	setCaptureShortcut,
+	updateApp,
+} from "../desktop";
 import { exportWorkspace } from "../export";
 import { ACCENTS, type Prefs, setPref, usePrefs } from "../preferences";
 import { useHomeScreenNotice, useSyncState } from "../workspace/hooks";
@@ -259,9 +265,13 @@ function General() {
 				</Row>
 			</Group>
 			<Group name="Quick capture">
-				<Row label="Global shortcut" note="Desktop app">
-					<Keys keys={[MOD, ALT, "Space"]} />
-				</Row>
+				{isDesktop ? (
+					<CaptureShortcut />
+				) : (
+					<Row label="Global shortcut" note="Desktop app">
+						<Keys keys={[MOD, ALT, "Space"]} />
+					</Row>
+				)}
 				<Row
 					label="Add captures to"
 					desc="Where a quick note lands before you sort it."
@@ -674,6 +684,42 @@ function Security() {
 	);
 }
 
+/** Desktop only: the global hotkey that opens the capture window, as Tauri writes it (CommandOrControl+Alt+Space). */
+function CaptureShortcut() {
+	const [value, setValue] = useState("");
+	const [note, setNote] = useState<string | undefined>();
+	useEffect(() => {
+		void captureShortcut().then(setValue);
+	}, []);
+	return (
+		<Row
+			label="Quick capture"
+			desc="Works while Seijaku is in the tray."
+			note={note}
+		>
+			<TextField
+				label="Quick capture shortcut"
+				value={value}
+				onChange={(v) => {
+					setValue(v);
+					setNote(undefined);
+				}}
+				width="w-[240px]"
+			/>
+			<Btn
+				onClick={() =>
+					void setCaptureShortcut(value.trim()).then(
+						() => setNote("Saved"),
+						(err) => setNote(String(err)),
+					)
+				}
+			>
+				Save
+			</Btn>
+		</Row>
+	);
+}
+
 function Shortcuts() {
 	return (
 		<>
@@ -695,9 +741,13 @@ function Shortcuts() {
 				<Row label="New page">
 					<Keys keys={[MOD, "N"]} />
 				</Row>
-				<Row label="Quick capture" note="Desktop app">
-					<Keys keys={[MOD, ALT, "Space"]} />
-				</Row>
+				{isDesktop ? (
+					<CaptureShortcut />
+				) : (
+					<Row label="Quick capture" note="Desktop app">
+						<Keys keys={[MOD, ALT, "Space"]} />
+					</Row>
+				)}
 				<Row label="Insert a block">
 					<Keys keys={["/"]} />
 				</Row>
@@ -799,6 +849,7 @@ function DataSettings() {
 
 function About() {
 	const [checked, setChecked] = useState(false);
+	const [found, setFound] = useState<string | null>(null);
 	return (
 		<>
 			<div className="flex items-center gap-6 pt-6 pb-2">
@@ -810,21 +861,30 @@ function About() {
 					<span className="font-serif text-[17px] text-ink2 italic">
 						Active calm. The opposite of noise.
 					</span>
-					<span className="text-[13px] text-mute">Version 0.1.0 · Web</span>
+					<span className="text-[13px] text-mute">
+						Version 0.1.0 · {isDesktop ? "Desktop" : "Web"}
+					</span>
 				</div>
 			</div>
 			<Group name="Updates">
 				<Row
 					label="Version 0.1.0"
-					desc="You have the latest version."
+					desc={
+						found
+							? `Version ${found} is installing.`
+							: "You have the latest version."
+					}
 					note={checked ? "Checked just now" : undefined}
 				>
 					<Btn
 						onClick={() => {
 							setChecked(true);
-							void navigator.serviceWorker
-								?.getRegistration()
-								.then((r) => r?.update());
+							if (isDesktop)
+								void updateApp().then(setFound, () => setChecked(false));
+							else
+								void navigator.serviceWorker
+									?.getRegistration()
+									.then((r) => r?.update());
 						}}
 					>
 						Check for updates

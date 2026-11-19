@@ -19,6 +19,7 @@ import {
 	createAuthService,
 	resolveSecret,
 	rpIdFor,
+	socketHeaders,
 } from "./auth";
 import { DiskBlobStore } from "./disk-blobs";
 import { SqlUpdateStore } from "./sql-store";
@@ -54,7 +55,7 @@ function staticFile(dir: string, pathname: string): Response | null {
 			// Vite names built assets by content, so they never change.
 			headers: clean.startsWith("assets/")
 				? { "Cache-Control": "public, max-age=31536000, immutable" }
-				: {},
+				: { "Cache-Control": "no-cache" }, // sw.js and the manifest must revalidate
 		});
 	// A missing file (a script, an image) is a 404, not the app: only extensionless paths are app routes.
 	if (/\.[a-z0-9]+$/i.test(clean)) return null;
@@ -112,7 +113,7 @@ export function startServer(options: {
 			const url = new URL(req.url);
 			if (url.pathname === "/sync") {
 				const userId = options.auth
-					? await options.auth.userId(req.headers)
+					? await options.auth.userId(socketHeaders(req))
 					: "";
 				if (userId === null)
 					return new Response("Sign in first", { status: 401 });

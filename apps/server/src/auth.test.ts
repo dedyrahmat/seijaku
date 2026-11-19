@@ -278,3 +278,51 @@ test("phrase sign-in is rate limited", async () => {
 	}
 	expect(statuses).toContain(429);
 });
+
+test("desktop sign-in: a browser session makes a code the app trades for a bearer token", async () => {
+	const { base, port } = await boot({ SETUP_TOKEN: "" });
+	const up = await post(base, "/seijaku/sign-up", setup());
+	const cookie = cookieOf(up);
+
+	// Asking for a code needs a session; the exchange needs a good code.
+	expect((await post(base, "/seijaku/desktop-code", {})).status).toBe(401);
+	const { code } = (await (
+		await post(base, "/seijaku/desktop-code", {}, cookie)
+	).json()) as { code: string };
+	expect(
+		(await post(base, "/seijaku/desktop-exchange", { code: `${code}x` }))
+			.status,
+	).toBe(401);
+
+	const desktop = {
+		Origin: "http://tauri.localhost",
+		"Content-Type": "application/json",
+	};
+	const swap = await fetch(`${base}/api/auth/seijaku/desktop-exchange`, {
+		method: "POST",
+		headers: desktop,
+		body: JSON.stringify({ code }),
+	});
+	expect(swap.status).toBe(200);
+	expect(swap.headers.get("access-control-allow-origin")).toBe(
+		"http://tauri.localhost",
+	);
+	const token = swap.headers.get("set-auth-token");
+	expect(token).toBeTruthy();
+
+	// The token stands in for the cookie, on HTTP and on the sync socket.
+	const status = await fetch(`${base}/api/auth/seijaku/status`, {
+		headers: { Authorization: `Bearer ${token}` },
+	});
+	expect(((await status.json()) as { signedIn: boolean }).signedIn).toBe(true);
+	const ws = new WebSocket(
+		`ws://localhost:${port}/sync?token=${encodeURIComponent(token as string)}`,
+	);
+	expect(
+		await new Promise((resolve) => {
+			ws.onopen = () => resolve("open");
+			ws.onerror = () => resolve("refused");
+		}),
+	).toBe("open");
+	ws.close();
+});

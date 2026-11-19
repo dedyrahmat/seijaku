@@ -1,5 +1,6 @@
 import { type Cipher, createCipher } from "@seijaku/sync";
 import { useSyncExternalStore } from "react";
+import { forgetDeviceToken } from "../desktop";
 import { apiUrl } from "../workspace/syncUrl";
 import { authClient } from "./client";
 import { clearWorkspaceKey, loadWorkspaceKey } from "./keys";
@@ -157,6 +158,7 @@ class AuthStore {
 			// Offline: still leave this device.
 		}
 		remember(false);
+		forgetDeviceToken();
 		await clearWorkspaceKey();
 		this.cipher = null;
 		this.set({ ...this.state, phase: "signed-out" });

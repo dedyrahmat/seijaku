@@ -24,7 +24,7 @@ Seijaku (静寂) is a new note-taking app: the Japanese Zen garden concept of "a
 | v1 features   | Nested pages, images + attachments, tags, daily notes, full-text search, Ctrl/Cmd+K switcher, trash, version history, desktop quick capture, public read-only share links, importers |
 | v1 blocks     | Text, headings, lists, to-dos, quotes, dividers, images, code (syntax highlighting), simple tables, callouts, toggles, math (KaTeX), embeds (link previews, video)                   |
 | Import        | Obsidian, Notion, Google Keep, Apple Notes, Apple Journal, Evernote, plus generic Markdown/HTML/text for everything else                                                             |
-| Later         | [[wiki links]] + backlinks, Notion-style databases, collaborative sharing                                                                                                            |
+| Later         | [[wiki links]] + backlinks, Notion-style databases, collaborative sharing (now phases 17, 19 and 20)                                                                                 |
 | Working style | **Stop after every phase**, show it running, wait for the user's go-ahead                                                                                                            |
 | Look          | "Washi & ink": warm paper light theme, sumi-ink dark theme, serif headings, follows system                                                                                           |
 
@@ -184,9 +184,89 @@ Each phase ends in something runnable. **Stop after each phase**, demo it, and w
    - Done: dates from the source are kept (a note's "Edited" shows its original date). Files need an account (sealed uploads); signed out, text imports and each file left out is reported. Checked in a real browser with an Obsidian zip, a Notion zip, an .enex and a Keep zip, through the Import page.
    - **Unverified:** Apple Notes and Apple Journal. Apple has no official bulk export format I could confirm, so both read a folder or zip of HTML, Markdown or text files with images beside them, which is what the common third-party exporters and a Journal export produce. If you use these apps, send a small real export so a proper importer can be written.
    - Not yet: Obsidian canvases, Notion CSV databases and Keep audio transcripts are not imported; wiki-links are not turned into links between pages; very large vaults hold the whole export in memory; no way to undo an import other than the trash; the Import report is a page, not a downloadable file.
-9. **PWA**: service worker app-shell caching, manifest, icons, iPhone home-screen polish (safe areas, keyboard handling).
-10. **Desktop**: Tauri 2 shell, deep-link sign-in, server URL setting, quick capture (hotkey + tray), auto-updater, GitHub Actions builds for Win/Mac/Linux.
-11. **Deploy**: `wrangler.jsonc` (DO, D1, R2, assets) + D1 migrations; Dockerfile and compose for self-host; README for both paths. (The Dockerfile, compose file, Bun serving the web build and the Workers assets entry move into the accounts rework; D1 migrations and a real Cloudflare deploy stay here.)
+9. **PWA** (DONE): service worker app-shell caching, manifest, icons, iPhone home-screen polish (safe areas, keyboard handling).
+   - Done: `vite-plugin-pwa` (generateSW, auto-update) precaches the whole build (~9 MB, mostly BlockNote and Shiki chunks) so the app opens offline; attachments are cached on first view (`/api/files/`); manifest, ink-tile icons (192, 512, maskable, apple-touch) made from the Logo board; iOS meta tags; the phone board's floating formatting bar (insert, text style, to-do, link, undo) rides above the keyboard via `visualViewport`. Checked in the browser pane: service worker active, app loads with the server stopped, toolbar buttons work.
+   - **Unverified:** install and offline on a real iPhone (needs the deployed app and your device); the keyboard offset logic is untested on real iOS Safari. Link button uses a plain `prompt()`.
+10. **Desktop** (built; see checks below): Tauri 2 shell, deep-link sign-in, server URL setting, quick capture (hotkey + tray), auto-updater, GitHub Actions builds for Win/Mac/Linux.
+
+- How it works: `apps/desktop/src-tauri` (Rust) loads the `apps/web` build. The shell owns the tray, the global capture hotkey (default Ctrl/Cmd+Alt+Space, changeable in Settings, kept in the app config dir), the frameless transparent capture window (`/capture`, label `capture`), the keychain (device token), single-instance and the updater. Closing the main window hides it to the tray.
+- Sign-in: the webview is on another origin than the server, so it uses a **bearer token** (Better Auth `bearer` plugin) instead of cookies: `desktop.ts` patches `fetch` to add it, picks up `set-auth-token` from any sign-in, and puts it in the sync URL as `?token=` (sockets cannot send headers). Passkeys: "Sign in with your browser" opens `<server>/desktop-link`, which (after a normal browser sign-in) makes a 2-minute signed code and returns it by `seijaku://signin?code=`; the app trades it at `/api/auth/seijaku/desktop-exchange`. The phrase works directly in the app. The workspace key never travels: a new desktop shows Unlock and asks for the phrase (or the passkey's PRF can not be used in the webview). Server CORS allows `http://tauri.localhost` and `tauri://localhost`.
+- Updater: public key in `tauri.conf.json`; the private key is in `~/.tauri/seijaku.key` on this machine (not in git) and must be added as the GitHub secret `TAURI_SIGNING_PRIVATE_KEY`. `.github/workflows/desktop.yml` builds on a `v*` tag into a draft release.
+- Known: the capture window and the main window are separate JS contexts on one IndexedDB, so a capture shows in the main window after sync or a reload, not live; a desktop code can be reused for 2 minutes (not one-time); account creation in the desktop app still offers a passkey, which may fail in the webview (use the browser or the phrase); the build is unsigned for Windows and macOS (SmartScreen and Gatekeeper warnings).
+
+11. **Deploy** (DONE): `wrangler.jsonc` (DO, D1, R2, assets) + D1 migrations; Dockerfile and compose for self-host; README for both paths. (The Dockerfile, compose file, Bun serving the web build and the Workers assets entry move into the accounts rework; D1 migrations and a real Cloudflare deploy stay here.)
+
+- Done: `wrangler.jsonc` (Durable Object, D1, R2, assets, SPA fallback); D1 migrations are applied by the Worker on its first request (`migrateD1`), so there is no separate step; `bun run --cwd apps/server deploy`; README has both deploy paths and the desktop release steps. Checked: `wrangler dev` runs the whole app (sign-up on D1, bearer sign-in, sync through the Durable Object, the web app from assets), `apps/server/scripts/smoke.ts` passes against it including an idle gap, and `wrangler deploy --dry-run` bundles. `smoke.ts` now makes its own throwaway account.
+- Also done in this pass: the main bundle is code-split (editor, settings, import and public pages load on demand; the entry chunk fell from 2.1 MB to under 100 kB), and the Playwright two-device test (`e2e/sync.e2e.ts`, `bun run test:e2e`).
+
+## Next phases (planned 2026-11-19)
+
+From an audit of every mockup board against `apps/web/src`, plus the disabled Settings rows, the "Later" list and the "Not yet" notes above. Same rules: start a phase only on the user's go-ahead, stop after each, match the boards. A feature with no board gets a "draw the board, get the user's OK" step first. Trash, History, Share, Public-Page, Sync-States and Home match their boards; Sign-In, Setup and Recovery differ on purpose (phrase instead of codes).
+
+12. **New note picker** (board "Desktop · New note"). Today `useNewPage` makes a blank top-level "Untitled" page.
+    - [ ] `components/NewNoteDialog.tsx`: "What are you writing?", six type cards with the board's icons and copy, keys 1–6, Enter creates, Esc/Cancel closes, "Create {type}", radiogroup semantics
+    - [ ] "Save in" picker (default: the open page's parent, else top level) feeding `createNote(index, { parentId })`
+    - [ ] Templates as block presets written with `withFragment`: Quick note, Page (blank), Checklist, Meeting notes (who / said / next), Study note (summary callout, then math, code, questions)
+    - [ ] Journal entry reuses `ensureDailyNote` (`daily-YYYY-MM-DD`), filed under a "Journal" parent
+    - [ ] Unfinished checklist to-dos show in Today (read on the device)
+    - [ ] Sidebar +, Ctrl+N and the phone menu open the dialog
+    - [ ] Browser check against the board: light, dark, phone width
+13. **Mockup gaps on existing screens**
+    - [ ] Phone header (Phone-Light): parent breadcrumb and More, so History, Share, Export and Trash are reachable on a phone (today they are not)
+    - [ ] Sidebar: open/closed folder icons for parents, page icon for leaves, instead of the chevron
+    - [ ] Slash menu (Blocks): one "Blocks" group in the board's order (Text, Heading, To-do list, Bulleted list, Toggle, Quote, Code, Math, Table, Callout), Markdown hints, footer "Type to filter · ↑ ↓ move · Enter insert · Esc close"; other blocks still found by typing
+    - [ ] Switcher: "N of M matches"; "Ctrl Enter open beside" needs split view (decision: build it or drop the hint)
+    - [ ] Quick capture: "Add to Today ▾" becomes a real picker (Today / new note / a page), shared with Settings → "Add captures to"
+    - [ ] Import progress: "N images saved" copy
+    - [ ] Desktop: frameless main window with the board's minimise / maximise / close and a drag region (macOS keeps traffic lights)
+    - [ ] Ctrl+Shift+F opens a "search all pages" mode, not the same view as Ctrl+K
+    - [ ] Check and document that Ctrl+N and Ctrl+Shift+T only work in the desktop app and the PWA (browsers take them in a tab)
+14. **Settings rows that only need the device**
+    - [ ] Workspace name: in the index doc (synced, sealed), shown in the sidebar and on shared pages
+    - [ ] Open on start: Home, Today or the last page (`LAST_NOTE_KEY`)
+    - [ ] Spellcheck; smart punctuation and auto-pair (input rules); paste behaviour (keep formatting / plain text)
+    - [ ] Public pages / Manage links: list shared pages with Open, Copy, Stop sharing and the count; drop the stale "Arrives with sharing" note
+    - [ ] Clear cache: size from `navigator.storage.estimate()`, refused while edits or uploads are waiting
+    - [ ] Lock after inactivity: idle timer forgets the key and shows Unlock; copy says passkey/phrase, not password/Face ID
+    - [ ] About: What's new, Get the apps, Privacy, Open-source licences
+    - [ ] Language (decision: real i18n, or English only)
+    - [ ] Boards first for Manage links and the lock screen if Unlock does not fit
+15. **Desktop-only settings (Tauri)**
+    - [ ] Keep capture window on top (hard-coded today), Launch at login (autostart plugin), Keep running in the tray (close hides vs quits); shown only in the desktop app, stored in the app config dir
+16. **Delete account and server cleanup**
+    - [ ] Board first: confirmation (phrase or passkey, "Export first")
+    - [ ] Endpoint on both runtimes: Better Auth rows, `key_wrap`, `doc_version`, `share_link`, `doc_log` / Durable Object storage, all blobs; tests in `auth.test.ts`
+    - [ ] Client: sign out and offer to wipe this device
+    - [ ] Delete forever also removes the note's log on the server
+17. **[[Wiki links]] and backlinks**
+    - [ ] Boards first: `[[` picker, link look, "Linked from" under the note
+    - [ ] Inline page-link content storing the note id (renames never break it)
+    - [ ] Backlink index on the device beside search, never on the server
+    - [ ] Obsidian `[[links]]` and Notion page links import as real links; export writes relative Markdown links
+18. **Known gaps and debt**
+    - [ ] "N waiting to upload" in the sync status
+    - [ ] Share links: optional expiry; "last updated" on the public page
+    - [ ] Per-account quotas for files, snapshots and shares
+    - [ ] Server cache for unfurl answers; close the DNS-rebinding gap on self-host
+    - [ ] Importers: Notion CSV databases, Obsidian canvas, Keep audio transcripts; re-import a Seijaku export zip
+    - [ ] "When two edits collide" (decision: remove the row or rework it; Yjs merges, so there is no older version to keep)
+19. **Databases**
+    - [ ] Spike and boards first: table view of child pages with typed properties (text, select, date, checkbox), sort, filter; properties in the index doc. Build only after the boards and data model are approved
+20. **Collaborative sharing**
+    - [ ] Key design first (wrap a page key per recipient account), approved before boards
+    - [ ] Boards: invite, people with access, read or edit, revoke; revoking rotates the page key (limit stated plainly)
+
+With every phase: update this file and the "Built so far" line in `CLAUDE.md`; browser check against the board (light, dark, phone); `bun run typecheck`, `bun run lint`, `bun test`, and `bun run test:e2e` when sync or sharing changes.
+
+### Left for you
+
+These need your accounts or devices and cannot be done from this machine:
+
+- A real Cloudflare deploy (`wrangler login`, create D1 and R2, `bun run --cwd apps/server deploy`), then repeat the two-device test against it.
+- `docker compose up` on a Docker host (Docker is not installed here; the same server and web build run in the Playwright test).
+- Install the PWA on an iPhone from Safari; test offline editing, the formatting bar above the keyboard, and passkey sign-in.
+- Push a `v*` tag with the `TAURI_SIGNING_PRIVATE_KEY` secret set, so GitHub Actions builds the macOS and Linux apps and the first signed update.
+- Real Apple Notes and Journal exports, to replace the folder-based importers with proper ones.
 
 ## Verification
 

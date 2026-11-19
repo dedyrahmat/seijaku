@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Phases 1 (scaffold), 2 (local editor), 3 (sync), 4 (auth), 5 (attachments), 6 (organising), 7 (history and sharing) and 8 (importers) are done. `apps/web` is a local-first editor that mirrors every note to a sync server over one WebSocket: nested pages, the block editor, trash, IndexedDB persistence, and the title-bar sync status. `apps/server` runs on Bun (`src/bun.ts`) and on Cloudflare (`src/worker.ts` + Durable Object); sign-in is passkeys plus a 12-word recovery phrase (Better Auth), and notes are end-to-end encrypted: the server stores sealed blobs. `packages/db` is still empty (auth uses Better Auth's own tables). [docs/PLAN.md](docs/PLAN.md) is the source of truth for scope, architecture and phase order; read it before doing anything. Phase 8 (importers) is done; next is phase 9 (PWA), which starts after the user's go-ahead.
+All eleven phases (scaffold, local editor, sync, auth, attachments, organising, history and sharing, importers, PWA, desktop, deploy) are built. `apps/web` is an installable, offline-capable (service worker via vite-plugin-pwa; icons in `apps/web/public`) local-first editor that mirrors every note to a sync server over one WebSocket: nested pages, the block editor, trash, IndexedDB persistence, and the title-bar sync status. `apps/server` runs on Bun (`src/bun.ts`) and on Cloudflare (`src/worker.ts` + Durable Object); sign-in is passkeys plus a 12-word recovery phrase (Better Auth), and notes are end-to-end encrypted: the server stores sealed blobs. `packages/db` is still empty (auth uses Better Auth's own tables). [docs/PLAN.md](docs/PLAN.md) is the source of truth for scope, architecture and phase order; read it before doing anything. What is left needs the user: a real Cloudflare deploy, a real iPhone, and macOS/Linux CI runs (docs/PLAN.md, "Left for you").
 
 **Accounts:** sign-in is optional (notes live on the device until you sign in, then sync turns on and uploads them). Anyone can create an account (passkey or 12-word phrase), each with one encrypted workspace; `SETUP_TOKEN` is an optional sign-up code. A passkey with WebAuthn PRF opens notes on a new device by itself, otherwise the phrase is asked once. The Bun server also serves the web build, and a Dockerfile and compose file ship one container. Signing out forgets the workspace key on that device (notes stay).
 
-`apps/desktop` is only a placeholder `package.json`. Tauri needs Rust, which is not installed on this machine; install it (rustup) before phase 10.
+`apps/desktop` is the Tauri 2 shell (Rust in `src-tauri`; needs Rust and the MSVC build tools, both installed here). It loads the `apps/web` build, signs in with a bearer token kept in the OS keychain, and owns the tray, the capture hotkey (default Ctrl/Cmd+Alt+Space; on this machine Claude desktop already holds it, so rebind in Settings) and the updater. See docs/PLAN.md phase 10 for the sign-in design and known limits. Only Windows was built and run here; macOS and Linux build through `.github/workflows/desktop.yml`.
 
 ## Commands
 
@@ -30,7 +30,16 @@ SETUP_TOKEN=... bun run --cwd apps/server dev   # require this sign-up code for 
 bun apps/server/scripts/smoke.ts ws://localhost:8791/sync [idleSeconds]   # black-box check of a running server
 ```
 
-`.claude/launch.json` defines `web` and `server` configurations; run both for sync (Vite proxies `/sync` to the server). To test two devices in one browser use two origins, e.g. `localhost` and `[::1]` (each has its own IndexedDB). Deploy commands will be added in phase 11.
+`.claude/launch.json` defines `web` and `server` configurations; run both for sync (Vite proxies `/sync` to the server). To test two devices in one browser use two origins, e.g. `localhost` and `[::1]` (each has its own IndexedDB).
+
+```bash
+bun run test:e2e                       # Playwright: two browser contexts against a built app and a Bun server (uses installed Chrome; E2E_CHANNEL=msedge for Edge)
+bun run --cwd apps/desktop dev         # tauri dev (starts the web dev server; set the server URL in Settings)
+bun run --cwd apps/desktop build       # installers in apps/desktop/src-tauri/target/release/bundle (set TAURI_SIGNING_PRIVATE_KEY to sign updater files)
+bun run --cwd apps/server deploy       # Cloudflare: wrangler deploy (see README, Deploy)
+```
+
+In a built desktop app, inspect the webview by launching it with `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222` and talking CDP to `localhost:9222`.
 
 Conventions: Biome defaults (tabs, double quotes), with Tailwind directives enabled for CSS; strict TypeScript from `tsconfig.base.json` (`noUncheckedIndexedAccess`, `verbatimModuleSyntax`); workspace packages are named `@seijaku/<dir>` and export TypeScript source directly (`"main": "src/index.ts"`, no build step). Tests live next to the code as `*.test.ts`. Only `packages/sync` has tests so far; the web app has none yet and was verified by hand in a browser. A change that touches the editor or sidebar needs a browser check, not just typecheck.
 
@@ -53,11 +62,12 @@ Many accounts, each with its own encrypted workspace, on many devices: web, iPho
 Bun-workspace monorepo:
 
 ```
-apps/web        Vite + React + TS SPA, TanStack Router, Tailwind v4, vite-plugin-pwa
-apps/desktop    Tauri 2 shell that loads the apps/web build
-apps/server     Hono app with two entry points: worker.ts (Cloudflare), bun.ts (self-host)
-packages/db     Drizzle schema + migrations (SQLite dialect); see the Database note below
-packages/sync   Shared Yjs sync protocol + Room logic, used by server and client
+apps/web Vite + React + TS SPA, TanStack Router, Tailwind v4, vite-plugin-pwa
+apps/desktop Tauri 2 shell that loads the apps/web build
+apps/server Hono app with two entry points: worker.ts (Cloudflare), bun.ts (self-host)
+packages/db Drizzle schema + migrations (SQLite dialect); see the Database note below
+packages/sync Shared Yjs sync protocol + Room logic, used by server and client
+
 ```
 
 Things that are easy to get wrong:
@@ -113,3 +123,6 @@ Readable words, no one-letter segments. Pages live at `/page/Getting-Started-<id
 The reference is the mockup at https://claude.ai/artifact/2oncbwyZeMDyVdZkDGwNJQ (Washi & ink tokens, sidebar, title bar, note body, home). Tokens live in `apps/web/src/styles.css` (paper, panel, raised, hover, ink, ink2, mute, line, callout, code, tag, vermilion accent); fonts are Newsreader, Hanken Grotesk, JetBrains Mono. Boards: Home (splash with rotating haiku), Main/Editor-Dark/Tablet/Phone-* (shell), Sidebar, Titlebar, NoteBody, Blocks (slash menu), Switcher, Trash, Import-Choose/Progress, Sync-States, History, Share, Public-Page, Sign-In/Setup/Recovery, Quick-Capture. Built so far: Settings (all eight tabs, as a dialog at `/settings/<section>`; preferences live in `apps/web/src/preferences.ts` and are applied to `<html>` as `data-theme` and CSS variables), History and Share panels in the title bar (live: sealed snapshots with preview and restore, and share links), Sign-In/Setup/Recovery screens (`/sign-in`, `/setup`, `/recovery-codes`; live since phase 4), Public-Page (`/share/<token>#<key>`, opens a sealed shared page in the browser), Quick-Capture (`/capture`, appends to today's note), Import-Progress, Home, Sidebar (search, Today, Pages, Tags, Trash/Import/Settings), Titlebar (back, forward, sync status; history, share and more are phase 7), Switcher, Trash, Import (all nine sources; Apple Notes and Apple Journal read folders of HTML/Markdown/text because their real export formats are unconfirmed), Sync-States, tags and "Edited" row under the title. Not wired to real behaviour yet: Settings rows shown disabled (they need the server or the desktop app: Delete account, Lock after inactivity, and the like).
 
 "Washi & ink": warm paper-toned light theme, sumi-ink dark theme, following the system setting. Generous whitespace, serif headings with a sans body, chrome that recedes while writing. Use the `frontend-design` skill when building UI.
+
+```
+```

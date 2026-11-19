@@ -1,5 +1,6 @@
 import { Hono, type MiddlewareHandler } from "hono";
-import type { AuthService } from "./auth";
+import { cors } from "hono/cors";
+import { type AuthService, DESKTOP_ORIGINS } from "./auth";
 import {
 	BLOB_ID,
 	type BlobStore,
@@ -24,6 +25,17 @@ export function createApp(
 	links: UnfurlOptions = {},
 ) {
 	const app = new Hono();
+
+	// The desktop app calls from its own origin with a bearer token (no cookies are shared).
+	app.use(
+		"/api/*",
+		cors({
+			origin: DESKTOP_ORIGINS,
+			allowHeaders: ["authorization", "content-type"],
+			allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+			exposeHeaders: ["set-auth-token"],
+		}),
+	);
 
 	if (auth) {
 		app.on(["GET", "POST"], "/api/auth/*", async (c) => {

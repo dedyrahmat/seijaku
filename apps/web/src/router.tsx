@@ -2,8 +2,10 @@ import {
 	createRootRoute,
 	createRoute,
 	createRouter,
+	lazyRouteComponent,
 } from "@tanstack/react-router";
 import {
+	DesktopLinkPage,
 	RecoveryPage,
 	SetupPage,
 	SignInPage,
@@ -11,10 +13,7 @@ import {
 } from "./pages/AuthPages";
 import { CapturePage } from "./pages/CapturePage";
 import { Home } from "./pages/Home";
-import { ImportPage } from "./pages/ImportPage";
 import { NotePage } from "./pages/NotePage";
-import { PublicPage } from "./pages/PublicPage";
-import { SettingsPage } from "./pages/SettingsPage";
 import { Shell } from "./pages/Shell";
 import { TrashPage } from "./pages/TrashPage";
 
@@ -41,19 +40,28 @@ const trashRoute = createRoute({
 const importRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/import",
-	component: ImportPage,
+	component: lazyRouteComponent(
+		() => import("./pages/ImportPage"),
+		"ImportPage",
+	),
 });
 
 const settingsRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/settings",
-	component: SettingsPage,
+	component: lazyRouteComponent(
+		() => import("./pages/SettingsPage"),
+		"SettingsPage",
+	),
 });
 
 const settingsSectionRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/settings/$section",
-	component: SettingsPage,
+	component: lazyRouteComponent(
+		() => import("./pages/SettingsPage"),
+		"SettingsPage",
+	),
 });
 
 const signInRoute = createRoute({
@@ -80,6 +88,12 @@ const unlockRoute = createRoute({
 	component: UnlockPage,
 });
 
+const desktopLinkRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/desktop-link",
+	component: DesktopLinkPage,
+});
+
 const captureRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/capture",
@@ -89,7 +103,10 @@ const captureRoute = createRoute({
 const publicRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/share/$token",
-	component: PublicPage,
+	component: lazyRouteComponent(
+		() => import("./pages/PublicPage"),
+		"PublicPage",
+	),
 });
 
 export const router = createRouter({
@@ -105,6 +122,7 @@ export const router = createRouter({
 		recoveryRoute,
 		unlockRoute,
 		captureRoute,
+		desktopLinkRoute,
 		publicRoute,
 	]),
 });

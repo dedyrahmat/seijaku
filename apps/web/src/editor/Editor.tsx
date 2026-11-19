@@ -21,6 +21,7 @@ import { flushSnapshot, noteEdited } from "../workspace/history";
 import { sharedNoteEdited } from "../workspace/shares";
 import type { NoteSession } from "../workspace/store";
 import { workspace } from "../workspace/store";
+import { MobileToolbar } from "./MobileToolbar";
 import { schema } from "./schema";
 
 /** BlockNote keys group headers by name, so items of one group must sit together. */
@@ -129,6 +130,7 @@ export function Editor({ session, focusRef }: Props) {
 					)
 				}
 			/>
+			<MobileToolbar editor={editor} />
 		</BlockNoteView>
 	);
 }

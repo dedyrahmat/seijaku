@@ -1,7 +1,9 @@
 import { dailyTitle } from "@seijaku/sync";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { authStore } from "../auth/session";
 import { Logo } from "../components/Logo";
+import { hideThisWindow, isCaptureWindow } from "../desktop";
 import { captureToToday } from "../workspace/capture";
 import { useWorkspaceReady } from "../workspace/hooks";
 
@@ -19,7 +21,22 @@ export function CapturePage() {
 		document.title = "Quick capture · Seijaku";
 	}, []);
 
+	// The hotkey window is shown and hidden, never reloaded: take focus each time it appears.
+	useEffect(() => {
+		if (!isCaptureWindow) return;
+		const focus = () => {
+			box.current?.focus();
+			// Signed in or unlocked in the main window since this window was made.
+			void authStore.changed();
+		};
+		window.addEventListener("focus", focus);
+		document.documentElement.style.background = "transparent";
+		document.body.style.background = "transparent";
+		return () => window.removeEventListener("focus", focus);
+	}, []);
+
 	const close = () => {
+		if (isCaptureWindow) return void hideThisWindow();
 		if (window.history.length > 1) window.history.back();
 		else void navigate({ to: "/" });
 	};
@@ -31,6 +48,7 @@ export function CapturePage() {
 		setText("");
 		setSaving(false);
 		setSaved(true);
+		if (isCaptureWindow) return void hideThisWindow(); // the window closes on Enter
 		box.current?.focus();
 	};
 
@@ -41,7 +59,9 @@ export function CapturePage() {
 	});
 
 	return (
-		<div className="flex min-h-dvh items-center justify-center bg-hover p-4">
+		<div
+			className={`flex min-h-dvh items-center justify-center p-4 ${isCaptureWindow ? "" : "bg-hover"}`}
+		>
 			<div
 				role="dialog"
 				aria-label="Quick capture"

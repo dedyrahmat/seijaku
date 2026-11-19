@@ -12,3 +12,6 @@ target/
 data/
 *.sqlite
 *.sqlite-*
+apps/desktop/src-tauri/gen/
+test-results/
+playwright-report/

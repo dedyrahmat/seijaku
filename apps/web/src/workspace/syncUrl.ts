@@ -21,6 +21,15 @@ export function apiUrl(path: string): string {
 	return `${base}${path}`;
 }
 
+/** The desktop app signs in with a bearer token it keeps in the OS keychain (see desktop.ts). */
+let deviceToken: string | null = null;
+export function setDeviceToken(token: string | null): void {
+	deviceToken = token;
+}
+export function getDeviceToken(): string | null {
+	return deviceToken;
+}
+
 export function currentSyncUrl(): string {
 	let override: string | null = null;
 	try {
@@ -28,7 +37,9 @@ export function currentSyncUrl(): string {
 	} catch {
 		// Storage blocked: use the page's own origin.
 	}
-	return syncUrl(location.origin, override);
+	const url = syncUrl(location.origin, override);
+	// A WebSocket cannot send headers, so the token rides in the address.
+	return deviceToken ? `${url}?token=${encodeURIComponent(deviceToken)}` : url;
 }
 
 /** The saved server address, or "" when the page's own origin is used. */

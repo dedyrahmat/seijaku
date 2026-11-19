@@ -14,6 +14,7 @@ import {
 } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { getMigrations } from "better-auth/db/migration";
+import { bearer } from "better-auth/plugins";
 import { and, eq } from "drizzle-orm";
 import * as z from "zod";
 import type { AccountDb } from "./db";
@@ -88,6 +89,45 @@ async function hashLogin(secret: string, loginKey: string): Promise<string> {
 	return Array.from(new Uint8Array(sig), (b) =>
 		b.toString(16).padStart(2, "0"),
 	).join("");
+}
+
+/** Origins the desktop app runs from (Windows, then macOS and Linux); it signs in with a bearer token, not cookies. */
+export const DESKTOP_ORIGINS = ["http://tauri.localhost", "tauri://localhost"];
+
+const DESKTOP_CODE_SECONDS = 120;
+
+/**
+ * A short-lived code that turns a signed-in browser into a desktop sign-in: the user id and an
+ * expiry, signed with the server secret. shortcut: a code can be used again until it expires
+ * (2 minutes); it only travels through the local seijaku:// link, so one-time storage was skipped.
+ */
+async function desktopCode(secret: string, userId: string): Promise<string> {
+	const body = `${userId}.${Math.floor(Date.now() / 1000) + DESKTOP_CODE_SECONDS}`;
+	return `${body}.${await hashLogin(secret, `desktop:${body}`)}`;
+}
+
+async function userOfDesktopCode(
+	secret: string,
+	code: string,
+): Promise<string | null> {
+	const cut = code.lastIndexOf(".");
+	const body = code.slice(0, cut);
+	if (
+		cut < 0 ||
+		!safeEqual(code.slice(cut + 1), await hashLogin(secret, `desktop:${body}`))
+	)
+		return null;
+	const [userId, expires] = body.split(".");
+	return userId && Number(expires) > Date.now() / 1000 ? userId : null;
+}
+
+/** A WebSocket cannot send headers, so the desktop app puts its token in the address instead. */
+export function socketHeaders(req: Request): Headers {
+	const token = new URL(req.url).searchParams.get("token");
+	if (!token || req.headers.has("authorization")) return req.headers;
+	const headers = new Headers(req.headers);
+	headers.set("authorization", `Bearer ${token}`);
+	return headers;
 }
 
 /** Checks the sign-up code (when one is set) and makes a new account with a throwaway address. */
@@ -190,6 +230,41 @@ function seijakuPlugin(config: AuthConfig): BetterAuthPlugin {
 				},
 			),
 
+			/** Browser side of desktop sign-in: a code the desktop app trades for its own session. */
+			seijakuDesktopCode: createAuthEndpoint(
+				"/seijaku/desktop-code",
+				{ method: "POST", use: [sessionMiddleware] },
+				async (ctx) =>
+					ctx.json({
+						code: await desktopCode(config.secret, ctx.context.session.user.id),
+					}),
+			),
+
+			/** Desktop side: trades the code for a session; the bearer plugin returns its token in a header. */
+			seijakuDesktopExchange: createAuthEndpoint(
+				"/seijaku/desktop-exchange",
+				{
+					method: "POST",
+					body: z.object({ code: z.string().min(20).max(300) }),
+				},
+				async (ctx) => {
+					const userId = await userOfDesktopCode(config.secret, ctx.body.code);
+					const user = userId
+						? await ctx.context.internalAdapter.findUserById(userId)
+						: null;
+					if (!user)
+						throw new APIError("UNAUTHORIZED", {
+							message:
+								"That sign-in link has expired. Start again from the app.",
+						});
+					const session = await ctx.context.internalAdapter.createSession(
+						user.id,
+					);
+					await setSessionCookie(ctx, { session, user });
+					return ctx.json({ ok: true });
+				},
+			),
+
 			/** Every wrapped copy of the workspace key, for a signed-in device to open with what it holds. */
 			seijakuKeyWraps: createAuthEndpoint(
 				"/seijaku/key-wraps",
@@ -283,7 +358,7 @@ export function createAuth(config: AuthConfig) {
 		database: config.database,
 		baseURL: primary,
 		secret: config.secret,
-		trustedOrigins: config.origins,
+		trustedOrigins: [...config.origins, ...DESKTOP_ORIGINS],
 		session: { expiresIn: 60 * 60 * 24 * 90, updateAge: 60 * 60 * 24 },
 		advanced: {
 			cookiePrefix: "seijaku",
@@ -305,6 +380,7 @@ export function createAuth(config: AuthConfig) {
 				},
 			}),
 			seijakuPlugin(config),
+			bearer(),
 		],
 	});
 }

@@ -7,6 +7,7 @@ import {
 } from "@blocknote/core";
 import katex from "katex";
 import { fetchPreview, webAddress } from "./preview";
+import { checkListItemWithProps } from "./todoProps";
 
 export const CALLOUT_TONES = ["note", "tip", "warning"] as const;
 export type CalloutTone = (typeof CALLOUT_TONES)[number];
@@ -196,6 +197,7 @@ const createLinkPreviewBlock = createBlockSpec(
 export const schema = BlockNoteSchema.create({
 	blockSpecs: {
 		...defaultBlockSpecs,
+		checkListItem: checkListItemWithProps,
 		codeBlock: createCodeBlockSpec(codeBlockOptions),
 		callout: createCalloutBlock(),
 		math: createMathBlock(),

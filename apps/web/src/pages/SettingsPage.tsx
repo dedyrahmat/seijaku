@@ -9,6 +9,8 @@ import {
 	useSignedOut,
 } from "../components/AccountSettings";
 import { ago } from "../components/ago";
+import { CaptureTarget } from "../components/CaptureTarget";
+import { Icon, type IconName } from "../components/Icon";
 import { Logo } from "../components/Logo";
 import {
 	Btn,
@@ -66,6 +68,17 @@ const SECTIONS = [
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number][0];
+
+const SECTION_ICONS: Record<string, IconName> = {
+	general: "home",
+	appearance: "palette",
+	editor: "pen",
+	sync: "cloudsync",
+	security: "lock",
+	shortcuts: "keyboard",
+	data: "database",
+	about: "info",
+};
 
 const SOON = "Not available yet";
 
@@ -145,8 +158,12 @@ export function SettingsPage() {
 											replace: true,
 										})
 									}
-									className={`h-11 flex-none rounded-2xl px-3 text-left text-sm whitespace-nowrap md:h-10 md:w-full ${on ? "bg-hover font-semibold text-ink" : "font-medium text-ink2 hover:bg-hover/60"}`}
+									className={`flex h-11 flex-none items-center gap-2.5 rounded-2xl px-3 text-left text-sm whitespace-nowrap md:h-10 md:w-full ${on ? "bg-hover font-semibold text-ink" : "font-medium text-ink2 hover:bg-hover/60"}`}
 								>
+									<Icon
+										name={SECTION_ICONS[id] ?? "info"}
+										className={on ? "text-accent" : "text-mute"}
+									/>
 									{label}
 								</button>
 							);
@@ -219,6 +236,7 @@ function useSet() {
 }
 
 const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
+const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
 const MOD = isMac ? "⌘" : "Ctrl";
 const ALT = isMac ? "⌥" : "Alt";
 const SHIFT = isMac ? "⇧" : "Shift";
@@ -276,12 +294,7 @@ function General() {
 					label="Add captures to"
 					desc="Where a quick note lands before you sort it."
 				>
-					<Select
-						label="Add captures to"
-						value="Today"
-						options={["Today"]}
-						onChange={() => {}}
-					/>
+					<CaptureTarget className="h-9 max-w-[220px] pr-3.5 pl-3.5 text-[13px]" />
 				</Row>
 				<Row
 					label="Keep the capture window on top"
@@ -733,12 +746,26 @@ function Shortcuts() {
 				<Row label="Toggle sidebar">
 					<Keys keys={[MOD, "\\"]} />
 				</Row>
-				<Row label="Go to Today">
+				<Row
+					label="Go to Today"
+					desc={
+						isDesktop || isStandalone
+							? undefined
+							: "In a browser tab, Ctrl+Shift+T belongs to the browser. It works in the desktop app and the installed app."
+					}
+				>
 					<Keys keys={[MOD, SHIFT, "T"]} />
 				</Row>
 			</Group>
 			<Group name="Write">
-				<Row label="New page">
+				<Row
+					label="New page"
+					desc={
+						isDesktop || isStandalone
+							? undefined
+							: "In a browser tab, Ctrl+N belongs to the browser. It works in the desktop app and the installed app."
+					}
+				>
 					<Keys keys={[MOD, "N"]} />
 				</Row>
 				{isDesktop ? (

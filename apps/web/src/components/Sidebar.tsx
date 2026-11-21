@@ -18,7 +18,9 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { readLocal, useNoteId, useNotes, writeLocal } from "../workspace/hooks";
 import { workspace } from "../workspace/store";
+import { Icon } from "./Icon";
 import { Logo } from "./Logo";
+import { KindGlyph } from "./noteKinds";
 import { pageLink } from "./pageLink";
 import { SelectBox } from "./SelectBox";
 import { useNewPage } from "./useNewPage";
@@ -73,10 +75,22 @@ export function Sidebar({
 	const dragId = useRef<string | null>(null);
 
 	// Daily notes live behind "Today", not in the page tree.
-	const tree = useMemo(
-		() => buildTree(notes.filter((n) => !isDailyNoteId(n.id))),
+	const parents = useMemo(
+		() => new Set(notes.filter((n) => !n.trashed).map((n) => n.parentId)),
 		[notes],
 	);
+	// Quick notes live on their own wall; one that still holds pages stays in the tree.
+	const quickLeaves = useMemo(
+		() => notes.filter((n) => n.kind === "quick" && !parents.has(n.id)),
+		[notes, parents],
+	);
+	const tree = useMemo(() => {
+		const wall = new Set(quickLeaves.map((n) => n.id));
+		return buildTree(
+			notes.filter((n) => !isDailyNoteId(n.id) && !wall.has(n.id)),
+		);
+	}, [notes, quickLeaves]);
+	const quickCount = quickLeaves.filter((n) => !n.trashed).length;
 	const tags = useMemo(() => listTags(notes), [notes]);
 	const today = new Date();
 	const todayId = dailyNoteId(today);
@@ -187,18 +201,7 @@ export function Sidebar({
 								aria-label="New page"
 								className="flex size-11 items-center justify-center rounded-2xl text-ink2 hover:bg-hover md:size-8"
 							>
-								<svg
-									width="16"
-									height="16"
-									viewBox="0 0 16 16"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="1.4"
-									strokeLinecap="round"
-									aria-hidden="true"
-								>
-									<path d="M8 3v10M3 8h10" />
-								</svg>
+								<Icon name="plus" size={16} />
 							</button>
 						</div>
 
@@ -208,19 +211,7 @@ export function Sidebar({
 								onClick={() => onSearch()}
 								className="flex h-11 w-full items-center gap-2.5 rounded-2xl border border-line bg-raised px-2.5 text-left text-[13px] text-ink2 hover:border-mute md:h-9"
 							>
-								<svg
-									width="15"
-									height="15"
-									viewBox="0 0 16 16"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="1.4"
-									strokeLinecap="round"
-									aria-hidden="true"
-								>
-									<circle cx="7" cy="7" r="4.5" />
-									<path d="M10.5 10.5L14 14" />
-								</svg>
+								<Icon name="search" />
 								<span className="flex-1">Search or jump to</span>
 								<span className="hidden font-mono text-[11px] text-mute md:inline">
 									{isMac ? "⌘ K" : "Ctrl K"}
@@ -235,24 +226,21 @@ export function Sidebar({
 								aria-current={noteId === todayId ? "page" : undefined}
 								className={`flex h-11 w-full items-center gap-2.5 rounded-2xl px-2.5 text-left text-sm text-ink hover:bg-hover md:h-[34px] ${noteId === todayId ? "bg-hover" : ""}`}
 							>
-								<svg
-									width="15"
-									height="15"
-									viewBox="0 0 16 16"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="1.4"
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									className="text-ink2"
-									aria-hidden="true"
-								>
-									<rect x="2.5" y="3.5" width="11" height="10" rx="2" />
-									<path d="M2.5 7h11M5.5 2v3M10.5 2v3" />
-								</svg>
+								<Icon name="today" className="text-ink2" />
 								<span className="flex-1">Today</span>
 								<span className="text-xs text-mute">{dailyTitle(today)}</span>
 							</button>
+							<Link
+								to="/quick-notes"
+								aria-current={
+									path.startsWith("/quick-notes") ? "page" : undefined
+								}
+								className={`flex h-11 w-full items-center gap-2.5 rounded-2xl px-2.5 text-left text-sm text-ink hover:bg-hover md:h-[34px] ${path.startsWith("/quick-notes") ? "bg-hover" : ""}`}
+							>
+								<Icon name="wall" className="text-ink2" />
+								<span className="flex-1">Quick notes</span>
+								<span className="text-xs text-mute">{quickCount}</span>
+							</Link>
 						</div>
 					</>
 				)}
@@ -305,29 +293,21 @@ export function Sidebar({
 							to="/trash"
 							className={`${foot} ${path === "/trash" ? "bg-hover" : ""}`}
 						>
-							<FootIcon>
-								<path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.2c0 .5.4.8.9.8h4c.5 0 .9-.3.9-.8l.6-8.2" />
-							</FootIcon>
+							<Icon name="trash" />
 							Trash
 						</Link>
 						<Link
 							to="/import"
 							className={`${foot} ${path === "/import" ? "bg-hover" : ""}`}
 						>
-							<FootIcon>
-								<path d="M8 2.5v8M4.8 7.6L8 10.8l3.2-3.2M3 13h10" />
-							</FootIcon>
+							<Icon name="import" />
 							Import
 						</Link>
 						<Link
 							to="/settings"
 							className={`${foot} ${path.startsWith("/settings") ? "bg-hover" : ""}`}
 						>
-							<FootIcon>
-								<path d="M2.5 5h6M12 5h1.5M2.5 11h1.5M7.5 11h6" />
-								<circle cx="10" cy="5" r="1.6" />
-								<circle cx="5.7" cy="11" r="1.6" />
-							</FootIcon>
+							<Icon name="settings" />
 							Settings
 						</Link>
 					</div>
@@ -403,21 +383,24 @@ function SelectBar({
 	);
 }
 
-function FootIcon({ children }: { children: React.ReactNode }) {
-	return (
-		<svg
-			width="15"
-			height="15"
-			viewBox="0 0 16 16"
-			fill="none"
-			stroke="currentColor"
-			strokeWidth="1.4"
-			strokeLinecap="round"
-			strokeLinejoin="round"
-			aria-hidden="true"
-		>
-			{children}
-		</svg>
+/** A folder for pages that hold pages, otherwise the glyph of the note's type. */
+function RowGlyph({
+	note,
+	open,
+	hasKids,
+}: {
+	note: NoteMeta;
+	open: boolean;
+	hasKids: boolean;
+}) {
+	return hasKids ? (
+		<Icon
+			name={open ? "folder-open" : "folder"}
+			size={14}
+			className="shrink-0 text-mute"
+		/>
+	) : (
+		<KindGlyph kind={note.kind} size={14} className="shrink-0 text-mute" />
 	);
 }
 
@@ -432,6 +415,8 @@ function TreeRow({
 }) {
 	const { note, children } = node;
 	const [zone, setZone] = useState<Zone | null>(null);
+	// Where a right-click opened the row menu (screen pixels); null when closed or opened by the ⋯ button.
+	const [at, setAt] = useState<{ x: number; y: number } | null>(null);
 	const isOpen = ctx.expanded.has(note.id);
 	const active = ctx.activeId === note.id;
 	const ticked = ctx.sel.on && ctx.sel.ids.has(note.id);
@@ -488,6 +473,11 @@ function TreeRow({
 				onDragOver={onDragOver}
 				onDragLeave={() => setZone(null)}
 				onDrop={onDrop}
+				onContextMenu={(e) => {
+					if (ctx.sel.on) return;
+					e.preventDefault();
+					setAt({ x: e.clientX, y: e.clientY });
+				}}
 				style={{ paddingLeft: 2 + depth * 16 }}
 				className={`row group flex items-center rounded-2xl ${active || ticked ? "bg-hover" : "hover:bg-hover/60"} ${zone ? `drop-${zone}` : ""}`}
 			>
@@ -527,6 +517,7 @@ function TreeRow({
 						className={`flex min-h-11 min-w-0 flex-1 items-center gap-2.5 py-1 pl-1 text-left text-sm md:min-h-8 ${ticked ? "font-medium text-ink" : "text-ink2"}`}
 					>
 						<SelectBox on={ticked} />
+						<RowGlyph note={note} open={isOpen} hasKids={children.length > 0} />
 						<span className="truncate">{note.title || "Untitled"}</span>
 					</button>
 				) : (
@@ -541,11 +532,16 @@ function TreeRow({
 									ctx.sel.start(note.id);
 								}
 							}}
-							className={`min-w-0 flex-1 truncate py-2.5 text-sm md:py-[7px] ${active ? "font-medium text-ink" : "text-ink2"}`}
+							className={`flex min-w-0 flex-1 items-center gap-2 py-2.5 text-sm md:py-[7px] ${active ? "font-medium text-ink" : "text-ink2"}`}
 						>
-							{note.title || "Untitled"}
+							<RowGlyph
+								note={note}
+								open={isOpen}
+								hasKids={children.length > 0}
+							/>
+							<span className="truncate">{note.title || "Untitled"}</span>
 						</Link>
-						<RowMenu note={note} ctx={ctx} />
+						<RowMenu note={note} ctx={ctx} at={at} setAt={setAt} />
 					</>
 				)}
 			</div>
@@ -560,10 +556,28 @@ function TreeRow({
 	);
 }
 
-function RowMenu({ note, ctx }: { note: NoteMeta; ctx: TreeCtx }) {
-	const [open, setOpen] = useState(false);
+type Point = { x: number; y: number };
+
+function RowMenu({
+	note,
+	ctx,
+	at,
+	setAt,
+}: {
+	note: NoteMeta;
+	ctx: TreeCtx;
+	at: Point | null;
+	setAt: (p: Point | null) => void;
+}) {
+	const [clicked, setClicked] = useState(false);
+	const open = clicked || at !== null;
+	const setOpen = (v: boolean) => {
+		setClicked(v);
+		if (!v) setAt(null);
+	};
 	const root = useRef<HTMLDivElement>(null);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: setOpen only calls stable setters
 	useEffect(() => {
 		if (!open) return;
 		const close = (e: Event) => {
@@ -572,9 +586,11 @@ function RowMenu({ note, ctx }: { note: NoteMeta; ctx: TreeCtx }) {
 		const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
 		document.addEventListener("pointerdown", close);
 		document.addEventListener("keydown", esc);
+		window.addEventListener("blur", close);
 		return () => {
 			document.removeEventListener("pointerdown", close);
 			document.removeEventListener("keydown", esc);
+			window.removeEventListener("blur", close);
 		};
 	}, [open]);
 
@@ -635,7 +651,7 @@ function RowMenu({ note, ctx }: { note: NoteMeta; ctx: TreeCtx }) {
 				aria-label={`Actions for ${note.title || "Untitled"}`}
 				aria-haspopup="menu"
 				aria-expanded={open}
-				onClick={() => setOpen((v) => !v)}
+				onClick={() => setOpen(!open)}
 				data-open={open}
 				className="row-actions flex h-8 w-8 items-center justify-center rounded-2xl text-mute hover:text-ink"
 			>
@@ -644,7 +660,17 @@ function RowMenu({ note, ctx }: { note: NoteMeta; ctx: TreeCtx }) {
 			{open ? (
 				<div
 					role="menu"
-					className="absolute top-full right-0 z-50 mt-1 w-60 rounded-2xl border border-line bg-raised p-1 shadow-lg"
+					// Right-click opens at the pointer, kept inside the window; the ⋯ button opens under itself.
+					style={
+						at
+							? {
+									position: "fixed",
+									left: Math.max(8, Math.min(at.x, window.innerWidth - 248)),
+									top: Math.max(8, Math.min(at.y, window.innerHeight - 340)),
+								}
+							: undefined
+					}
+					className={`z-50 w-60 rounded-2xl border border-line bg-raised p-1 shadow-lg ${at ? "" : "absolute top-full right-0 mt-1"}`}
 				>
 					{items.map((item) => (
 						<div key={item.label}>

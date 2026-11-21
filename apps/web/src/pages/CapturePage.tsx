@@ -1,10 +1,11 @@
-import { dailyTitle } from "@seijaku/sync";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { authStore } from "../auth/session";
+import { CaptureTarget } from "../components/CaptureTarget";
 import { Logo } from "../components/Logo";
 import { hideThisWindow, isCaptureWindow } from "../desktop";
-import { captureToToday } from "../workspace/capture";
+import { usePrefs } from "../preferences";
+import { captureTo } from "../workspace/capture";
 import { useWorkspaceReady } from "../workspace/hooks";
 
 /** The mockup's "Quick capture" window: one box, Enter to save, Esc to close. */
@@ -15,6 +16,7 @@ export function CapturePage() {
 	const [saving, setSaving] = useState(false);
 	const [saved, setSaved] = useState(false);
 	const box = useRef<HTMLTextAreaElement>(null);
+	const { captureTo: target } = usePrefs();
 	const today = new Date();
 
 	useEffect(() => {
@@ -44,7 +46,7 @@ export function CapturePage() {
 	const save = async () => {
 		if (!text.trim() || saving || !ready) return;
 		setSaving(true);
-		await captureToToday(text);
+		await captureTo(target, text);
 		setText("");
 		setSaving(false);
 		setSaved(true);
@@ -69,11 +71,11 @@ export function CapturePage() {
 			>
 				<div className="flex h-12 flex-none items-center gap-2.5 border-b border-line2 px-4">
 					<Logo size={18} />
-					<span
-						title={dailyTitle(today)}
-						className="flex h-[30px] items-center gap-1.5 rounded-2xl bg-tag px-2.5 text-[13px]"
-					>
-						Add to Today
+					<span className="relative inline-flex items-center">
+						<CaptureTarget
+							label="Add to"
+							className="h-[30px] max-w-[180px] border-0 bg-tag pr-7 pl-2.5 text-[13px]"
+						/>
 						<svg
 							width="12"
 							height="12"
@@ -84,6 +86,7 @@ export function CapturePage() {
 							strokeLinecap="round"
 							strokeLinejoin="round"
 							aria-hidden="true"
+							className="pointer-events-none absolute right-2.5"
 						>
 							<path d="M4 6l4 4 4-4" />
 						</svg>
@@ -121,7 +124,7 @@ export function CapturePage() {
 					<span>Enter to save</span>
 					<span>Shift Enter new line</span>
 					<span className="flex-1" />
-					<span role="status">{saved ? "Saved to Today" : "Esc to close"}</span>
+					<span role="status">{saved ? "Saved" : "Esc to close"}</span>
 				</div>
 			</div>
 		</div>

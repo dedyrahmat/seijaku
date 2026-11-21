@@ -1,6 +1,8 @@
 import {
+	changeKind,
 	dailyTitle,
 	ensureDailyNote,
+	isDailyNoteId,
 	type NoteMeta,
 	trashNote,
 } from "@seijaku/sync";
@@ -13,14 +15,18 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../auth/session";
 import { HistoryPanel, type Preview } from "../components/HistoryPanel";
+import { Icon as Glyph } from "../components/Icon";
 import { NewNoteDialog } from "../components/NewNoteDialog";
 import { NoteFooter } from "../components/NoteFooter";
+import { NOTE_TYPES } from "../components/noteKinds";
 import { pageLink } from "../components/pageLink";
 import { ReadOnlyNote } from "../components/ReadOnlyNote";
 import { SharePopover } from "../components/SharePopover";
 import { Sidebar } from "../components/Sidebar";
 import { Switcher } from "../components/Switcher";
 import { SyncStatus } from "../components/SyncStatus";
+import { WindowControls } from "../components/WindowControls";
+import { isDesktop, isMacDesktop } from "../desktop";
 import { exportPage } from "../export";
 import { setPref } from "../preferences";
 import {
@@ -86,10 +92,11 @@ export function Shell() {
 	const ready = useWorkspaceReady();
 	const notes = useNotes();
 	const router = useRouter();
-	const [switcher, setSwitcher] = useState<{ open: boolean; query: string }>({
-		open: false,
-		query: "",
-	});
+	const [switcher, setSwitcher] = useState<{
+		open: boolean;
+		query: string;
+		mode: "jump" | "search";
+	}>({ open: false, query: "", mode: "jump" });
 	const [typing, setTyping] = useState(false);
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	const [panel, setPanel] = useState<"none" | "history" | "share">("none");
@@ -147,8 +154,10 @@ export function Shell() {
 				e.preventDefault();
 				fn();
 			};
-			if (key === "k" || (e.shiftKey && key === "f"))
-				run(() => setSwitcher({ open: true, query: "" }));
+			if (e.shiftKey && key === "f")
+				run(() => setSwitcher({ open: true, query: "", mode: "search" }));
+			else if (key === "k")
+				run(() => setSwitcher({ open: true, query: "", mode: "jump" }));
 			else if (key === "\\") run(() => latest.current.toggleSidebar());
 			else if (e.shiftKey && key === "l")
 				run(() =>
@@ -178,7 +187,7 @@ export function Shell() {
 		const onKey = (e: KeyboardEvent) => {
 			if (e.metaKey || e.ctrlKey || e.altKey || e.key === "Escape") return;
 			const el = e.target as HTMLElement | null;
-			if (el?.closest(".bn-editor, input[data-title]")) setTyping(true);
+			if (el?.closest(".bn-editor, [data-title]")) setTyping(true);
 		};
 		const off = () => setTyping(false);
 		window.addEventListener("keydown", onKey);
@@ -203,15 +212,21 @@ export function Shell() {
 	return (
 		<div
 			data-typing={typing && !drawerOpen}
-			className="flex h-dvh overflow-hidden bg-paper text-ink"
+			className={`flex h-dvh overflow-hidden bg-paper text-ink ${isMacDesktop ? "pt-7" : ""}`}
 		>
+			{isMacDesktop ? (
+				<div
+					data-tauri-drag-region
+					className="fixed inset-x-0 top-0 z-50 h-7"
+				/>
+			) : null}
 			<Sidebar
 				open={drawerOpen}
 				onClose={() => setDrawerOpen(false)}
 				hidden={sidebarHidden}
 				onSearch={(query = "") => {
 					setDrawerOpen(false);
-					setSwitcher({ open: true, query });
+					setSwitcher({ open: true, query, mode: "jump" });
 				}}
 				onNewNote={() => {
 					setDrawerOpen(false);
@@ -227,7 +242,8 @@ export function Shell() {
 			<Switcher
 				open={switcher.open}
 				initialQuery={switcher.query}
-				onClose={() => setSwitcher({ open: false, query: "" })}
+				mode={switcher.mode}
+				onClose={() => setSwitcher((s) => ({ ...s, open: false, query: "" }))}
 			/>
 			<div className="flex min-w-0 flex-1 flex-col">
 				{/* Phone: open the drawer. */}
@@ -264,6 +280,7 @@ export function Shell() {
 					{current && !current.trashed ? (
 						<MoreMenu
 							touch
+							note={current}
 							onHistory={() => setPanel("history")}
 							onShare={() => setPanel("share")}
 							onTrash={() => trashNote(workspace.index, current.id)}
@@ -273,7 +290,10 @@ export function Shell() {
 				</header>
 
 				{/* Desktop: sidebar toggle, breadcrumb, status. */}
-				<header className="chrome hidden h-10 flex-none items-center gap-1 border-b border-line2 bg-panel pr-4 pl-2.5 md:flex">
+				<header
+					data-tauri-drag-region
+					className={`chrome hidden h-10 flex-none items-center gap-1 border-b border-line2 bg-panel pl-2.5 md:flex ${isDesktop && !isMacDesktop ? "pr-0" : "pr-4"}`}
+				>
 					<button
 						type="button"
 						onClick={toggleSidebar}
@@ -348,7 +368,7 @@ export function Shell() {
 							);
 						})}
 					</nav>
-					<div className="flex-1" />
+					<div data-tauri-drag-region className="h-full flex-1" />
 					<SyncStatus />
 					{current && !current.trashed ? (
 						<>
@@ -379,11 +399,13 @@ export function Shell() {
 								Share
 							</button>
 							<MoreMenu
+								note={current}
 								onTrash={() => trashNote(workspace.index, current.id)}
 								onExport={() => void exportPage(current)}
 							/>
 						</>
 					) : null}
+					<WindowControls />
 				</header>
 
 				<div className="relative min-h-0 flex-1">
@@ -448,12 +470,14 @@ export function Shell() {
 
 /** `touch` is the phone header: bigger targets, and History and Share live here because the phone has no room for their buttons. */
 function MoreMenu({
+	note,
 	onTrash,
 	onExport,
 	touch,
 	onHistory,
 	onShare,
 }: {
+	note?: NoteMeta;
 	onTrash: () => void;
 	onExport: () => void;
 	touch?: boolean;
@@ -503,7 +527,7 @@ function MoreMenu({
 			{open ? (
 				<div
 					role="menu"
-					className="absolute top-full right-0 z-50 mt-1 w-52 rounded-2xl border border-line bg-raised p-1 shadow-lg md:w-44"
+					className="absolute top-full right-0 z-50 mt-1 max-h-[80dvh] w-60 overflow-y-auto rounded-2xl border border-line bg-raised p-1 shadow-lg"
 				>
 					{touch && onHistory ? (
 						<button
@@ -515,7 +539,7 @@ function MoreMenu({
 							}}
 							className={`${item} text-ink`}
 						>
-							Version history
+							<Glyph name="history" size={15} /> Version history
 						</button>
 					) : null}
 					{touch && onShare ? (
@@ -528,8 +552,41 @@ function MoreMenu({
 							}}
 							className={`${item} text-ink`}
 						>
-							Share
+							<Glyph name="share" size={15} /> Share
 						</button>
+					) : null}
+					{note && !isDailyNoteId(note.id) ? (
+						<div className="mb-1 border-b border-line2 pb-1">
+							<div className="px-3 pt-2 pb-1 text-[11px] font-medium tracking-[0.09em] text-mute uppercase">
+								Change type
+							</div>
+							{NOTE_TYPES.map((t) => {
+								const current = note.kind === t.id;
+								const blocked = t.id === "journal" || note.kind === "journal";
+								return (
+									<button
+										key={t.id}
+										type="button"
+										role="menuitemradio"
+										aria-checked={current}
+										disabled={blocked && !current}
+										onClick={() => {
+											changeKind(workspace.index, note.id, t.id);
+											setOpen(false);
+										}}
+										className={`${item} flex items-center gap-2.5 text-ink disabled:opacity-40`}
+									>
+										<Glyph name={t.id} size={15} />
+										<span className="flex-1">{t.name}</span>
+										{current ? <Glyph name="check" size={14} /> : null}
+									</button>
+								);
+							})}
+							<p className="px-3 pt-1 pb-1.5 text-xs leading-normal text-mute">
+								Your writing stays exactly as it is. Only the look and the extra
+								fields change.
+							</p>
+						</div>
 					) : null}
 					<button
 						type="button"
@@ -540,7 +597,7 @@ function MoreMenu({
 						}}
 						className={`${item} text-ink`}
 					>
-						Export as Markdown
+						<Glyph name="export" size={15} /> Export as Markdown
 					</button>
 					<button
 						type="button"
@@ -551,7 +608,7 @@ function MoreMenu({
 						}}
 						className={`${item} text-accent`}
 					>
-						Move to trash
+						<Glyph name="trash" size={15} /> Move to trash
 					</button>
 				</div>
 			) : null}

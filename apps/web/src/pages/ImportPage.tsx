@@ -35,7 +35,12 @@ export function ImportPage() {
 	const [stage, setStage] = useState<"idle" | "reading" | "writing">("idle");
 	const [progress, setProgress] = useState<[number, number]>([0, 0]);
 	const [rows, setRows] = useState<Row[]>([]);
-	const [stats, setStats] = useState({ images: 0, tags: 0, skipped: 0 });
+	const [stats, setStats] = useState({
+		images: 0,
+		files: 0,
+		tags: 0,
+		skipped: 0,
+	});
 	const abort = useRef<AbortController | null>(null);
 	const background = useRef(false);
 	const picker = useRef<HTMLInputElement>(null);
@@ -60,7 +65,7 @@ export function ImportPage() {
 	const run = async () => {
 		setError(null);
 		setRows([]);
-		setStats({ images: 0, tags: 0, skipped: 0 });
+		setStats({ images: 0, files: 0, tags: 0, skipped: 0 });
 		background.current = false;
 		abort.current = new AbortController();
 		const signal = abort.current.signal;
@@ -98,7 +103,8 @@ export function ImportPage() {
 					setProgress([done, total]);
 					for (const t of result.note.tags) tags.add(t.toLowerCase());
 					setStats((s) => ({
-						images: s.images + result.files,
+						images: s.images + result.images,
+						files: s.files + result.files - result.images,
 						tags: tags.size,
 						skipped: s.skipped + (result.state === "warn" ? 1 : 0),
 					}));
@@ -181,7 +187,10 @@ export function ImportPage() {
 					</div>
 					<div className="flex gap-7 pt-1 text-[13px] text-mute">
 						<span>
-							{stats.images} {stats.images === 1 ? "file" : "files"} saved
+							{stats.images} {stats.images === 1 ? "image" : "images"} saved
+							{stats.files > 0
+								? ` · ${stats.files} other ${stats.files === 1 ? "file" : "files"}`
+								: ""}
 						</span>
 						<span>
 							{stats.tags} {stats.tags === 1 ? "tag" : "tags"} found

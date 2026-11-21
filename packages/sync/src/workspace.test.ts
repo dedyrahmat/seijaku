@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import * as Y from "yjs";
 import {
+	addToField,
 	buildTree,
+	changeKind,
 	createNote,
 	flattenTree,
 	getNote,
@@ -9,7 +11,9 @@ import {
 	listTrash,
 	moveNote,
 	nudgeNote,
+	removeFromField,
 	restoreNote,
+	setField,
 	trashNote,
 	updateNote,
 } from "./workspace";
@@ -314,5 +318,60 @@ describe("note kinds and the journal", () => {
 		sync(a, b);
 		expect(listNotes(a)).toHaveLength(2);
 		expect(listNotes(b)).toHaveLength(2);
+	});
+});
+
+describe("note kinds and fields", () => {
+	test("changeKind switches type and refuses journal, daily and parents becoming quick", () => {
+		const doc = new Y.Doc();
+		const a = createNote(doc, { title: "A" });
+		createNote(doc, { title: "child", parentId: a });
+		expect(changeKind(doc, a, "meeting")).toBe(true);
+		expect(getNote(doc, a)?.kind).toBe("meeting");
+		expect(changeKind(doc, a, "quick")).toBe(false);
+		expect(changeKind(doc, a, "journal")).toBe(false);
+		expect(changeKind(doc, a, "page")).toBe(true);
+		expect(getNote(doc, a)?.kind).toBe("page");
+		const j = createNote(doc, { id: "journal-2026-11-19", kind: "journal" });
+		expect(changeKind(doc, j, "page")).toBe(false);
+		const d = createNote(doc, { id: "daily-2026-11-19" });
+		expect(changeKind(doc, d, "study")).toBe(false);
+	});
+
+	test("fields survive a type change and back; old notes read as empty", () => {
+		const doc = new Y.Doc();
+		const id = createNote(doc, { kind: "meeting" });
+		expect(getNote(doc, id)?.fields).toEqual({});
+		setField(doc, id, "meeting", "place", "Room 4");
+		changeKind(doc, id, "study");
+		setField(doc, id, "study", "subject", "Biology");
+		changeKind(doc, id, "meeting");
+		expect(getNote(doc, id)?.fields).toEqual({
+			meeting: { place: "Room 4" },
+			study: { subject: "Biology" },
+		});
+		setField(doc, id, "meeting", "place", "");
+		expect(getNote(doc, id)?.fields.meeting).toBeUndefined();
+	});
+
+	test("concurrent field edits and attendees merge", () => {
+		const a = new Y.Doc();
+		const id = createNote(a, { kind: "meeting" });
+		const b = new Y.Doc();
+		Y.applyUpdate(b, Y.encodeStateAsUpdate(a));
+		setField(a, id, "meeting", "place", "Zoom");
+		setField(b, id, "meeting", "start", "10:00");
+		addToField(a, id, "meeting", "attendees", "Aiko");
+		addToField(b, id, "meeting", "attendees", "Ben");
+		sync(a, b);
+		const f = getNote(a, id)?.fields.meeting;
+		expect(f?.place).toBe("Zoom");
+		expect(f?.start).toBe("10:00");
+		expect([...((f?.attendees ?? []) as string[])].sort()).toEqual([
+			"Aiko",
+			"Ben",
+		]);
+		removeFromField(a, id, "meeting", "attendees", "Aiko");
+		expect(getNote(a, id)?.fields.meeting?.attendees).toEqual(["Ben"]);
 	});
 });

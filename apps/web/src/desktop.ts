@@ -8,6 +8,9 @@ import {
 /** True inside the Tauri shell (apps/desktop), false in a browser or the installed PWA. */
 export const isDesktop = "__TAURI_INTERNALS__" in window;
 
+/** macOS keeps its traffic lights (drawn over the page); Windows and Linux get our own buttons. */
+export const isMacDesktop = isDesktop && /Mac/.test(navigator.platform);
+
 /** The small window the capture hotkey opens: same app, loaded at /capture. */
 export const isCaptureWindow =
 	isDesktop &&
@@ -115,6 +118,14 @@ export function forgetDeviceToken(): void {
 export const captureShortcut = () => invoke<string>("capture_shortcut");
 export const setCaptureShortcut = (accelerator: string) =>
 	invoke<void>("set_capture_shortcut", { accelerator });
+
+/** The title bar's own minimise / maximise / close, for the frameless main window. */
+export async function windowAction(
+	action: "minimize" | "toggleMaximize" | "close",
+): Promise<void> {
+	const { getCurrentWindow } = await import("@tauri-apps/api/window");
+	await getCurrentWindow()[action]();
+}
 
 export async function hideThisWindow(): Promise<void> {
 	const { getCurrentWindow } = await import("@tauri-apps/api/window");

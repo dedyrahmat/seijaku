@@ -7,9 +7,11 @@ import {
 import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import type * as Y from "yjs";
+import { dueLabel } from "../editor/todoProps";
 import { openTodos, type Todo, tickTodo } from "../editor/todos";
 import { useNotes } from "../workspace/hooks";
 import { workspace } from "../workspace/store";
+import { isoDay } from "./dates";
 import { pageLink } from "./pageLink";
 
 interface Group {
@@ -32,9 +34,20 @@ async function tick(noteId: string, todoId: string) {
  * The mockup's "Today · Still to do": unticked to-dos from your Checklist notes, shown on today's
  * page. Read on this device from each note's content; ticking one ticks it in its checklist.
  */
+const dueOf = (n: NoteMeta) => {
+	const v = n.fields.checklist?.due;
+	return typeof v === "string" ? v : "";
+};
+
+/** The soonest date a group asks for: its own, or any of its items'. Undated groups sort last. */
+const soonest = (g: Group) =>
+	[dueOf(g.note), ...g.todos.map((t) => t.due)].filter(Boolean).sort()[0] ??
+	"9999";
+
 export function StillToDo() {
 	const notes = useNotes();
 	const [groups, setGroups] = useState<Group[]>([]);
+	const today = isoDay(new Date());
 
 	// A checklist's updatedAt moves when its content is edited, which is what refreshes this.
 	const lists = useMemo(
@@ -52,7 +65,22 @@ export function StillToDo() {
 				todos: await workspace.withFragment(note.id, openTodos),
 			})),
 		).then((all) => {
-			if (!stale) setGroups(all.filter((g) => g.todos.length > 0));
+			if (!stale)
+				setGroups(
+					all
+						.filter((g) => g.todos.length > 0)
+						// Overdue and soonest first, lists with no date last.
+						.map((g) => ({
+							...g,
+							// Dated items first, soonest first; High breaks ties.
+							todos: [...g.todos].sort(
+								(a, b) =>
+									(a.due || "9999").localeCompare(b.due || "9999") ||
+									Number(b.high) - Number(a.high),
+							),
+						}))
+						.sort((a, b) => soonest(a).localeCompare(soonest(b))),
+				);
 		});
 		return () => {
 			stale = true;
@@ -83,6 +111,17 @@ export function StillToDo() {
 						className="self-start text-[13px] text-ink2 underline decoration-mute underline-offset-[3px]"
 					>
 						{g.note.title || "Untitled"}
+						{dueOf(g.note) ? (
+							<span
+								className={`ml-2 no-underline ${dueOf(g.note) < today ? "text-accent" : "text-mute"}`}
+							>
+								{dueOf(g.note) < today
+									? "Overdue"
+									: dueOf(g.note) === today
+										? "Today"
+										: dueOf(g.note)}
+							</span>
+						) : null}
 					</Link>
 					{g.todos.map((t) => (
 						<label
@@ -96,6 +135,23 @@ export function StillToDo() {
 								className="mt-1 size-[18px] accent-ink"
 							/>
 							<span>{t.text}</span>
+							{t.due ? (
+								<span
+									className={`mt-0.5 rounded-full px-2 text-[11px] leading-5 ${dueLabel(t.due).hot ? "bg-accent-soft text-accent" : "bg-tag text-ink2"}`}
+								>
+									{dueLabel(t.due).text}
+								</span>
+							) : null}
+							{t.high ? (
+								<span className="mt-0.5 rounded-full bg-accent-soft px-2 text-[11px] leading-5 text-accent">
+									High
+								</span>
+							) : null}
+							{t.owner ? (
+								<span className="mt-0.5 rounded-full bg-tag px-2 text-[11px] leading-5 text-ink2">
+									{t.owner}
+								</span>
+							) : null}
 						</label>
 					))}
 				</div>

@@ -5,6 +5,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { authStore } from "./auth/session";
+import { ContextMenu } from "./components/ContextMenu";
 import { initDesktop, isCaptureWindow, isDesktop } from "./desktop";
 import { initPrefs } from "./preferences";
 import { router } from "./router";
@@ -30,5 +31,6 @@ if (!root) throw new Error("Missing #root element");
 createRoot(root).render(
 	<StrictMode>
 		<RouterProvider router={router} />
+		<ContextMenu />
 	</StrictMode>,
 );

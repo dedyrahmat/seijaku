@@ -14,6 +14,7 @@ import {
 import { CapturePage } from "./pages/CapturePage";
 import { Home } from "./pages/Home";
 import { NotePage } from "./pages/NotePage";
+import { QuickNotesPage } from "./pages/QuickNotesPage";
 import { Shell } from "./pages/Shell";
 import { TrashPage } from "./pages/TrashPage";
 
@@ -29,6 +30,18 @@ const noteRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/page/$slug",
 	component: NotePage,
+});
+
+const quickRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/quick-notes",
+	component: QuickNotesPage,
+});
+
+const quickCardRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/quick-notes/$slug",
+	component: QuickNotesPage,
 });
 
 const trashRoute = createRoute({
@@ -113,6 +126,8 @@ export const router = createRouter({
 	routeTree: rootRoute.addChildren([
 		homeRoute,
 		noteRoute,
+		quickRoute,
+		quickCardRoute,
 		trashRoute,
 		importRoute,
 		settingsRoute,

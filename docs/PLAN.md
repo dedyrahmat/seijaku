@@ -233,57 +233,58 @@ From an audit of every mockup board against `apps/web/src`, plus the disabled Se
     - Notes on how it came out: boards were added to the mockup first (Select pages desktop and phone, Sidebar select component, Trash select, Delete forever confirm, Today still to do). Select mode ticks with a checkbox on any device; Ctrl/Cmd-click or Shift-click on a row starts it. In Trash, "Delete N forever" asks first in a dialog (single "Delete forever" and "Empty trash" still use the browser confirm). A daily note is no longer counted as "the page above" by Put inside and Move up (it sits at the top level but lives behind Today, so the first page used to move into an invisible note). Journal ids needed `parsePageSlug` to know `journal-YYYY-MM-DD`. "Save in" starts at the open page's parent, so a note made while a journal entry is open lands in Journal unless you change it. Ticking a to-do on Today opens that checklist for editing so the change syncs. A new quick note opens in its body; if untitled, its first line becomes its title when you leave. The e2e test now waits for the service worker before going offline (it raced the install) and has a journal and bulk-trash test.
     - Not yet: "You can change it later" on the picker is only true in the sense that the content is editable (the kind cannot be changed after creation); the single "Delete forever" and "Empty trash" confirms are still browser dialogs; Today's list reads the checklists you can see in the tree, not ones in the trash.
 13. **Note types, each with its own look and fields** (boards approved 2026-11-19). Today the kind only picks a starting template; every note renders as the same page. Each of the six types now gets its own surface, head and structured fields, quick notes become a Keep-style wall, and the type can be changed later.
+    - **Status 2026-11-21: done.** Everything in this phase is built and checked. How the open points came out: the to-do props spike worked (the `checkListItem` spec is spread and given `due`, `priority`, `owner`, so old notes, importers, export, `openTodos` and `tickTodo` carry on; the chips and popover are plain DOM in `editor/todoProps.ts`; Markdown export still writes `- [ ]`); a ticked to-do sinks below the last real unticked one in a checklist (blank to-dos do not count), and a checklist is sorted again when opened; page covers can be an uploaded image (needs an account, like any file); the icon tile has a picker; a card can show tick boxes; the journal has ruled paper; the study note keeps its first callout pinned and has the "On this page" rail (beside the note from 1280 px up, a button below that) with Revisits under it; the meeting's owner box suggests the attendees. Note: Ctrl+Shift+F is now its own "search all pages" view (phase 14). The e2e test covers a mood, an attendee and a type change on a second device.
     - **Boards** (row "Note types — each its own" in the mockup, plus dark and iPhone):
       - [x] Quick notes · Wall, Quick note · Open card, iPhone · Quick notes, Page · Cover and icon, Checklist, Journal entry, Journal · Month, Today · Journal look and feeds, Meeting notes, Study note, Quick switcher · Filter by type, Change type, Component · Sidebar with types, iPhone · Six note types, and dark versions of the six types
     - **Spike first: extra props on to-dos.** Replace BlockNote's `checkListItem` spec in `editor/schema.ts` with one of the same type name plus `due` (ISO date or ""), `priority` ("normal" | "high") and `owner` (text), so existing notes, importers, export, `openTodos` and `tickTodo` keep working. Check that an old note opens unchanged, the props sync, and Markdown export still writes `- [ ]`. **Fallback** if the spike fails: inline chips (custom inline content) for the date, `!high` and `@name`. Tell the user which one shipped.
     - **Data** (`packages/sync/src/workspace.ts`, sealed in the index doc like titles):
-      - [ ] `NotePatch` gains `kind`; `changeKind(doc, id, kind)` refuses journal and daily ids and refuses turning a note with children into a quick note
-      - [ ] A nested `fields` Y.Map per note with one Y.Map per kind, so concurrent edits merge and switching type keeps the old type's fields. `NoteMeta.fields` is a read-only snapshot; `setField(doc, id, kind, key, value)` writes one; lists that people add to concurrently (meeting attendees, study revisits) are Y.Arrays
-      - [ ] Fields: quick `tint` (washi, kaki, matcha, ai, sakura, kuchiba) and `pinned`; page `cover` (a tint, or a sealed file id from `uploadFile`); checklist `due`; journal `dayTitle`, `mood` (0–4: Heavy, Low, Even, Good, Bright), `weather` (sun, cloud, rain, snow, wind), `place`, `highlight`; meeting `date`, `start`, `end`, `place`, `link`, `attendees`; study `subject`, `source`, `sourceUrl`, `revisitOn`, `confidence` (new, shaky, solid), `revisits` ([{date, confidence}])
-      - [ ] Tests in `workspace.test.ts`: kind patch and its refusals, fields surviving a type change and back, concurrent field and attendee edits merging, old notes without `fields` reading as empty
+      - [x] `NotePatch` gains `kind`; `changeKind(doc, id, kind)` refuses journal and daily ids and refuses turning a note with children into a quick note
+      - [x] A nested `fields` Y.Map per note with one Y.Map per kind, so concurrent edits merge and switching type keeps the old type's fields. `NoteMeta.fields` is a read-only snapshot; `setField(doc, id, kind, key, value)` writes one; lists that people add to concurrently (meeting attendees, study revisits) are Y.Arrays
+      - [x] Fields: quick `tint` (washi, kaki, matcha, ai, sakura, kuchiba) and `pinned`; page `cover` (a tint, or a sealed file id from `uploadFile`); checklist `due`; journal `dayTitle`, `mood` (0–4: Heavy, Low, Even, Good, Bright), `weather` (sun, cloud, rain, snow, wind), `place`, `highlight`; meeting `date`, `start`, `end`, `place`, `link`, `attendees`; study `subject`, `source`, `sourceUrl`, `revisitOn`, `confidence` (new, shaky, solid), `revisits` ([{date, confidence}])
+      - [x] Tests in `workspace.test.ts`: kind patch and its refusals, fields surviving a type change and back, concurrent field and attendee edits merging, old notes without `fields` reading as empty
     - **Shared pieces** (`apps/web`):
-      - [ ] `components/noteKinds.ts`: name, short name, glyph path and copy for each kind, taken out of `NewNoteDialog.tsx`; used by the dialog, sidebar, switcher, change-type menu and heads
-      - [ ] `NotePage.tsx` switches on `note.kind`: a head per type in `components/heads/` (`PageHead`, `ChecklistHead`, `JournalHead`, `MeetingHead`, `StudyHead`) above the one shared `<Editor>`; `<article data-kind>` and per-kind surface, width and type scale in `styles.css` with tokens added for the six tints, the journal paper and the rule colour (light and dark)
+      - [x] `components/noteKinds.ts`: name, short name, glyph path and copy for each kind, taken out of `NewNoteDialog.tsx`; used by the dialog, sidebar, switcher, change-type menu and heads
+      - [x] `NotePage.tsx` switches on `note.kind`: a head per type in `components/heads/` (`PageHead`, `ChecklistHead`, `JournalHead`, `MeetingHead`, `StudyHead`) above the one shared `<Editor>`; `<article data-kind>` and per-kind surface, width and type scale in `styles.css` with tokens added for the six tints, the journal paper and the rule colour (light and dark)
     - **Quick notes (Keep wall)**:
-      - [ ] Routes `/quick-notes` (the wall) and `/quick-notes/<slug-id>` (the card open over the wall, reusing `<Editor>`); a quick note opened at `/page/...` redirects there
-      - [ ] Wall: "Take a note…" opens a new card; Pinned then Others in CSS columns (two on phones); card hover bar with pin, tint and More (Change type, Move to trash); "Show tick boxes" turns the card's paragraphs into to-dos
-      - [ ] Card: optional title (the note title; no more naming from the first line), body, tint swatches, pin, "Edited …", Close; Esc or a click outside closes
-      - [ ] Sidebar: "Quick notes" entry with a count under Today; quick notes leave the page tree (a quick note that still has child pages from before stays in the tree)
-      - [ ] New note → Quick note opens a new card on the wall; Quick capture is unchanged (still adds to Today)
-    - **Page**: [ ] cover band (tint or uploaded image; Change cover, Remove) and the icon tile over it with a small picker (type any character, or pick a suggestion); with neither set, the page looks as it does today
+      - [x] Routes `/quick-notes` (the wall) and `/quick-notes/<slug-id>` (the card open over the wall, reusing `<Editor>`); a quick note opened at `/page/...` redirects there
+      - [x] Wall: "Take a note…" opens a new card; Pinned then Others in CSS columns (two on phones); card hover bar with pin, tint and More (Change type, Move to trash); "Show tick boxes" turns the card's paragraphs into to-dos
+      - [x] Card: optional title (the note title; no more naming from the first line), body, tint swatches, pin, "Edited …", Close; Esc or a click outside closes
+      - [x] Sidebar: "Quick notes" entry with a count under Today; quick notes leave the page tree (a quick note that still has child pages from before stays in the tree)
+      - [x] New note → Quick note opens a new card on the wall; Quick capture is unchanged (still adds to Today)
+    - **Page**: [x] cover band (tint or uploaded image; Change cover, Remove) and the icon tile over it with a small picker (type any character, or pick a suggestion); with neither set, the page looks as it does today
     - **Checklist**:
-      - [ ] Head: kicker, sans title, whole-list due date, "N of M done" with a progress bar, Hide done (remembered per note on this device)
-      - [ ] To-do rows: due chip (Overdue and Today in vermilion), High marker, the popover (Today, Tomorrow, This weekend, Next week, Pick a date…; Normal / High), hairline rows
-      - [ ] Done to the bottom: when an item is ticked in the editor, that device moves it below the last unticked item in its list, in one transaction; ticks made from Today are sorted the next time the list is opened
+      - [x] Head: kicker, sans title, whole-list due date, "N of M done" with a progress bar, Hide done (remembered per note on this device)
+      - [x] To-do rows: due chip (Overdue and Today in vermilion), High marker, the popover (Today, Tomorrow, This weekend, Next week, Pick a date…; Normal / High), hairline rows
+      - [x] Done to the bottom: when an item is ticked in the editor, that device moves it below the last unticked item in its list, in one transaction; ticks made from Today are sorted the next time the list is opened
     - **Journal**:
-      - [ ] Entry head: ← previous / next → entry (next is disabled past today), 日記 mark, weekday, big date, year, optional day title, mood / weather / place row, "The day in a sentence"; warmer ruled paper and a serif body
-      - [ ] The Journal page (`journal`) becomes the month view: month switcher, mood strip (dashed for no entry, ringed for today), entry list with day, weekday, highlight, weather, place and word count
-    - **Meeting**: [ ] kicker and sans title; details table (When with length, Where with the link, Who as chips with + Add); section headings drawn as small labels; "What happens next" box where each to-do's owner chip suggests the attendees first
+      - [x] Entry head: ← previous / next → entry (next is disabled past today), 日記 mark, weekday, big date, year, optional day title, mood / weather / place row, "The day in a sentence"; warmer ruled paper and a serif body
+      - [x] The Journal page (`journal`) becomes the month view: month switcher, mood strip (dashed for no entry, ringed for today), entry list with day, weekday, highlight, weather, place and word count
+    - **Meeting**: [x] kicker and sans title; details table (When with length, Where with the link, Who as chips with + Add); section headings drawn as small labels; "What happens next" box where each to-do's owner chip suggests the attendees first
     - **Study**:
-      - [ ] Head: mono kicker with the subject, source chip with link, "Revisit <date>", New / Shaky / Solid. Picking a confidence records a revisit and proposes the next date (new +1 day, shaky +4, solid +14), which you can change
-      - [ ] The first callout stays pinned at the top while scrolling; the "On this page" rail lists the headings (desktop) and becomes an "On this page" button on phones; a Revisits box under it
+      - [x] Head: mono kicker with the subject, source chip with link, "Revisit <date>", New / Shaky / Solid. Picking a confidence records a revisit and proposes the next date (new +1 day, shaky +4, solid +14), which you can change
+      - [x] The first callout stays pinned at the top while scrolling; the "On this page" rail lists the headings (desktop) and becomes an "On this page" button on phones; a Revisits box under it
     - **Today**:
-      - [ ] The daily note uses the journal's date-led head and paper (今日 · Today, weekday)
-      - [ ] Feeds: Still to do sorted overdue, today, dated, then undated (extends `StillToDo.tsx`, reading `due` from the to-do props and the list's due date); To revisit (study notes with `revisitOn` today or earlier); Pinned (quick notes)
+      - [x] The daily note uses the journal's date-led head and paper (今日 · Today, weekday)
+      - [x] Feeds: Still to do sorted overdue, today, dated, then undated (extends `StillToDo.tsx`, reading `due` from the to-do props and the list's due date); To revisit (study notes with `revisitOn` today or earlier); Pinned (quick notes)
     - **Find and change**:
-      - [ ] Sidebar rows show their type's glyph; folders keep folder icons (this also closes the folder-icon item in phase 14)
-      - [ ] Switcher: type chips (All, Quick notes, Pages, Checklists, Journal, Meetings, Studies), Tab moves to the next type, the footer counts matches of that type
-      - [ ] More menu (desktop and phone, `Shell.tsx`): "Change type" submenu with a tick on the current type, Journal greyed out, Quick note marked "Moves to the Quick notes wall", and the line "Your writing stays exactly as it is…"
+      - [x] Sidebar rows show their type's glyph; folders keep folder icons (this also closes the folder-icon item in phase 14)
+      - [x] Switcher: type chips (All, Quick notes, Pages, Checklists, Journal, Meetings, Studies), Tab moves to the next type, the footer counts matches of that type
+      - [x] More menu (desktop and phone, `Shell.tsx`): "Change type" submenu with a tick on the current type, Journal greyed out, Quick note marked "Moves to the Quick notes wall", and the line "Your writing stays exactly as it is…"
     - **Checks**:
-      - [ ] `bun test`, `bun run typecheck`, `bun run lint`
-      - [ ] Browser check against every board in light, dark and at 375 px: make each type; fill every field; switch a meeting to a study and back (fields return, content untouched); pin, tint and quick-add on the wall; a due to-do, a study due for revisit and a pinned card appear on Today; journal prev/next and the mood strip; switcher filter; sidebar glyphs; an old note made before this phase opens unchanged
-      - [ ] `bun run test:e2e`: a mood change, an attendee added and a type change reach the second device
-      - [ ] Update this file and the "Built so far" line in `CLAUDE.md`
+      - [x] `bun test`, `bun run typecheck`, `bun run lint`
+      - [x] Browser check against every board in light, dark and at 375 px: make each type; fill every field; switch a meeting to a study and back (fields return, content untouched); pin, tint and quick-add on the wall; a due to-do, a study due for revisit and a pinned card appear on Today; journal prev/next and the mood strip; switcher filter; sidebar glyphs; an old note made before this phase opens unchanged
+      - [x] `bun run test:e2e`: a mood change, an attendee added and a type change reach the second device
+      - [x] Update this file and the "Built so far" line in `CLAUDE.md`
 14. **Mockup gaps on existing screens**
     - [x] Phone header (Phone-Light): menu icon, parent breadcrumb, sync status and a More menu with Version history, Share, Export and Trash (done 2026-11-19; checked at 375 px in the browser pane; the Logo and wordmark left the phone header, as on the board)
-    - [ ] Sidebar: open/closed folder icons for parents, page icon for leaves, instead of the chevron
-    - [ ] Slash menu (Blocks): one "Blocks" group in the board's order (Text, Heading, To-do list, Bulleted list, Toggle, Quote, Code, Math, Table, Callout), Markdown hints, footer "Type to filter · ↑ ↓ move · Enter insert · Esc close"; other blocks still found by typing
-    - [ ] Switcher: "N of M matches"; "Ctrl Enter open beside" needs split view (decision: build it or drop the hint)
-    - [ ] Quick capture: "Add to Today ▾" becomes a real picker (Today / new note / a page), shared with Settings → "Add captures to"
-    - [ ] Import progress: "N images saved" copy
-    - [ ] Desktop: frameless main window with the board's minimise / maximise / close and a drag region (macOS keeps traffic lights)
-    - [ ] Ctrl+Shift+F opens a "search all pages" mode, not the same view as Ctrl+K
-    - [ ] Check and document that Ctrl+N and Ctrl+Shift+T only work in the desktop app and the PWA (browsers take them in a tab)
+    - [x] Sidebar: open/closed folder icons for parents, page icon for leaves, instead of the chevron
+    - [x] Slash menu (Blocks): one "Blocks" group in the board's order (Text, Heading, To-do list, Bulleted list, Toggle, Quote, Code, Math, Table, Callout), Markdown hints, footer "Type to filter · ↑ ↓ move · Enter insert · Esc close"; other blocks still found by typing
+    - [x] Switcher: "N of M matches"; "Ctrl Enter open beside" needs split view (decision: build it or drop the hint) Decision: the "Ctrl Enter open beside" hint is dropped (there is no split view); the footer reads "N of M matches".
+    - [x] Quick capture: "Add to Today ▾" becomes a real picker (Today / new note / a page), shared with Settings → "Add captures to"
+    - [x] Import progress: "N images saved" copy
+    - [x] Desktop: frameless main window with the board's minimise / maximise / close and a drag region (macOS keeps traffic lights). Built as `decorations: false` plus `tauri.macos.conf.json` (overlay title bar), `WindowControls` and `data-tauri-drag-region`; `cargo check` passes, but the window was not launched or tried on Windows, macOS or Linux here.
+    - [x] Ctrl+Shift+F opens a "search all pages" mode, not the same view as Ctrl+K
+    - [x] Check and document that Ctrl+N and Ctrl+Shift+T only work in the desktop app and the PWA (browsers take them in a tab)
 15. **Settings rows that only need the device**
     - [ ] Workspace name: in the index doc (synced, sealed), shown in the sidebar and on shared pages
     - [ ] Open on start: Home, Today or the last page (`LAST_NOTE_KEY`)

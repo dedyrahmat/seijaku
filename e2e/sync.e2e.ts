@@ -117,3 +117,55 @@ test("a journal entry and a bulk move to trash reach the other device", async ({
 			timeout: 20_000,
 		});
 });
+
+test("a mood, an attendee and a change of type reach the other device", async ({
+	browser,
+}) => {
+	const a = await (await browser.newContext()).newPage();
+	const phrase = await newAccount(a);
+
+	// A meeting with one attendee, then (so it is not saved inside Journal) a journal entry with a mood.
+	await a.getByRole("button", { name: "New page" }).first().click();
+	await a.keyboard.press("5");
+	await a.getByRole("button", { name: "Create meeting notes" }).click();
+	await a.locator("[data-title]").fill("Weekly sync");
+	await a.getByLabel("Add a person").fill("Aiko");
+	await a.getByLabel("Add a person").press("Enter");
+
+	await a.getByRole("button", { name: "New page" }).first().click();
+	await a.keyboard.press("4");
+	await a.getByRole("button", { name: "Create journal entry" }).click();
+	await a.getByRole("button", { name: "Good", exact: true }).click();
+
+	const b = await (await browser.newContext()).newPage();
+	await signIn(b, phrase);
+	await b
+		.getByRole("link", { name: "Weekly sync", exact: true })
+		.first()
+		.click();
+	await expect(b.getByText("Aiko", { exact: true })).toBeVisible({
+		timeout: 20_000,
+	});
+	// Today's journal entry has a fixed id, so B can open it by address.
+	const day = await b.evaluate(() => {
+		const d = new Date();
+		return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+	});
+	await b.goto(`/page/Entry-journal-${day}`);
+	await expect(
+		b.getByRole("button", { name: "Good", pressed: true }),
+	).toBeVisible({ timeout: 20_000 });
+
+	// Change the meeting into a study note on A; B sees the study head.
+	await a
+		.getByRole("link", { name: "Weekly sync", exact: true })
+		.first()
+		.click();
+	await a.getByRole("button", { name: "More" }).first().click();
+	await a.getByRole("menuitemradio", { name: "Study note" }).click();
+	await b
+		.getByRole("link", { name: "Weekly sync", exact: true })
+		.first()
+		.click();
+	await expect(b.getByLabel("Subject")).toBeVisible({ timeout: 20_000 });
+});

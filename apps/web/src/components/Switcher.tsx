@@ -2,6 +2,7 @@ import {
 	createNote,
 	dailyTitle,
 	isDailyNoteId,
+	type NoteKind,
 	type NoteMeta,
 	searchNotes,
 } from "@seijaku/sync";
@@ -9,7 +10,9 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNotes } from "../workspace/hooks";
 import { workspace } from "../workspace/store";
-import { pageLink } from "./pageLink";
+import { Icon } from "./Icon";
+import { KindGlyph, NOTE_TYPES } from "./noteKinds";
+import { pageLink, quickLink } from "./pageLink";
 
 /** Body text per note, kept for the session and refreshed when a note's edit time changes. */
 const textCache = new Map<string, { stamp: number; text: string }>();
@@ -46,38 +49,53 @@ function where(note: NoteMeta, notes: NoteMeta[]): string {
 export function Switcher({
 	open,
 	initialQuery,
+	mode,
 	onClose,
 }: {
 	open: boolean;
 	initialQuery: string;
+	/** "jump" (Ctrl+K): recent pages and "create". "search" (Ctrl+Shift+F): the text of every page. */
+	mode: "jump" | "search";
 	onClose: () => void;
 }) {
 	if (!open) return null;
-	return <SwitcherDialog initialQuery={initialQuery} onClose={onClose} />;
+	return (
+		<SwitcherDialog initialQuery={initialQuery} mode={mode} onClose={onClose} />
+	);
 }
 
 function SwitcherDialog({
 	initialQuery,
+	mode,
 	onClose,
 }: {
 	initialQuery: string;
+	mode: "jump" | "search";
 	onClose: () => void;
 }) {
+	const searching = mode === "search";
 	const notes = useNotes();
 	const navigate = useNavigate();
 	const { version, textOf } = useNoteTexts(notes, true);
 	const [query, setQuery] = useState(initialQuery);
 	const [cursor, setCursor] = useState(0);
+	const [only, setOnly] = useState<NoteKind | null>(null);
 	const input = useRef<HTMLInputElement>(null);
 	const list = useRef<HTMLDivElement>(null);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: version marks new body text arriving in the cache
-	const hits = useMemo(
+	const found = useMemo(
 		() => searchNotes(notes, textOf, query),
 		[notes, query, version],
 	);
 	const trimmed = query.trim();
-	const canCreate = trimmed !== "" && !trimmed.startsWith("#");
+	// Search-all shows nothing until something is typed; jump shows recent pages.
+	const shown = searching && !trimmed ? [] : found;
+	const hits = useMemo(
+		() => (only ? shown.filter((h) => h.note.kind === only) : shown),
+		[shown, only],
+	);
+	const canCreate = !searching && trimmed !== "" && !trimmed.startsWith("#");
 	const rowCount = hits.length + (canCreate ? 1 : 0);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: restart at the top whenever the query changes
@@ -94,7 +112,9 @@ function SwitcherDialog({
 	}, [cursor]);
 
 	const openNote = (n: NoteMeta) => {
-		void navigate(pageLink(n.id, n.title));
+		void navigate(
+			n.kind === "quick" ? quickLink(n.id, n.title) : pageLink(n.id, n.title),
+		);
 		onClose();
 	};
 	const create = () => {
@@ -112,6 +132,10 @@ function SwitcherDialog({
 		if (e.key === "Escape") {
 			e.preventDefault();
 			onClose();
+		} else if (e.key === "Tab") {
+			e.preventDefault();
+			const ids = [null, ...NOTE_TYPES.map((t) => t.id)];
+			setOnly(ids[(ids.indexOf(only) + 1) % ids.length] ?? null);
 		} else if (e.key === "ArrowDown") {
 			e.preventDefault();
 			setCursor((c) => (rowCount ? (c + 1) % rowCount : 0));
@@ -140,31 +164,20 @@ function SwitcherDialog({
 			<div
 				role="dialog"
 				aria-modal="true"
-				aria-label="Search and jump"
+				aria-label={searching ? "Search all pages" : "Search and jump"}
 				onKeyDown={onKeyDown}
 				className="absolute inset-x-3 top-[max(12px,env(safe-area-inset-top))] mx-auto flex max-h-[calc(100dvh-24px)] max-w-[640px] flex-col overflow-hidden rounded-2xl border border-line bg-raised shadow-[0_24px_60px_rgba(40,30,15,0.22),0_2px_8px_rgba(40,30,15,0.1)] md:top-[112px] md:max-h-[calc(100dvh-160px)]"
 			>
 				<div className="flex h-[60px] flex-none items-center gap-3 border-b border-line2 px-[18px]">
-					<svg
-						width="18"
-						height="18"
-						viewBox="0 0 16 16"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="1.4"
-						strokeLinecap="round"
-						className="text-ink2"
-						aria-hidden="true"
-					>
-						<circle cx="7" cy="7" r="4.5" />
-						<path d="M10.5 10.5L14 14" />
-					</svg>
+					<Icon name="search" size={18} className="text-ink2" />
 					<input
 						ref={input}
 						value={query}
 						onChange={(e) => setQuery(e.target.value)}
 						aria-label="Search"
-						placeholder="Search or jump to"
+						placeholder={
+							searching ? "Search the text of every page" : "Search or jump to"
+						}
 						autoComplete="off"
 						spellCheck={false}
 						className="min-w-0 flex-1 bg-transparent text-lg text-ink outline-none placeholder:text-mute"
@@ -174,16 +187,42 @@ function SwitcherDialog({
 					</kbd>
 				</div>
 
+				{/* biome-ignore lint/a11y/useSemanticElements: a row of filter chips, not a form group */}
+				<div
+					className="flex flex-none gap-1.5 overflow-x-auto border-b border-line2 px-[18px] py-2"
+					role="group"
+					aria-label="Filter by type"
+				>
+					{[
+						{ id: null, short: "All" },
+						...NOTE_TYPES.map((t) => ({ id: t.id, short: t.name })),
+					].map((c) => (
+						<button
+							key={c.id ?? "all"}
+							type="button"
+							aria-pressed={only === c.id}
+							onClick={() => setOnly(c.id)}
+							className={`flex-none rounded-full border px-2.5 py-0.5 text-xs ${only === c.id ? "border-accent bg-accent-soft text-accent" : "border-line text-ink2 hover:bg-hover"}`}
+						>
+							{c.short}
+						</button>
+					))}
+				</div>
+
 				<div
 					ref={list}
 					className="min-h-0 flex-1 overflow-y-auto px-2 pt-2.5 pb-1.5"
 				>
 					<div className="px-3 py-1.5 text-[11px] font-medium tracking-[0.09em] text-mute uppercase">
-						{trimmed ? "Notes" : "Recent"}
+						{searching ? "Matches in your pages" : trimmed ? "Notes" : "Recent"}
 					</div>
 					{hits.length === 0 ? (
 						<p className="px-3 py-2 text-sm text-mute">
-							{trimmed ? "Nothing matches yet." : "No pages yet."}
+							{searching && !trimmed
+								? "Type to search inside every page."
+								: trimmed
+									? "Nothing matches yet."
+									: "No pages yet."}
 						</p>
 					) : (
 						hits.map((hit, i) => (
@@ -196,7 +235,12 @@ function SwitcherDialog({
 								onClick={() => openNote(hit.note)}
 								className={`flex w-full flex-col gap-[3px] rounded-2xl px-3 py-2.5 text-left ${i === cursor ? "bg-hover" : ""}`}
 							>
-								<span className="flex items-baseline gap-2.5">
+								<span className="flex items-center gap-2.5">
+									<KindGlyph
+										kind={hit.note.kind}
+										size={14}
+										className="shrink-0 text-mute"
+									/>
 									<span className="truncate text-[15px] font-medium text-ink">
 										{label(hit.note)}
 									</span>
@@ -230,19 +274,7 @@ function SwitcherDialog({
 								onClick={create}
 								className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm ${cursor === hits.length ? "bg-hover" : ""}`}
 							>
-								<svg
-									width="16"
-									height="16"
-									viewBox="0 0 16 16"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="1.4"
-									strokeLinecap="round"
-									className="text-ink2"
-									aria-hidden="true"
-								>
-									<path d="M8 3v10M3 8h10" />
-								</svg>
+								<Icon name="plus" size={16} className="text-ink2" />
 								<span className="truncate">
 									Create a page called “{trimmed}”
 								</span>
@@ -253,10 +285,11 @@ function SwitcherDialog({
 
 				<div className="flex flex-none gap-[18px] border-t border-line2 px-[18px] py-2.5 text-xs text-mute">
 					<span>↑ ↓ move</span>
+					<span>Tab type</span>
 					<span>Enter open</span>
 					<span className="ml-auto">
 						{trimmed
-							? `${hits.length} ${hits.length === 1 ? "match" : "matches"} · searched on this device`
+							? `${hits.length} of ${shown.length} ${shown.length === 1 ? "match" : "matches"}${only ? ` · ${NOTE_TYPES.find((t) => t.id === only)?.name ?? ""}` : ""} · searched on this device`
 							: "searched on this device"}
 					</span>
 				</div>

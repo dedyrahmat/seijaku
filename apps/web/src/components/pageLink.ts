@@ -4,3 +4,11 @@ import { pageSlug } from "@seijaku/sync";
 export function pageLink(id: string, title: string) {
 	return { to: "/page/$slug", params: { slug: pageSlug(title, id) } } as const;
 }
+
+/** Link target for a quick note's card on the wall. */
+export function quickLink(id: string, title: string) {
+	return {
+		to: "/quick-notes/$slug",
+		params: { slug: pageSlug(title, id) },
+	} as const;
+}

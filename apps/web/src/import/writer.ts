@@ -26,6 +26,8 @@ export interface NoteResult {
 	detail: string;
 	/** Files that were saved with this note. */
 	files: number;
+	/** Of those, the pictures. */
+	images: number;
 }
 
 export interface WriteOptions {
@@ -214,6 +216,9 @@ export async function writeNotes(
 					state: warn ? "warn" : "done",
 					detail: warn ? note.warnings.join("; ") : bits.join(" · "),
 					files: placed,
+					images: Object.values(note.files).filter(
+						(f) => isImage(f.type) && uploads.get(f),
+					).length,
 				},
 				done,
 				total,
@@ -226,7 +231,7 @@ export async function writeNotes(
 				err instanceof Error ? err.message : "Could not be imported";
 			skipped.push({ source: note.source, reason });
 			opts.onResult?.(
-				{ note, state: "warn", detail: reason, files: 0 },
+				{ note, state: "warn", detail: reason, files: 0, images: 0 },
 				done,
 				total,
 			);

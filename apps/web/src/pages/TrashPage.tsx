@@ -6,7 +6,9 @@ import {
 	restoreNote,
 	withoutDescendants,
 } from "@seijaku/sync";
+
 import { useEffect, useState } from "react";
+import { Icon } from "../components/Icon";
 import { SelectBox } from "../components/SelectBox";
 import { useSelection } from "../components/useSelection";
 import { useNotes } from "../workspace/hooks";
@@ -127,25 +129,25 @@ export function TrashPage() {
 						<button
 							type="button"
 							onClick={() => sel.setAll(order)}
-							className="h-11 shrink-0 rounded-2xl border border-line px-4 text-[13px] font-medium text-ink hover:bg-hover md:h-9"
+							className="flex h-11 items-center gap-1.5 shrink-0 rounded-2xl border border-line px-4 text-[13px] font-medium text-ink hover:bg-hover md:h-9"
 						>
-							Select all
+							<Icon name="check" size={14} /> Select all
 						</button>
 					) : (
 						<div className="flex shrink-0 gap-2">
 							<button
 								type="button"
 								onClick={() => sel.start()}
-								className="h-11 rounded-2xl border border-line px-4 text-[13px] font-medium text-ink hover:bg-hover md:h-9"
+								className="flex h-11 items-center gap-1.5 rounded-2xl border border-line px-4 text-[13px] font-medium text-ink hover:bg-hover md:h-9"
 							>
-								Select
+								<Icon name="check" size={14} /> Select
 							</button>
 							<button
 								type="button"
 								onClick={empty}
-								className="h-11 rounded-2xl border border-line px-4 text-[13px] font-medium text-accent hover:bg-hover md:h-9"
+								className="flex h-11 items-center gap-1.5 rounded-2xl border border-line px-4 text-[13px] font-medium text-accent hover:bg-hover md:h-9"
 							>
-								Empty trash
+								<Icon name="trash" size={14} /> Empty trash
 							</button>
 						</div>
 					)
@@ -199,16 +201,16 @@ export function TrashPage() {
 										<button
 											type="button"
 											onClick={() => restoreNote(workspace.index, n.id)}
-											className="h-11 rounded-2xl border border-line px-3.5 text-[13px] text-ink hover:bg-hover md:h-[34px]"
+											className="flex h-11 items-center gap-1.5 rounded-2xl border border-line px-3.5 text-[13px] text-ink hover:bg-hover md:h-[34px]"
 										>
-											Restore
+											<Icon name="history" size={14} /> Restore
 										</button>
 										<button
 											type="button"
 											onClick={() => forever(n, subs)}
-											className="h-11 rounded-2xl px-2.5 text-[13px] text-accent hover:bg-hover md:h-[34px]"
+											className="flex h-11 items-center gap-1.5 rounded-2xl px-2.5 text-[13px] text-accent hover:bg-hover md:h-[34px]"
 										>
-											Delete forever
+											<Icon name="trash" size={14} /> Delete forever
 										</button>
 									</div>
 								)}

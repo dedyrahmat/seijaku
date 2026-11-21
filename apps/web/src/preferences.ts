@@ -26,6 +26,8 @@ export interface Prefs {
 	historyFor: "30 days" | "90 days" | "Forever";
 	lockAfter: "5 minutes" | "15 minutes" | "Never";
 	pasteStyle: "Match page style" | "Plain text";
+	/** "today", "new" (a quick note) or "page:<id>". */
+	captureTo: string;
 }
 
 export const DEFAULTS: Prefs = {
@@ -52,6 +54,7 @@ export const DEFAULTS: Prefs = {
 	historyFor: "90 days",
 	lockAfter: "15 minutes",
 	pasteStyle: "Match page style",
+	captureTo: "today",
 };
 
 function readLocal(key: string): string | null {

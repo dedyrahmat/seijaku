@@ -7,7 +7,7 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { workspace } from "../workspace/store";
-import { pageLink } from "./pageLink";
+import { pageLink, quickLink } from "./pageLink";
 
 /**
  * Returns a function that creates a note (a plain page unless a `kind` is given, optionally under
@@ -34,7 +34,7 @@ export function useNewPage(): (
 				const { applyTemplate } = await import("../editor/templates");
 				await applyTemplate(id, kind);
 			}
-			void navigate(pageLink(id, ""));
+			void navigate(kind === "quick" ? quickLink(id, "") : pageLink(id, ""));
 			return id;
 		},
 		[navigate],

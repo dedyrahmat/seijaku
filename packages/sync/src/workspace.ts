@@ -36,9 +36,14 @@ export interface NoteMeta {
 	trashedAt: number | null;
 	/** Set while the page is shared to the web: the link's token and the key in its #fragment. */
 	share: ShareInfo | null;
+	/** Per-type details (mood, due date, attendees...). Kept per kind, so switching type loses nothing. */
+	fields: NoteFields;
 	createdAt: number;
 	updatedAt: number;
 }
+
+/** One bag of values per kind; lists (attendees, revisits) are arrays. */
+export type NoteFields = Partial<Record<NoteKind, Record<string, unknown>>>;
 
 export interface ShareInfo {
 	token: string;
@@ -79,6 +84,7 @@ function readNote(id: string, m: NoteMap): NoteMeta {
 		trashed: (m.get("trashed") as boolean | undefined) ?? false,
 		trashedAt: (m.get("trashedAt") as number | undefined) ?? null,
 		share: (m.get("share") as ShareInfo | undefined) ?? null,
+		fields: readFields(m),
 		createdAt: (m.get("createdAt") as number | undefined) ?? 0,
 		updatedAt: (m.get("updatedAt") as number | undefined) ?? 0,
 	};
@@ -166,6 +172,118 @@ export function updateNote(
 		}
 		m.set("updatedAt", now);
 	});
+}
+
+/**
+ * Changes what a note is. Journal entries and daily notes keep their kind (their ids carry the
+ * date), nothing becomes a journal entry, and a note with pages inside stays out of the quick-notes
+ * wall. Returns false when refused. The old kind's fields stay, so changing back restores them.
+ */
+export function changeKind(
+	doc: Y.Doc,
+	id: string,
+	kind: NoteKind,
+	now = Date.now(),
+): boolean {
+	const m = notesMap(doc).get(id);
+	if (!m) return false;
+	const current = readNote(id, m);
+	if (isDailyNoteId(id) || current.kind === "journal" || kind === "journal")
+		return false;
+	if (
+		kind === "quick" &&
+		listNotes(doc).some((n) => n.parentId === id && !n.trashed)
+	)
+		return false;
+	doc.transact(() => {
+		if (kind === "page") m.delete("kind");
+		else m.set("kind", kind);
+		m.set("updatedAt", now);
+	});
+	return true;
+}
+
+/*
+ * Fields are flat keys on the note's map ("f.meeting.place"; list items "f.meeting.attendees#<id>"),
+ * never nested maps: two devices writing the first field at once would each create the container
+ * and one would lose. Flat keys merge per field.
+ */
+const FIELD = "f.";
+
+function readFields(m: NoteMap): NoteFields {
+	const out: NoteFields = {};
+	const lists = new Map<string, [string, unknown][]>();
+	m.forEach((value, key) => {
+		if (!key.startsWith(FIELD)) return;
+		const [, kind, rest] = key.split(".", 3) as [string, NoteKind, string];
+		if (!rest) return;
+		const bag = out[kind] ?? {};
+		out[kind] = bag;
+		const hash = rest.indexOf("#");
+		if (hash < 0) bag[rest] = value;
+		else {
+			const id = `${kind}.${rest.slice(0, hash)}`;
+			const list = lists.get(id) ?? [];
+			list.push([rest.slice(hash + 1), value]);
+			lists.set(id, list);
+		}
+	});
+	for (const [id, list] of lists) {
+		const dot = id.indexOf(".");
+		const kind = id.slice(0, dot) as NoteKind;
+		const bag = out[kind] ?? {};
+		out[kind] = bag;
+		bag[id.slice(dot + 1)] = list
+			.sort((a, b) => (a[0] < b[0] ? -1 : 1))
+			.map(([, v]) => v);
+	}
+	return out;
+}
+
+/** Writes one field of one kind (null or "" clears it). Concurrent edits to different fields merge. */
+export function setField(
+	doc: Y.Doc,
+	id: string,
+	kind: NoteKind,
+	key: string,
+	value: string | number | boolean | null,
+): void {
+	const m = notesMap(doc).get(id);
+	if (!m) return;
+	const name = `${FIELD}${kind}.${key}`;
+	if (value === null || value === "") m.delete(name);
+	else m.set(name, value);
+}
+
+/** Adds to a list field (meeting attendees, study revisits) so two devices adding both keep theirs. */
+export function addToField(
+	doc: Y.Doc,
+	id: string,
+	kind: NoteKind,
+	key: string,
+	item: unknown,
+): void {
+	const stamp = `${Date.now().toString(36).padStart(9, "0")}${newId().slice(0, 6)}`;
+	notesMap(doc).get(id)?.set(`${FIELD}${kind}.${key}#${stamp}`, item);
+}
+
+/** Removes the first list entry equal to `item` (compared as JSON). */
+export function removeFromField(
+	doc: Y.Doc,
+	id: string,
+	kind: NoteKind,
+	key: string,
+	item: unknown,
+): void {
+	const m = notesMap(doc).get(id);
+	if (!m) return;
+	const prefix = `${FIELD}${kind}.${key}#`;
+	const want = JSON.stringify(item);
+	const hit = [...m.keys()]
+		.filter((k) => k.startsWith(prefix))
+		.sort()
+		.find((k) => JSON.stringify(m.get(k)) === want);
+	if (hit) m.delete(hit);
 }
 
 /** Bump `updatedAt` after a content edit. */

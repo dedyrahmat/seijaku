@@ -440,3 +440,292 @@ body {
 :root:root .seijaku-linkcard__card span {
 	text-decoration: none;
 }
+
+/* Note type tints (Keep wall cards, page covers): washi, kaki, matcha, ai, sakura, kuchiba. */
+:root {
+	--tint-washi: #f3ecdb;
+	--tint-kaki: #f4dcc2;
+	--tint-matcha: #dfe6cd;
+	--tint-ai: #d8e0ec;
+	--tint-sakura: #f3d9d9;
+	--tint-kuchiba: #e8d8bf;
+	--journal-paper: #faf3e2;
+}
+:root[data-theme="dark"] {
+	--tint-washi: #2a261e;
+	--tint-kaki: #3a2c1f;
+	--tint-matcha: #2a3024;
+	--tint-ai: #232a36;
+	--tint-sakura: #382426;
+	--tint-kuchiba: #33291d;
+	--journal-paper: #1f1b15;
+}
+
+/* Each note type has its own surface and type scale. */
+article[data-kind="checklist"] [data-title],
+article[data-kind="meeting"] [data-title] {
+	font-family: var(--font-sans);
+	font-weight: 600;
+	letter-spacing: -0.01em;
+	font-size: 34px;
+	line-height: 1.15;
+}
+article[data-kind="journal"],
+article[data-kind="today"] {
+	background: var(--journal-paper);
+	border-radius: 16px;
+	padding-inline: clamp(20px, 5vw, 48px);
+}
+article[data-kind="journal"] .bn-editor,
+article[data-kind="today"] .bn-editor {
+	font-family: var(--font-serif);
+}
+article[data-kind="study"] {
+	max-width: min(100%, 860px);
+}
+article[data-hide-done]
+	[data-content-type="checkListItem"][data-checked="true"] {
+	display: none;
+}
+
+.feed-row {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 6px 0;
+	font-size: 14px;
+	color: var(--ink2);
+}
+.feed-row:hover {
+	color: var(--ink);
+}
+
+/* To-do chips: due date, High, owner. The "Details" button shows on hover or focus. */
+.seijaku-todochips {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-inline-start: 10px;
+	font-family: var(--font-sans);
+	font-size: 11px;
+	white-space: nowrap;
+}
+.seijaku-todochip {
+	padding: 1px 8px;
+	border-radius: 999px;
+	background: var(--tag);
+	color: var(--ink2);
+}
+.seijaku-todochip--hot {
+	background: color-mix(in srgb, var(--accent) 14%, var(--paper));
+	color: var(--accent);
+}
+.seijaku-todochips__edit {
+	padding: 1px 6px;
+	border-radius: 999px;
+	color: var(--mute);
+	opacity: 0;
+}
+[data-content-type="checkListItem"]:hover .seijaku-todochips__edit,
+.seijaku-todochips__edit:focus-visible {
+	opacity: 1;
+}
+@media (hover: none) {
+	.seijaku-todochips__edit {
+		opacity: 1;
+	}
+}
+/* The text takes the free space (so a click beside it still lands in it); chips sit after it. */
+[data-content-type="checkListItem"] > p {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+.seijaku-todochips {
+	flex: none;
+}
+.seijaku-todopop {
+	position: fixed;
+	z-index: 60;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	width: min(340px, calc(100vw - 16px));
+	padding: 12px;
+	border: 1px solid var(--line);
+	border-radius: 16px;
+	background: var(--raised);
+	box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
+	font: 13px var(--font-sans);
+	color: var(--ink);
+}
+.seijaku-todopop__row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+.seijaku-todopop__row > span {
+	width: 56px;
+	color: var(--mute);
+}
+.seijaku-todopop button,
+.seijaku-todopop input {
+	min-height: 28px;
+	padding: 2px 10px;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	background: transparent;
+	color: inherit;
+}
+.seijaku-todopop button:hover {
+	background: var(--hover);
+}
+.seijaku-todopop button[aria-pressed="true"] {
+	border-color: var(--accent);
+	background: color-mix(in srgb, var(--accent) 12%, var(--paper));
+	color: var(--accent);
+}
+
+/* Journal: ruled paper behind the writing. */
+article[data-kind="journal"] .bn-editor,
+article[data-kind="today"] .bn-editor {
+	background-image: repeating-linear-gradient(
+		to bottom,
+		transparent 0,
+		transparent 31px,
+		color-mix(in srgb, var(--ink) 10%, transparent) 31px,
+		color-mix(in srgb, var(--ink) 10%, transparent) 32px
+	);
+	background-position: 0 14px;
+}
+
+/* Study: the first callout stays in view while the note scrolls. */
+article[data-kind="study"]
+	.bn-editor
+	> .bn-block-group
+	> .bn-block-outer:first-child:has([data-content-type="callout"]) {
+	position: sticky;
+	top: 0;
+	z-index: 5;
+	background: var(--paper);
+	box-shadow: 0 6px 8px -6px rgb(0 0 0 / 0.15);
+}
+
+/* Slash menu footer, as on the Blocks board. */
+.bn-suggestion-menu::after {
+	content: "Type to filter · ↑ ↓ move · Enter insert · Esc close";
+	position: sticky;
+	bottom: 0;
+	display: block;
+	padding: 8px 12px;
+	border-top: 1px solid var(--line);
+	background: var(--raised);
+	color: var(--mute);
+	font-size: 11px;
+}
+
+/* The empty-line hint is a flex item of the row; pin it beside the checkbox now the text fills the row. */
+[data-content-type="checkListItem"] {
+	position: relative;
+}
+[data-content-type="checkListItem"]::after {
+	position: absolute;
+	left: 30px;
+}
+
+/* ---------- Form controls: one quiet look for checkboxes, radios, dates and times ---------- */
+input[type="checkbox"],
+input[type="radio"] {
+	appearance: none;
+	flex: none;
+	width: 18px;
+	height: 18px;
+	margin: 0;
+	border: 1.5px solid var(--mute);
+	border-radius: 6px;
+	background: transparent center / 12px no-repeat;
+	cursor: pointer;
+	transition:
+		background-color 0.12s,
+		border-color 0.12s,
+		box-shadow 0.12s;
+}
+input[type="radio"] {
+	border-radius: 50%;
+}
+input[type="checkbox"]:hover:not(:disabled),
+input[type="radio"]:hover:not(:disabled) {
+	border-color: var(--ink2);
+}
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+	border-color: var(--accent);
+	background-color: var(--accent);
+}
+input[type="checkbox"]:checked {
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 6.4l2.4 2.4 4.6-5.2'/%3E%3C/svg%3E");
+}
+input[type="radio"]:checked {
+	background-image: radial-gradient(circle, white 32%, transparent 36%);
+	background-size: 100%;
+}
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible,
+input[type="date"]:focus-visible,
+input[type="time"]:focus-visible {
+	outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+	outline-offset: 2px;
+}
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled {
+	opacity: 0.45;
+	cursor: default;
+}
+/* A ticked to-do reads as finished: the box turns ink rather than shouting in red. */
+.bn-block-content[data-content-type="checkListItem"]
+	input[type="checkbox"]:checked {
+	border-color: var(--ink2);
+	background-color: var(--ink2);
+}
+
+input[type="date"],
+input[type="time"] {
+	min-height: 28px;
+	padding: 2px 8px;
+	border-radius: 10px;
+	font-family: inherit;
+	transition: background-color 0.12s;
+}
+input[type="date"]:hover,
+input[type="time"]:hover {
+	background-color: var(--hover);
+}
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+	padding: 3px;
+	border-radius: 6px;
+	opacity: 0.55;
+	cursor: pointer;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+	opacity: 1;
+	background-color: var(--hover);
+}
+input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+	padding: 0;
+}
+input::selection {
+	background: var(--accent-soft);
+}
+
+/* BlockNote sizes its own boxes; keep ours square. */
+:root:root input[type="checkbox"],
+:root:root input[type="radio"] {
+	width: 18px;
+	height: 18px;
+	min-width: 18px;
+	min-height: 18px;
+	max-height: 18px;
+	align-self: center;
+}

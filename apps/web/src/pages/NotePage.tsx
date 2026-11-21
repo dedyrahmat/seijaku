@@ -1,32 +1,36 @@
 import {
 	isDailyNoteId,
+	JOURNAL_ID,
 	pageSlug,
 	restoreNote,
 	updateNote,
 } from "@seijaku/sync";
-import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { Link, Navigate, useNavigate, useParams } from "@tanstack/react-router";
+import {
+	lazy,
+	Suspense,
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from "react";
+import {
+	ChecklistHead,
+	JournalHead,
+	JournalMonth,
+	MeetingHead,
+	PageHead,
+	StudyHead,
+	StudyRail,
+	TodayHead,
+} from "../components/heads";
 import { NoteMetaRow } from "../components/NoteMetaRow";
-import { pageLink } from "../components/pageLink";
+import { pageLink, quickLink } from "../components/pageLink";
+import { TodayFeeds } from "../components/TodayFeeds";
 
 const Editor = lazy(() =>
 	import("../editor/Editor").then((m) => ({ default: m.Editor })),
 );
-// Reads note content through the editor's converters, so it loads on demand like the editor.
-const StillToDo = lazy(() =>
-	import("../components/StillToDo").then((m) => ({ default: m.StillToDo })),
-);
-
-/** A quick note has no title field of its own: its first line names it once you leave. */
-async function nameFromFirstLine(id: string) {
-	const note = workspace.getNotes().find((n) => n.id === id);
-	if (!note || note.trashed || note.title !== "") return;
-	const first = (await workspace.readText(id))
-		.split("\n")
-		.find((line) => line.trim());
-	if (first)
-		updateNote(workspace.index, id, { title: first.trim().slice(0, 80) });
-}
 
 import {
 	useNoteId,
@@ -41,7 +45,8 @@ export function NotePage() {
 	const noteId = useNoteId() ?? "";
 	const { slug } = useParams({ strict: false }) as { slug?: string };
 	const navigate = useNavigate();
-	const note = useNotes().find((n) => n.id === noteId);
+	const notes = useNotes();
+	const note = notes.find((n) => n.id === noteId);
 	const session = useNoteSession(noteId);
 	const focusEditor = useRef<(() => void) | null>(null);
 
@@ -52,12 +57,6 @@ export function NotePage() {
 	useEffect(() => {
 		if (note && !note.trashed) writeLocal(LAST_NOTE_KEY, noteId);
 	}, [note, noteId]);
-
-	const isQuick = note?.kind === "quick";
-	useEffect(() => {
-		if (!isQuick) return;
-		return () => void nameFromFirstLine(noteId);
-	}, [isQuick, noteId]);
 
 	// Keep the address readable: once the title settles, rewrite the URL to match it.
 	const title = note?.title;
@@ -97,29 +96,61 @@ export function NotePage() {
 		);
 	}
 
+	// A quick note lives on the wall, as a card.
+	if (note.kind === "quick" && !notes.some((n) => n.parentId === note.id))
+		return <Navigate {...quickLink(note.id, note.title)} replace />;
+
+	const daily = isDailyNoteId(noteId);
+	const kind = daily ? "today" : note.kind;
+	// These types draw their own head; the title sits inside it, under the kicker.
+	const headed =
+		daily || ["journal", "checklist", "meeting", "study"].includes(note.kind);
+	const titleField = (
+		<TitleField
+			key={`title-${noteId}`}
+			id={note.id}
+			title={note.title}
+			onEnter={() => focusEditor.current?.()}
+			autoFocus={note.title === ""}
+		/>
+	);
 	return (
-		<article className="mx-auto w-full max-w-[var(--page-width,760px)] px-5 pt-10 pb-[40vh] md:pt-[72px]">
-			<TitleField
-				key={`title-${noteId}`}
-				id={note.id}
-				title={note.title}
-				onEnter={() => focusEditor.current?.()}
-				// A new quick note opens in its body, not on a title.
-				autoFocus={note.title === "" && !isQuick}
-			/>
-			<NoteMetaRow key={`meta-${noteId}`} note={note} />
-			{isDailyNoteId(noteId) ? (
-				<Suspense fallback={null}>
-					<StillToDo />
-				</Suspense>
+		<article
+			data-kind={kind}
+			className="relative mx-auto w-full max-w-[var(--page-width,760px)] px-5 pt-10 pb-[40vh] md:pt-[72px]"
+		>
+			{note.kind === "page" && !daily ? <PageHead note={note} /> : null}
+			{daily ? <TodayHead /> : null}
+			{note.kind === "journal" ? <JournalHead note={note} /> : null}
+			{note.kind === "checklist" ? (
+				<ChecklistHead note={note}>{titleField}</ChecklistHead>
 			) : null}
+			{note.kind === "meeting" ? (
+				<MeetingHead note={note}>{titleField}</MeetingHead>
+			) : null}
+			{note.kind === "study" ? (
+				<>
+					<StudyHead note={note}>{titleField}</StudyHead>
+					<StudyRail note={note} />
+				</>
+			) : null}
+			{headed ? null : titleField}
+			<NoteMetaRow key={`meta-${noteId}`} note={note} />
+			{noteId === JOURNAL_ID ? <JournalMonth /> : null}
+			{daily ? <TodayFeeds /> : null}
 			{session?.id === noteId ? (
 				<Suspense fallback={null}>
 					<Editor
 						key={`editor-${noteId}`}
 						session={session}
 						focusRef={focusEditor}
-						autoFocus={note.title === "" && isQuick}
+						autoFocus={false}
+						sortDone={note.kind === "checklist"}
+						owners={
+							note.kind === "meeting"
+								? (note.fields.meeting?.attendees as string[] | undefined)
+								: undefined
+						}
 					/>
 				</Suspense>
 			) : null}
@@ -139,16 +170,26 @@ function TitleField({
 	autoFocus: boolean;
 }) {
 	const [value, setValue] = useState(title);
-	const input = useRef<HTMLInputElement>(null);
+	const input = useRef<HTMLTextAreaElement>(null);
 
 	// Pick up renames from elsewhere, but never overwrite what is being typed.
 	useEffect(() => {
 		if (document.activeElement !== input.current) setValue(title);
 	}, [title]);
 
+	// A long title wraps onto more lines instead of being cut off.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: value is what changes the height
+	useLayoutEffect(() => {
+		const el = input.current;
+		if (!el) return;
+		el.style.height = "auto";
+		el.style.height = `${el.scrollHeight}px`;
+	}, [value]);
+
 	return (
-		<input
+		<textarea
 			ref={input}
+			rows={1}
 			data-title
 			value={value}
 			// A brand-new page opens ready for its title.
@@ -157,8 +198,10 @@ function TitleField({
 			placeholder="Untitled"
 			aria-label="Page title"
 			onChange={(e) => {
-				setValue(e.target.value);
-				updateNote(workspace.index, id, { title: e.target.value });
+				// Pasted line breaks become spaces: a title is one line of text, just wrapped.
+				const next = e.target.value.replace(/\s*\n\s*/g, " ");
+				setValue(next);
+				updateNote(workspace.index, id, { title: next });
 			}}
 			onKeyDown={(e) => {
 				if (e.key === "Enter") {
@@ -168,7 +211,7 @@ function TitleField({
 					onEnter();
 				}
 			}}
-			className="mb-4 w-full bg-transparent font-serif text-[42px] leading-[1.12] font-medium tracking-[-0.015em] text-ink outline-none placeholder:text-mute/60 md:text-[68px]"
+			className="mb-4 block w-full resize-none overflow-hidden bg-transparent font-serif text-[42px] leading-[1.12] font-medium tracking-[-0.015em] text-ink outline-none placeholder:text-mute/60 md:text-[68px]"
 		/>
 	);
 }

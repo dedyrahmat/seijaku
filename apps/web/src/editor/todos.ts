@@ -5,6 +5,10 @@ export interface Todo {
 	/** The block's id inside its note, to tick it later. */
 	id: string;
 	text: string;
+	/** ISO date or "". */
+	due: string;
+	high: boolean;
+	owner: string;
 }
 
 function textOf(content: unknown): string {
@@ -24,7 +28,13 @@ export function openTodos(fragment: Y.XmlFragment): Todo[] {
 		for (const b of blocks) {
 			const text = textOf(b.content);
 			if (b.type === "checkListItem" && !b.props.checked && text)
-				out.push({ id: (b as Block & { id: string }).id, text });
+				out.push({
+					id: (b as Block & { id: string }).id,
+					text,
+					due: typeof b.props.due === "string" ? b.props.due : "",
+					high: b.props.priority === "high",
+					owner: typeof b.props.owner === "string" ? b.props.owner : "",
+				});
 			walk(b.children);
 		}
 	};
@@ -60,4 +70,24 @@ export function tickTodo(fragment: Y.XmlFragment, id: string): boolean {
 		true,
 	);
 	return true;
+}
+
+/** How many to-dos a note has and how many are ticked (empty ones do not count). */
+export function todoCounts(fragment: Y.XmlFragment): {
+	done: number;
+	total: number;
+} {
+	let done = 0;
+	let total = 0;
+	const walk = (blocks: Block[]) => {
+		for (const b of blocks) {
+			if (b.type === "checkListItem" && textOf(b.content)) {
+				total++;
+				if (b.props.checked) done++;
+			}
+			walk(b.children);
+		}
+	};
+	walk(fragmentBlocks(fragment));
+	return { done, total };
 }

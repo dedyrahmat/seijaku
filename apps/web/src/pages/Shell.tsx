@@ -13,6 +13,8 @@ import {
 	useRouterState,
 } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useIdleLock } from "../auth/idleLock";
 import { useAuth } from "../auth/session";
 import { HistoryPanel, type Preview } from "../components/HistoryPanel";
 import { Icon as Glyph } from "../components/Icon";
@@ -38,11 +40,12 @@ import {
 } from "../workspace/hooks";
 import { workspace } from "../workspace/store";
 
-const SECTIONS: Record<string, string> = {
-	"/trash": "Trash",
-	"/import": "Import",
-	"/settings": "Settings",
-};
+const SECTIONS = {
+	"/trash": "sidebar.trash",
+	"/import": "sidebar.import",
+	"/settings": "sidebar.settings",
+} as const;
+type SectionPath = keyof typeof SECTIONS;
 
 /** Screens that stand alone, with no sidebar or title bar: sign-in, capture, public pages. */
 const STANDALONE = [
@@ -89,6 +92,7 @@ function Icon({ children }: { children: React.ReactNode }) {
 }
 
 export function Shell() {
+	const { t } = useTranslation();
 	const ready = useWorkspaceReady();
 	const notes = useNotes();
 	const router = useRouter();
@@ -117,6 +121,7 @@ export function Shell() {
 	const noteId = useNoteId();
 	const auth = useAuth();
 	const standalone = STANDALONE.some((p) => path.startsWith(p));
+	useIdleLock();
 
 	// Signed in but without the notes' key: the only place to be is the unlock screen.
 	useEffect(() => {
@@ -206,6 +211,8 @@ export function Shell() {
 	if (!ready) return <div className="h-dvh bg-paper" aria-busy="true" />;
 
 	const sectionPath = path.startsWith("/settings") ? "/settings" : path;
+	const sectionKey =
+		sectionPath in SECTIONS ? SECTIONS[sectionPath as SectionPath] : undefined;
 	const crumbs = trail(notes, noteId);
 	const current = noteId ? notes.find((n) => n.id === noteId) : undefined;
 	const parent = crumbs.length > 1 ? crumbs[crumbs.length - 2] : undefined;
@@ -252,7 +259,7 @@ export function Shell() {
 						type="button"
 						onClick={() => setDrawerOpen(true)}
 						className="flex size-11 items-center justify-center rounded-2xl text-ink2 hover:bg-hover"
-						aria-label="Open pages"
+						aria-label={t("shell.openPages")}
 					>
 						<svg
 							width="22"
@@ -270,10 +277,12 @@ export function Shell() {
 					<span className="min-w-0 flex-1 truncate px-1.5 text-[13px] text-mute">
 						{parent ? (
 							<Link {...pageLink(parent.id, parent.title)}>
-								{parent.title || "Untitled"}
+								{parent.title || t("common.untitled")}
 							</Link>
-						) : noteId ? null : (
-							(SECTIONS[sectionPath] ?? "Seijaku")
+						) : noteId ? null : sectionKey ? (
+							t(sectionKey)
+						) : (
+							"Seijaku"
 						)}
 					</span>
 					<SyncStatus />
@@ -297,7 +306,9 @@ export function Shell() {
 					<button
 						type="button"
 						onClick={toggleSidebar}
-						aria-label={sidebarHidden ? "Show sidebar" : "Hide sidebar"}
+						aria-label={
+							sidebarHidden ? t("shell.showSidebar") : t("shell.hideSidebar")
+						}
 						aria-pressed={!sidebarHidden}
 						className="flex h-7 w-8 items-center justify-center rounded-2xl text-ink2 hover:bg-hover"
 					>
@@ -309,7 +320,7 @@ export function Shell() {
 					<button
 						type="button"
 						onClick={() => router.history.back()}
-						aria-label="Back"
+						aria-label={t("shell.back")}
 						className="flex size-7 items-center justify-center rounded-2xl text-ink2 hover:bg-hover"
 					>
 						<Icon>
@@ -319,7 +330,7 @@ export function Shell() {
 					<button
 						type="button"
 						onClick={() => router.history.forward()}
-						aria-label="Forward"
+						aria-label={t("shell.forward")}
 						className="flex size-7 items-center justify-center rounded-2xl text-ink2 hover:bg-hover"
 					>
 						<Icon>
@@ -327,10 +338,10 @@ export function Shell() {
 						</Icon>
 					</button>
 					<nav
-						aria-label="Breadcrumb"
+						aria-label={t("shell.breadcrumb")}
 						className="ml-3 flex min-w-0 items-center gap-2 text-[13px] text-ink2"
 					>
-						{!noteId && SECTIONS[sectionPath] ? (
+						{!noteId && sectionKey ? (
 							<>
 								<Link to="/" className="hover:text-ink">
 									Seijaku
@@ -339,7 +350,7 @@ export function Shell() {
 									/
 								</span>
 								<span className="text-ink" aria-current="page">
-									{SECTIONS[sectionPath]}
+									{t(sectionKey)}
 								</span>
 							</>
 						) : null}
@@ -354,14 +365,14 @@ export function Shell() {
 									) : null}
 									{last ? (
 										<span className="truncate text-ink" aria-current="page">
-											{n.title || "Untitled"}
+											{n.title || t("common.untitled")}
 										</span>
 									) : (
 										<Link
 											{...pageLink(n.id, n.title)}
 											className="truncate hover:text-ink"
 										>
-											{n.title || "Untitled"}
+											{n.title || t("common.untitled")}
 										</Link>
 									)}
 								</span>
@@ -374,7 +385,7 @@ export function Shell() {
 						<>
 							<button
 								type="button"
-								aria-label="Version history"
+								aria-label={t("shell.history")}
 								aria-pressed={panel === "history"}
 								onClick={() =>
 									setPanel(panel === "history" ? "none" : "history")
@@ -396,7 +407,7 @@ export function Shell() {
 								<Icon>
 									<path d="M6.5 9.5l3-3M5 7.5L3.8 8.7a2.5 2.5 0 003.5 3.5L8.5 11M11 8.5l1.2-1.2a2.5 2.5 0 00-3.5-3.5L7.5 5" />
 								</Icon>
-								Share
+								{t("shell.share")}
 							</button>
 							<MoreMenu
 								note={current}
@@ -414,8 +425,7 @@ export function Shell() {
 							<>
 								<div className="sticky top-0 z-10 flex min-h-[52px] flex-wrap items-center gap-x-4 gap-y-2 border-b border-line2 bg-callout px-6 py-2">
 									<span className="text-sm text-ink">
-										Previewing {preview.view.label}. Read-only. Your current
-										page is unchanged.
+										{t("shell.previewing", { label: preview.view.label })}
 									</span>
 									<div className="flex-1" />
 									<button
@@ -423,7 +433,7 @@ export function Shell() {
 										onClick={() => setPreview(null)}
 										className="h-[34px] rounded-2xl border border-line px-3.5 text-[13px] text-ink hover:bg-hover"
 									>
-										Back to current
+										{t("shell.backToCurrent")}
 									</button>
 									<button
 										type="button"
@@ -436,7 +446,7 @@ export function Shell() {
 										}}
 										className="h-[34px] rounded-2xl bg-ink px-4 text-[13px] font-medium text-paper disabled:opacity-40"
 									>
-										Restore this version
+										{t("shell.restore")}
 									</button>
 								</div>
 								<ReadOnlyNote
@@ -484,6 +494,7 @@ function MoreMenu({
 	onHistory?: () => void;
 	onShare?: () => void;
 }) {
+	const { t } = useTranslation();
 	// Own state: the phone and desktop headers both render one, and a shared flag let the hidden one close the visible menu.
 	const [open, setOpen] = useState(false);
 	const item = `block w-full rounded-2xl px-3 text-left text-sm hover:bg-hover ${touch ? "py-3" : "py-1.5"}`;
@@ -506,7 +517,7 @@ function MoreMenu({
 		<div ref={root} className="relative">
 			<button
 				type="button"
-				aria-label="More"
+				aria-label={t("shell.more")}
 				aria-haspopup="menu"
 				aria-expanded={open}
 				onClick={() => setOpen(!open)}
@@ -539,7 +550,7 @@ function MoreMenu({
 							}}
 							className={`${item} text-ink`}
 						>
-							<Glyph name="history" size={15} /> Version history
+							<Glyph name="history" size={15} /> {t("shell.history")}
 						</button>
 					) : null}
 					{touch && onShare ? (
@@ -552,39 +563,39 @@ function MoreMenu({
 							}}
 							className={`${item} text-ink`}
 						>
-							<Glyph name="share" size={15} /> Share
+							<Glyph name="share" size={15} /> {t("shell.share")}
 						</button>
 					) : null}
 					{note && !isDailyNoteId(note.id) ? (
 						<div className="mb-1 border-b border-line2 pb-1">
 							<div className="px-3 pt-2 pb-1 text-[11px] font-medium tracking-[0.09em] text-mute uppercase">
-								Change type
+								{t("shell.changeType")}
 							</div>
-							{NOTE_TYPES.map((t) => {
-								const current = note.kind === t.id;
-								const blocked = t.id === "journal" || note.kind === "journal";
+							{NOTE_TYPES.map((kind) => {
+								const current = note.kind === kind.id;
+								const blocked =
+									kind.id === "journal" || note.kind === "journal";
 								return (
 									<button
-										key={t.id}
+										key={kind.id}
 										type="button"
 										role="menuitemradio"
 										aria-checked={current}
 										disabled={blocked && !current}
 										onClick={() => {
-											changeKind(workspace.index, note.id, t.id);
+											changeKind(workspace.index, note.id, kind.id);
 											setOpen(false);
 										}}
 										className={`${item} flex items-center gap-2.5 text-ink disabled:opacity-40`}
 									>
-										<Glyph name={t.id} size={15} />
-										<span className="flex-1">{t.name}</span>
+										<Glyph name={kind.id} size={15} />
+										<span className="flex-1">{t(`kinds.${kind.id}.name`)}</span>
 										{current ? <Glyph name="check" size={14} /> : null}
 									</button>
 								);
 							})}
 							<p className="px-3 pt-1 pb-1.5 text-xs leading-normal text-mute">
-								Your writing stays exactly as it is. Only the look and the extra
-								fields change.
+								{t("shell.changeTypeNote")}
 							</p>
 						</div>
 					) : null}
@@ -597,7 +608,7 @@ function MoreMenu({
 						}}
 						className={`${item} text-ink`}
 					>
-						<Glyph name="export" size={15} /> Export as Markdown
+						<Glyph name="export" size={15} /> {t("shell.exportMarkdown")}
 					</button>
 					<button
 						type="button"
@@ -608,7 +619,7 @@ function MoreMenu({
 						}}
 						className={`${item} text-accent`}
 					>
-						<Glyph name="trash" size={15} /> Move to trash
+						<Glyph name="trash" size={15} /> {t("sidebar.moveToTrash")}
 					</button>
 				</div>
 			) : null}

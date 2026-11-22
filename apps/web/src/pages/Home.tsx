@@ -1,46 +1,18 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Logo } from "../components/Logo";
 
 export const LAST_NOTE_KEY = "seijaku:last-note";
 
 /** From the design's Home board: a still screen with one slowly changing poem. */
-const HAIKU = [
-	[
-		"Blank page, breath held still,",
-		"a first line settles slowly,",
-		"noise fades from the room.",
-	],
-	[
-		"Ink finds the paper,",
-		"thoughts sink like stones in water,",
-		"ripples become words.",
-	],
-	[
-		"Rake the gravel smooth,",
-		"each line a quiet ripple,",
-		"nothing left to chase.",
-	],
-	[
-		"Snow on the notebook,",
-		"what you write is what stays warm,",
-		"the rest melts to white.",
-	],
-	[
-		"Wind stops at the door,",
-		"pages turn without a sound,",
-		"the lamp burns steady.",
-	],
-	[
-		"Offline and still here,",
-		"your words keep their own slow time,",
-		"the moon waits for sync.",
-	],
-] as const;
+const HAIKU = ["p1", "p2", "p3", "p4", "p5", "p6"] as const;
+const LINES = ["l1", "l2", "l3"] as const;
 
 const SHOW_MS = 7000;
 const FADE_MS = 900;
 
 export function Home() {
+	const { t } = useTranslation();
 	const [index, setIndex] = useState(0);
 	const [fading, setFading] = useState(false);
 
@@ -65,7 +37,9 @@ export function Home() {
 		};
 	}, []);
 
-	const poem = HAIKU[index] ?? HAIKU[0];
+	const poem = LINES.map((l) =>
+		t(`home.poems.${HAIKU[index] ?? HAIKU[0]}.${l}`),
+	);
 
 	return (
 		<div className="flex min-h-full flex-col items-center justify-center px-6 py-10 text-center">
@@ -90,9 +64,9 @@ export function Home() {
 				))}
 			</div>
 			<div className="mt-9 flex gap-2.5" aria-hidden>
-				{HAIKU.map((poemLines, k) => (
+				{HAIKU.map((key, k) => (
 					<span
-						key={poemLines[0]}
+						key={key}
 						className={`size-1.5 rounded-full ${k === index ? "bg-accent" : "bg-line"}`}
 					/>
 				))}

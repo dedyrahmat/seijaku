@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { dateLocale, i18n } from "../i18n";
 import { isoDay } from "./dates";
 import { Icon } from "./Icon";
 
@@ -19,6 +21,7 @@ export function DatePicker({
 	label: string;
 	className?: string;
 }) {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const [month, setMonth] = useState(() =>
 		fromIso(value || isoDay(new Date())),
@@ -64,38 +67,38 @@ export function DatePicker({
 				className={`flex min-h-7 items-center gap-1.5 rounded-xl px-2 hover:bg-hover ${value ? "" : "text-mute"} ${className}`}
 			>
 				{value
-					? fromIso(value).toLocaleDateString("en-GB", {
+					? fromIso(value).toLocaleDateString(dateLocale(), {
 							day: "numeric",
 							month: "short",
 							year: "numeric",
 						})
-					: "Pick a date"}
+					: t("datePicker.pick")}
 				<Icon name="today" size={13} className="text-mute" />
 			</button>
 			{open ? (
 				<div
 					role="dialog"
-					aria-label={`${label}: choose a day`}
+					aria-label={t("datePicker.choose", { label })}
 					className="absolute top-full left-0 z-30 mt-1 w-[264px] rounded-2xl border border-line bg-raised p-3 text-[13px] text-ink shadow-lg"
 				>
 					<div className="mb-2 flex items-center">
 						<button
 							type="button"
-							aria-label="Previous month"
+							aria-label={t("datePicker.prev")}
 							onClick={() => shift(-1)}
 							className={nav}
 						>
 							<Icon name="back" size={13} />
 						</button>
 						<span className="flex-1 text-center font-medium">
-							{month.toLocaleDateString("en-GB", {
+							{month.toLocaleDateString(dateLocale(), {
 								month: "long",
 								year: "numeric",
 							})}
 						</span>
 						<button
 							type="button"
-							aria-label="Next month"
+							aria-label={t("datePicker.next")}
 							onClick={() => shift(1)}
 							className={nav}
 						>
@@ -103,7 +106,11 @@ export function DatePicker({
 						</button>
 					</div>
 					<div className="grid grid-cols-7 gap-y-0.5 text-center">
-						{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+						{Array.from({ length: 7 }, (_, i) =>
+							new Date(2024, 0, 1 + i).toLocaleDateString(i18n.language, {
+								weekday: "short",
+							}),
+						).map((d) => (
 							<span key={d} title={d} className="py-1 text-[11px] text-mute">
 								{d[0]}
 							</span>
@@ -134,7 +141,7 @@ export function DatePicker({
 							onClick={() => pick(today)}
 							className="rounded-xl px-2 py-1 hover:bg-hover"
 						>
-							Today
+							{t("sidebar.today")}
 						</button>
 						{value ? (
 							<button
@@ -142,7 +149,7 @@ export function DatePicker({
 								onClick={() => pick("")}
 								className="rounded-xl px-2 py-1 hover:bg-hover"
 							>
-								Clear
+								{t("datePicker.clear")}
 							</button>
 						) : null}
 					</div>

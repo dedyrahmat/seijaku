@@ -19,6 +19,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { Icon } from "../components/Icon";
 import { pageLink, quickLink } from "../components/pageLink";
 import { TINTS, tintVar } from "../components/tints";
@@ -57,6 +58,7 @@ async function isBlank(id: string): Promise<boolean> {
 
 /** The Keep-style wall: every quick note as a card, pinned ones first. A card opens over the wall. */
 export function QuickNotesPage() {
+	const { t } = useTranslation();
 	const notes = useNotes();
 	const navigate = useNavigate();
 	const openId = useNoteId();
@@ -75,8 +77,8 @@ export function QuickNotesPage() {
 	const others = cards.filter((n) => !pinned(n));
 
 	useEffect(() => {
-		document.title = "Quick notes · Seijaku";
-	}, []);
+		document.title = t("quick.pageTitle");
+	}, [t]);
 
 	// Blank cards from before empty ones were refused. Recent ones are left alone (someone may be typing).
 	const stale = cards
@@ -97,7 +99,7 @@ export function QuickNotesPage() {
 		<div className="mx-auto w-full max-w-[1000px] px-5 pt-10 pb-24 md:pt-[72px]">
 			<h1 className="mb-6 flex items-center gap-3 font-serif text-[42px] leading-[1.1] font-medium md:text-[56px]">
 				<Icon name="wall" size={32} className="text-mute" />
-				Quick notes
+				{t("sidebar.quickNotes")}
 			</h1>
 			<button
 				type="button"
@@ -105,15 +107,13 @@ export function QuickNotesPage() {
 				className="mb-8 flex h-12 w-full max-w-xl items-center gap-2.5 rounded-2xl border border-line bg-raised px-4 text-left text-[15px] text-mute shadow-sm hover:border-mute"
 			>
 				<Icon name="plus" size={16} />
-				Take a note…
+				{t("quick.take")}
 			</button>
 			{cards.length === 0 ? (
-				<p className="text-mute">
-					Nothing here yet. A quick note is one thought, a number, a name.
-				</p>
+				<p className="text-mute">{t("quick.empty")}</p>
 			) : null}
-			<Wall title="Pinned" cards={pins} />
-			<Wall title={pins.length ? "Others" : ""} cards={others} />
+			<Wall title={t("today.pinned")} cards={pins} />
+			<Wall title={pins.length ? t("quick.others") : ""} cards={others} />
 			{openId ? <Card id={openId} /> : null}
 		</div>
 	);
@@ -138,6 +138,7 @@ function Wall({ title, cards }: { title: string; cards: NoteMeta[] }) {
 }
 
 function WallCard({ note }: { note: NoteMeta }) {
+	const { t } = useTranslation();
 	const isPinned = pinned(note);
 	return (
 		<div
@@ -156,7 +157,7 @@ function WallCard({ note }: { note: NoteMeta }) {
 			<div className="relative z-10 mt-2 flex gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 max-md:opacity-100">
 				<button
 					type="button"
-					aria-label={isPinned ? "Unpin" : "Pin"}
+					aria-label={isPinned ? t("quick.unpin") : t("quick.pin")}
 					aria-pressed={isPinned}
 					onClick={() =>
 						setField(
@@ -173,7 +174,7 @@ function WallCard({ note }: { note: NoteMeta }) {
 				</button>
 				<button
 					type="button"
-					aria-label="Change type to page"
+					aria-label={t("quick.toPage")}
 					onClick={() => changeKind(workspace.index, note.id, "page")}
 					className="flex size-8 items-center justify-center rounded-full text-ink2 hover:bg-hover"
 				>
@@ -181,7 +182,7 @@ function WallCard({ note }: { note: NoteMeta }) {
 				</button>
 				<button
 					type="button"
-					aria-label="Move to trash"
+					aria-label={t("sidebar.moveToTrash")}
 					onClick={() => trashNote(workspace.index, note.id)}
 					className="flex size-8 items-center justify-center rounded-full text-ink2 hover:bg-hover"
 				>
@@ -212,6 +213,7 @@ function CardText({ id, stamp }: { id: string; stamp: number }) {
 
 /** One card open over the wall: optional title, body, tint, pin, Close. Esc or a click outside closes. */
 function Card({ id }: { id: string }) {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const note = useNotes().find((n) => n.id === id);
 	const session = useNoteSession(id);
@@ -279,7 +281,7 @@ function Card({ id }: { id: string }) {
 		<div className="fixed inset-0 z-40 flex items-center justify-center p-3">
 			<button
 				type="button"
-				aria-label="Close note"
+				aria-label={t("quick.closeNote")}
 				tabIndex={-1}
 				onClick={close}
 				className="absolute inset-0 bg-scrim"
@@ -287,15 +289,15 @@ function Card({ id }: { id: string }) {
 			<div
 				role="dialog"
 				aria-modal="true"
-				aria-label="Quick note"
+				aria-label={t("today.quickNote")}
 				className="relative flex max-h-[85dvh] w-full max-w-[560px] flex-col overflow-hidden rounded-2xl border border-line shadow-2xl"
 				style={{ background: tintVar(tint) }}
 			>
 				<div className="flex items-start gap-2 px-5 pt-4">
 					<input
 						value={note.title}
-						aria-label="Title"
-						placeholder="Title"
+						aria-label={t("quick.title")}
+						placeholder={t("quick.title")}
 						// biome-ignore lint/a11y/noAutofocus: a new card opens ready to type
 						autoFocus={note.title === ""}
 						onChange={(e) =>
@@ -311,7 +313,7 @@ function Card({ id }: { id: string }) {
 					/>
 					<button
 						type="button"
-						aria-label={isPinned ? "Unpin" : "Pin"}
+						aria-label={isPinned ? t("quick.unpin") : t("quick.pin")}
 						aria-pressed={isPinned}
 						onClick={() =>
 							setField(
@@ -342,18 +344,22 @@ function Card({ id }: { id: string }) {
 				</div>
 				<div className="flex items-center gap-2 border-t border-line2 px-4 py-2.5">
 					{/* biome-ignore lint/a11y/useSemanticElements: a row of swatch buttons, not a form group */}
-					<div className="flex gap-1.5" role="group" aria-label="Colour">
-						{TINTS.map((t) => (
+					<div
+						className="flex gap-1.5"
+						role="group"
+						aria-label={t("quick.colour")}
+					>
+						{TINTS.map((tn) => (
 							<button
-								key={t}
+								key={tn}
 								type="button"
-								aria-label={t}
-								aria-pressed={tint === t}
+								aria-label={t(`tint.${tn}`)}
+								aria-pressed={tint === tn}
 								onClick={() =>
-									setField(workspace.index, id, "quick", "tint", t)
+									setField(workspace.index, id, "quick", "tint", tn)
 								}
-								className={`size-6 rounded-full border ${tint === t ? "border-ink" : "border-line"}`}
-								style={{ background: tintVar(t) }}
+								className={`size-6 rounded-full border ${tint === tn ? "border-ink" : "border-line"}`}
+								style={{ background: tintVar(tn) }}
 							/>
 						))}
 					</div>
@@ -364,14 +370,14 @@ function Card({ id }: { id: string }) {
 						onClick={toggleTicks}
 						className="h-9 rounded-2xl px-3 text-[13px] text-ink2 hover:bg-hover"
 					>
-						{ticks ? "Hide tick boxes" : "Show tick boxes"}
+						{ticks ? t("quick.hideTicks") : t("quick.showTicks")}
 					</button>
 					<button
 						type="button"
 						onClick={close}
 						className="h-9 rounded-2xl px-4 text-[13px] font-medium hover:bg-hover"
 					>
-						Close
+						{t("common.close")}
 					</button>
 				</div>
 			</div>

@@ -1,6 +1,7 @@
 import { blocksToYXmlFragment } from "@blocknote/core/yjs";
 import type { NoteKind } from "@seijaku/sync";
 import type * as Y from "yjs";
+import { i18n } from "../i18n";
 import { workspace } from "../workspace/store";
 import { headless } from "./headless";
 
@@ -19,34 +20,38 @@ const para = (): Draft => ({ type: "paragraph", content: "" });
 const todo = (): Draft => ({ type: "checkListItem", content: "" });
 
 /** What each shape of note starts with. Pages, quick notes and journal entries start empty. */
-const TEMPLATES: Partial<Record<NoteKind, Draft[]>> = {
+const t = i18n.t.bind(i18n);
+
+const templates = (): Partial<Record<NoteKind, Draft[]>> => ({
 	checklist: [todo(), todo(), todo()],
 	meeting: [
-		heading("Who was there"),
+		heading(t("templates.who")),
 		para(),
-		heading("What was said"),
+		heading(t("templates.said")),
 		para(),
-		heading("What happens next"),
+		heading(t("templates.next")),
 		todo(),
 	],
 	study: [
 		{
 			type: "callout",
 			props: { tone: "tip" },
-			content: [{ type: "text", text: "Key idea. ", styles: { bold: true } }],
+			content: [
+				{ type: "text", text: t("templates.keyIdea"), styles: { bold: true } },
+			],
 		},
-		heading("Maths"),
+		heading(t("templates.maths")),
 		{ type: "math", content: "" },
-		heading("Code"),
+		heading(t("templates.code")),
 		{ type: "codeBlock", content: "" },
-		heading("Questions to revisit"),
+		heading(t("templates.questions")),
 		{ type: "toggleListItem", content: "" },
 	],
-};
+});
 
 /** Writes the starting blocks for `kind` into a note that has just been made. */
 export async function applyTemplate(id: string, kind: NoteKind) {
-	const blocks = TEMPLATES[kind];
+	const blocks = templates()[kind];
 	if (!blocks) return;
 	await workspace.withFragment(id, (fragment) => {
 		(fragment.doc as Y.Doc).transact(() => {

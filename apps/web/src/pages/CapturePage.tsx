@@ -1,15 +1,18 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { authStore } from "../auth/session";
 import { CaptureTarget } from "../components/CaptureTarget";
 import { Logo } from "../components/Logo";
 import { hideThisWindow, isCaptureWindow } from "../desktop";
+import { dateLocale } from "../i18n";
 import { usePrefs } from "../preferences";
 import { captureTo } from "../workspace/capture";
 import { useWorkspaceReady } from "../workspace/hooks";
 
-/** The mockup's "Quick capture" window: one box, Enter to save, Esc to close. */
+/** The mockup's Quick capture window: one box, Enter to save, Esc to close. */
 export function CapturePage() {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const ready = useWorkspaceReady();
 	const [text, setText] = useState("");
@@ -20,8 +23,8 @@ export function CapturePage() {
 	const today = new Date();
 
 	useEffect(() => {
-		document.title = "Quick capture · Seijaku";
-	}, []);
+		document.title = t("capture.title");
+	}, [t]);
 
 	// The hotkey window is shown and hidden, never reloaded: take focus each time it appears.
 	useEffect(() => {
@@ -54,7 +57,7 @@ export function CapturePage() {
 		box.current?.focus();
 	};
 
-	const date = today.toLocaleDateString("en-GB", {
+	const date = today.toLocaleDateString(dateLocale(), {
 		weekday: "short",
 		day: "numeric",
 		month: "short",
@@ -66,14 +69,14 @@ export function CapturePage() {
 		>
 			<div
 				role="dialog"
-				aria-label="Quick capture"
+				aria-label={t("settings.general.quickCapture")}
 				className="flex h-60 w-[440px] max-w-full flex-col overflow-hidden rounded-2xl border border-line bg-paper text-ink shadow-[0_24px_60px_rgba(40,30,15,0.25),0_2px_8px_rgba(40,30,15,0.12)]"
 			>
 				<div className="flex h-12 flex-none items-center gap-2.5 border-b border-line2 px-4">
 					<Logo size={18} />
 					<span className="relative inline-flex items-center">
 						<CaptureTarget
-							label="Add to"
+							label={t("capture.addTo")}
 							className="h-[30px] max-w-[180px] border-0 bg-tag pr-7 pl-2.5 text-[13px]"
 						/>
 						<svg
@@ -96,7 +99,7 @@ export function CapturePage() {
 				</div>
 				<div className="flex flex-1 flex-col px-[18px] py-3.5">
 					<label htmlFor="capture" className="sr-only">
-						Capture
+						{t("capture.button")}
 					</label>
 					<textarea
 						id="capture"
@@ -104,7 +107,7 @@ export function CapturePage() {
 						// biome-ignore lint/a11y/noAutofocus: the window exists to be typed into
 						autoFocus
 						value={text}
-						placeholder="Write something down"
+						placeholder={t("capture.placeholder")}
 						onChange={(e) => {
 							setText(e.target.value);
 							setSaved(false);
@@ -121,10 +124,12 @@ export function CapturePage() {
 					/>
 				</div>
 				<div className="flex h-[42px] flex-none items-center gap-3.5 border-t border-line2 px-4 text-xs text-mute">
-					<span>Enter to save</span>
-					<span>Shift Enter new line</span>
+					<span>{t("capture.hintSave")}</span>
+					<span>{t("capture.hintLine")}</span>
 					<span className="flex-1" />
-					<span role="status">{saved ? "Saved" : "Esc to close"}</span>
+					<span role="status">
+						{saved ? t("common.saved") : t("capture.hintClose")}
+					</span>
 				</div>
 			</div>
 		</div>

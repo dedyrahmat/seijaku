@@ -37,6 +37,8 @@ interface ServerStatus {
 }
 
 const KNOWN_KEY = "seijaku:signed-in";
+/** Set while the device is locked by the idle timer, so the unlock screen can say why. */
+export const IDLE_LOCK = "seijaku:idle-lock";
 
 function wasSignedIn(): boolean {
 	try {
@@ -163,6 +165,33 @@ class AuthStore {
 		this.cipher = null;
 		this.set({ ...this.state, phase: "signed-out" });
 		await this.refresh();
+	}
+
+	/**
+	 * "Lock after inactivity": forgets the workspace key on this device (notes stay, unreadable
+	 * to anyone at the keyboard until the passkey or phrase opens them again). Needs the server
+	 * to answer, because unlocking fetches the key wraps; offline it waits for the next check.
+	 */
+	async lock(): Promise<boolean> {
+		if (this.state.phase !== "signed-in" || this.state.offline) return false;
+		try {
+			const res = await fetch(apiUrl("/api/auth/seijaku/status"), {
+				credentials: "include",
+				signal: AbortSignal.timeout(4000),
+			});
+			if (!res.ok) return false;
+		} catch {
+			return false;
+		}
+		try {
+			sessionStorage.setItem(IDLE_LOCK, "1");
+		} catch {
+			// The unlock screen then uses its plain wording.
+		}
+		await clearWorkspaceKey();
+		this.cipher = null;
+		this.set({ ...this.state, phase: "locked" });
+		return true;
 	}
 
 	holdPhrase(phrase: string): void {

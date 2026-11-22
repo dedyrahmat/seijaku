@@ -1,10 +1,12 @@
 import { type NoteMeta, normalizeTag, updateNote } from "@seijaku/sync";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { workspace } from "../workspace/store";
 import { ago } from "./ago";
 
 /** Under the title: #tags as quiet pills, then when the page was last edited (from the design). */
 export function NoteMetaRow({ note }: { note: NoteMeta }) {
+	const { t } = useTranslation();
 	const [adding, setAdding] = useState(false);
 	const [draft, setDraft] = useState("");
 	const [now, setNow] = useState(() => Date.now());
@@ -34,7 +36,7 @@ export function NoteMetaRow({ note }: { note: NoteMeta }) {
 					#{tag}
 					<button
 						type="button"
-						aria-label={`Remove tag ${tag}`}
+						aria-label={t("meta.removeTag", { tag })}
 						onClick={() => setTags(note.tags.filter((t) => t !== tag))}
 						className="ml-0 w-0 overflow-hidden text-mute opacity-0 transition-all group-focus-within:ml-1.5 group-focus-within:w-3 group-focus-within:opacity-100 group-hover:ml-1.5 group-hover:w-3 group-hover:opacity-100 hover:text-ink"
 					>
@@ -62,8 +64,8 @@ export function NoteMetaRow({ note }: { note: NoteMeta }) {
 							setAdding(false);
 						}
 					}}
-					aria-label="New tag"
-					placeholder="tag"
+					aria-label={t("meta.newTag")}
+					placeholder={t("meta.tagPlaceholder")}
 					className="h-6 w-24 rounded-full bg-tag px-2.5 text-ink2 outline-none placeholder:text-mute"
 				/>
 			) : (
@@ -76,7 +78,7 @@ export function NoteMetaRow({ note }: { note: NoteMeta }) {
 				</button>
 			)}
 			<span aria-hidden>·</span>
-			<span>Edited {ago(note.updatedAt, now)}</span>
+			<span>{t("meta.edited", { when: ago(note.updatedAt, now) })}</span>
 		</div>
 	);
 }

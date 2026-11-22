@@ -82,12 +82,15 @@ export function Select<T extends string>({
 	label,
 	value,
 	options,
+	labels,
 	onChange,
 	disabled,
 }: {
 	label: string;
 	value: T;
 	options: readonly T[];
+	/** Text shown for each option; the stored value stays as it is. */
+	labels?: Partial<Record<T, string>>;
 	onChange: (v: T) => void;
 	disabled?: boolean;
 }) {
@@ -102,7 +105,7 @@ export function Select<T extends string>({
 			>
 				{options.map((o) => (
 					<option key={o} value={o}>
-						{o}
+						{labels?.[o] ?? o}
 					</option>
 				))}
 			</select>
@@ -266,10 +269,13 @@ export function TextField({
 	placeholder,
 	disabled,
 	width = "w-60",
+	onCommit,
 }: {
 	label: string;
 	value: string;
 	onChange: (v: string) => void;
+	/** Called when the field loses focus or Enter is pressed. */
+	onCommit?: () => void;
 	placeholder?: string;
 	disabled?: boolean;
 	width?: string;
@@ -284,6 +290,10 @@ export function TextField({
 			spellCheck={false}
 			autoComplete="off"
 			onChange={(e) => onChange(e.target.value)}
+			onBlur={onCommit}
+			onKeyDown={(e) => {
+				if (e.key === "Enter") onCommit?.();
+			}}
 			className={`h-9 max-w-full min-w-0 ${width} rounded-2xl border border-line bg-raised px-3.5 text-[13px] text-ink outline-none placeholder:text-mute focus:border-mute ${DISABLED}`}
 		/>
 	);

@@ -1,0 +1,1106 @@
+{
+	"language": {
+		"en": "English",
+		"id": "Bahasa Indonesia"
+	},
+	"settings": {
+		"name": "Pengaturan",
+		"close": "Tutup pengaturan",
+		"sectionsLabel": "Bagian pengaturan",
+		"title": "{{section}} · Pengaturan · Seijaku",
+		"sections": {
+			"general": {
+				"name": "Umum",
+				"blurb": "Ruang kerja, bahasa, dan tangkap cepat."
+			},
+			"appearance": {
+				"name": "Tampilan",
+				"blurb": "Tenang secara bawaan. Ubah tampilan tempat Anda membaca dan menulis."
+			},
+			"editor": {
+				"name": "Editor",
+				"blurb": "Cara blok, markdown, dan pengetikan bekerja."
+			},
+			"sync": {
+				"name": "Sinkronisasi dan perangkat",
+				"blurb": "Ke mana catatan Anda disinkronkan, dan siapa yang bisa membacanya."
+			},
+			"security": {
+				"name": "Keamanan",
+				"blurb": "Jaga catatan tetap pribadi dan akun tetap bisa dipulihkan."
+			},
+			"shortcuts": {
+				"name": "Pintasan",
+				"blurb": "Semua yang bisa Anda lakukan tanpa lepas dari papan ketik."
+			},
+			"data": {
+				"name": "Data dan penyimpanan",
+				"blurb": "Masukkan catatan, keluarkan, dan tentukan apa yang disimpan."
+			},
+			"about": {
+				"name": "Tentang",
+				"blurb": "Versi, pembaruan, dan ketentuan."
+			}
+		},
+		"general": {
+			"workspace": "Ruang kerja",
+			"workspaceName": {
+				"label": "Nama ruang kerja",
+				"desc": "Ditampilkan di bilah samping dan pada halaman yang dibagikan."
+			},
+			"language": {
+				"label": "Bahasa",
+				"desc": "Bahasa antarmuka. Catatan Anda tidak diterjemahkan."
+			},
+			"openOnStart": {
+				"label": "Buka saat mulai",
+				"desc": "Halaman yang Anda tuju saat Seijaku dibuka.",
+				"Today": "Hari ini",
+				"Last page": "Halaman terakhir",
+				"Home": "Beranda"
+			},
+			"launch": {
+				"desc": "Berjalan diam-diam di latar belakang agar tangkap cepat selalu siap.",
+				"label": "Jalankan saat masuk"
+			},
+			"onTop": {
+				"desc": "Tetap di atas aplikasi lain sampai Anda mengirim atau menutupnya.",
+				"label": "Jaga jendela tangkap tetap di atas"
+			},
+			"tray": {
+				"desc": "Menutup jendela tetap menyisakan tangkap cepat.",
+				"label": "Tetap berjalan di bilah menu"
+			},
+			"captureTo": {
+				"desc": "Tempat catatan cepat mendarat sebelum Anda merapikannya.",
+				"label": "Tambahkan tangkapan ke"
+			},
+			"globalShortcut": "Pintasan global",
+			"quickCapture": "Tangkap cepat"
+		},
+		"sync": {
+			"connection": {
+				"keepSafe": "Peramban ini mungkin menghapus catatan tersimpan saat ruang menipis. Tambahkan Seijaku ke Layar Utama agar salinan di perangkat ini tetap aman.",
+				"desc": "Setiap halaman disimpan di perangkat ini lebih dulu, lalu dikirim ke server Anda.",
+				"label": "Koneksi"
+			},
+			"address": {
+				"desc": "Kosongkan untuk memakai server yang memberi Anda halaman ini. Arahkan ke server Anda sendiri untuk hosting mandiri.",
+				"placeholder": "Situs ini (bawaan)",
+				"label": "Alamat server"
+			},
+			"offline": {
+				"desc": "Jeda sinkronisasi. Perubahan antre dan terkirim saat Anda mematikan ini.",
+				"label": "Bekerja luring"
+			},
+			"collide": {
+				"desc": "Kedua versi disimpan. Pilih apa yang terjadi pada yang lebih lama.",
+				"label": "Saat dua suntingan bertabrakan"
+			},
+			"sync": {
+				"desc": "Tarik dan kirim perubahan sekarang juga.",
+				"label": "Sinkronkan"
+			},
+			"catchingUp": "Terhubung · mengejar ketertinggalan",
+			"upToDate": "Terhubung · terbaru",
+			"test": "Uji koneksi",
+			"notConnected": "Tidak terhubung",
+			"syncNow": "Sinkronkan sekarang",
+			"syncing": "Menyinkronkan",
+			"server": "Server"
+		},
+		"shortcuts": {
+			"todayNote": "Di tab peramban, Ctrl+Shift+T milik peramban. Pintasan ini berfungsi di aplikasi desktop dan aplikasi terpasang.",
+			"newPageNote": "Di tab peramban, Ctrl+N milik peramban. Pintasan ini berfungsi di aplikasi desktop dan aplikasi terpasang.",
+			"captureDesc": "Berfungsi selama Seijaku ada di baki sistem.",
+			"captureLabel": "Pintasan tangkap cepat",
+			"theme": "Ganti terang dan gelap",
+			"searchAll": "Cari semua halaman",
+			"history": "Riwayat versi",
+			"switcher": "Pengalih cepat",
+			"sidebar": "Tampilkan/sembunyikan bilah samping",
+			"block": "Sisipkan blok",
+			"today": "Ke Hari ini",
+			"navigate": "Navigasi",
+			"newPage": "Halaman baru",
+			"write": "Tulis"
+		},
+		"security": {
+			"lock": {
+				"desc": "Minta kunci sandi atau frasa pemulihan setelah Anda menjauh. Catatan tetap di perangkat ini.",
+				"label": "Kunci setelah tidak aktif"
+			},
+			"delete": {
+				"desc": "Menghapus catatan Anda dari semua perangkat. Ekspor dulu.",
+				"label": "Hapus akun",
+				"button": "Hapus…"
+			},
+			"recoveryLock": "Pemulihan dan kunci",
+			"danger": "Zona berbahaya"
+		},
+		"data": {
+			"offline": {
+				"desc": "Catatan dan gambar disimpan di peramban ini, sehingga Seijaku bekerja tanpa koneksi.",
+				"label": "Penyimpanan luring"
+			},
+			"import": {
+				"desc": "Dari Notion, Obsidian, berkas Markdown, atau arsip Seijaku.",
+				"label": "Impor catatan",
+				"button": "Impor…"
+			},
+			"export": {
+				"desc": "Zip berisi berkas Markdown beserta gambar dan lampiran Anda.",
+				"label": "Ekspor semuanya"
+			},
+			"trash": {
+				"desc": "Halaman yang dihapus bisa dipulihkan sampai saat itu.",
+				"label": "Kosongkan sampah otomatis"
+			},
+			"history": {
+				"desc": "Versi lama dihapus untuk menghemat ruang.",
+				"label": "Simpan riwayat versi"
+			},
+			"keeping": "Menyimpan dan menghapus",
+			"importExport": "Impor dan ekspor",
+			"onDevice": "Di perangkat ini",
+			"exporting": "Mengekspor…",
+			"exportAll": "Ekspor semua",
+			"tryAgain": "Coba lagi"
+		},
+		"appearance": {
+			"colourTheme": {
+				"desc": "Kertas washi di siang hari, tinta sumi di malam hari. Sistem mengikuti perangkat Anda.",
+				"label": "Tema warna"
+			},
+			"reduceMotion": {
+				"desc": "Menghapus transisi pudar dan geser. Mengikuti pengaturan sistem Anda secara bawaan.",
+				"label": "Kurangi gerakan"
+			},
+			"accent": {
+				"desc": "Dipakai untuk tautan, fokus, dan lingkaran pada logo.",
+				"label": "Aksen"
+			},
+			"pageWidth": {
+				"desc": "Selebar apa halaman boleh tumbuh di layar besar.",
+				"label": "Lebar halaman"
+			},
+			"headingFont": {
+				"desc": "Teks isi selalu memakai Hanken Grotesk.",
+				"label": "Fon judul"
+			},
+			"textSize": {
+				"desc": "Teks isi di editor.",
+				"label": "Ukuran teks"
+			},
+			"reading": "Membaca dan menulis",
+			"lineSpacing": "Jarak baris",
+			"comfortable": "Nyaman",
+			"relaxed": "Longgar",
+			"motion": "Gerakan",
+			"system": "Sistem",
+			"narrow": "Sempit",
+			"theme": "Tema",
+			"light": "Terang",
+			"tight": "Rapat",
+			"dark": "Gelap",
+			"wide": "Lebar",
+			"airy": "Lega"
+		},
+		"about": {
+			"platforms": {
+				"desc": "Web, aplikasi Layar Utama iPhone, dan aplikasi desktop berbagi satu ruang kerja.",
+				"button": "Dapatkan aplikasinya",
+				"label": "Platform"
+			},
+			"privacy": {
+				"desc": "Apa yang disimpan, di mana, dan untuk berapa lama.",
+				"label": "Privasi",
+				"button": "Baca"
+			},
+			"licences": {
+				"desc": "Pustaka yang menjadi dasar Seijaku.",
+				"label": "Lisensi sumber terbuka",
+				"button": "Lihat"
+			},
+			"news": {
+				"desc": "Catatan rilis untuk setiap versi.",
+				"label": "Yang baru"
+			},
+			"latest": "Anda memakai versi terbaru.",
+			"feedback": {
+				"desc": "Beri tahu kami apa yang terasa bising.",
+				"label": "Kirim masukan",
+				"button": "Tulis kepada kami"
+			},
+			"check": "Periksa pembaruan",
+			"checked": "Baru saja diperiksa",
+			"print": "Ketentuan",
+			"runs": "Tempat berjalan",
+			"updates": "Pembaruan",
+			"installing": "Versi {{version}} sedang dipasang.",
+			"where": {
+				"desktop": "Desktop",
+				"web": "Web"
+			},
+			"version": "Versi {{version}}"
+		},
+		"editor": {
+			"smart": {
+				"desc": "Tanda kutip lengkung, tanda pisah, dan elipsis yang tepat saat Anda mengetik.",
+				"label": "Tanda baca cerdas"
+			},
+			"markdown": {
+				"desc": "Ketik # untuk judul, - untuk daftar, [] untuk tugas.",
+				"label": "Pintasan Markdown"
+			},
+			"spell": {
+				"desc": "Garis bawahi kata yang salah eja. Berjalan di perangkat Anda.",
+				"label": "Pemeriksa ejaan"
+			},
+			"handles": {
+				"desc": "Gagang seret dan tombol tambah di samping tiap blok.",
+				"label": "Tampilkan gagang blok saat diarahkan"
+			},
+			"paste": {
+				"desc": "Apa yang terjadi saat Anda menempel dari halaman web.",
+				"label": "Perilaku tempel"
+			},
+			"math": {
+				"desc": "LaTeX di antara tanda $ menjadi rumus yang tersusun rapi.",
+				"label": "Tampilkan rumus saat mengetik"
+			},
+			"codeFont": {
+				"desc": "Dipakai pada blok kode dan kode sebaris.",
+				"label": "Fon kode"
+			},
+			"autoPair": "Pasangkan kurung dan tanda kutip otomatis",
+			"writing": "Menulis",
+			"blocks": "Blok"
+		},
+		"device": {
+			"other": "Perangkat ini",
+			"windows": "PC Windows",
+			"linux": "PC Linux"
+		},
+		"account": "Akun",
+		"versionLine": "Versi {{version}} · {{where}}",
+		"navFooter": "Seijaku 0.1 · {{where}}",
+		"synced": "Tersinkron {{when}}"
+	},
+	"tagline": "Ketenangan yang aktif. Kebalikan dari kebisingan.",
+	"common": {
+		"notAvailable": "Belum tersedia",
+		"needsAccount": "Perlu akun",
+		"desktopApp": "Aplikasi desktop",
+		"alwaysOn": "Selalu aktif",
+		"saved": "Tersimpan",
+		"save": "Simpan",
+		"open": "Buka",
+		"collapse": "Ciutkan",
+		"cancel": "Batal",
+		"expand": "Bentangkan",
+		"untitled": "Tanpa judul",
+		"close": "Tutup",
+		"copyLink": "Salin tautan",
+		"copied": "Tersalin",
+		"done": "Selesai",
+		"ok": "OK",
+		"loading": "Memuat…",
+		"remove": "Hapus",
+		"wrong": "Terjadi kesalahan.",
+		"copy": "Salin",
+		"continue": "Lanjutkan"
+	},
+	"prefs": {
+		"openOnStart": {
+			"Today": "Hari ini",
+			"Last page": "Halaman terakhir",
+			"Home": "Beranda"
+		},
+		"pasteStyle": {
+			"Match page style": "Cocokkan gaya halaman",
+			"Plain text": "Teks polos"
+		},
+		"collisions": {
+			"Keep as a copy": "Simpan sebagai salinan",
+			"Keep the newer one": "Simpan yang lebih baru"
+		},
+		"trashAfter": {
+			"After 7 days": "Setelah 7 hari",
+			"After 30 days": "Setelah 30 hari",
+			"Never": "Tidak pernah"
+		},
+		"historyFor": {
+			"30 days": "30 hari",
+			"90 days": "90 hari",
+			"Forever": "Selamanya"
+		},
+		"lockAfterIdle": {
+			"5 minutes": "5 menit",
+			"15 minutes": "15 menit",
+			"Never": "Tidak pernah"
+		},
+		"codeFont": {
+			"JetBrains Mono": "JetBrains Mono",
+			"System mono": "Mono sistem"
+		}
+	},
+	"sidebar": {
+		"selectHint": "Centang halaman yang ingin dipindahkan. Anda bisa mengembalikannya dari Sampah.",
+		"range": "Shift-klik memilih satu rentang.",
+		"search": "Cari atau lompat ke",
+		"menu": {
+			"addInside": "Tambah halaman di dalam",
+			"down": "Pindah ke bawah",
+			"up": "Pindah ke atas",
+			"putInside": "Letakkan di dalam {{name}}",
+			"moveOut": "Keluarkan dari {{name}}",
+			"actionsFor": "Tindakan untuk {{title}}"
+		},
+		"empty": "Belum ada halaman.",
+		"moveToTrash": "Pindahkan ke sampah",
+		"selectPages": "Pilih halaman",
+		"close": "Tutup halaman",
+		"quickNotes": "Catatan cepat",
+		"selectAll": "Pilih semua",
+		"newPage": "Halaman baru",
+		"settings": "Pengaturan",
+		"import": "Impor",
+		"pages": "Halaman",
+		"today": "Hari ini",
+		"trash": "Sampah",
+		"tags": "Tag",
+		"selected_other": "{{count}} halaman dipilih"
+	},
+	"shell": {
+		"changeTypeNote": "Tulisan Anda tetap persis seperti semula. Hanya tampilan dan kolom tambahan yang berubah.",
+		"restore": "Pulihkan versi ini",
+		"exportMarkdown": "Ekspor sebagai Markdown",
+		"history": "Riwayat versi",
+		"backToCurrent": "Kembali ke yang sekarang",
+		"showSidebar": "Tampilkan bilah samping",
+		"hideSidebar": "Sembunyikan bilah samping",
+		"changeType": "Ubah jenis",
+		"openPages": "Buka halaman",
+		"breadcrumb": "Jejak navigasi",
+		"forward": "Maju",
+		"share": "Bagikan",
+		"back": "Kembali",
+		"more": "Lainnya",
+		"previewing": "Pratinjau {{label}}. Hanya baca. Halaman Anda saat ini tidak berubah."
+	},
+	"kinds": {
+		"quick": {
+			"name": "Catatan cepat",
+			"short": "catatan cepat",
+			"desc": "Sebuah memo tempel. Satu pikiran, angka, nama. Tersimpan begitu Anda berhenti mengetik."
+		},
+		"page": {
+			"name": "Halaman",
+			"short": "halaman",
+			"desc": "Halaman kosong dengan judul. Judul, daftar, gambar, apa saja."
+		},
+		"checklist": {
+			"name": "Daftar periksa",
+			"short": "daftar periksa",
+			"desc": "Tugas yang bisa dicentang. Yang belum selesai muncul di Hari ini."
+		},
+		"journal": {
+			"name": "Entri jurnal",
+			"short": "entri jurnal",
+			"desc": "Bertanggal hari ini dan disimpan di Jurnal. Satu per hari, dilanjutkan dari tempat Anda berhenti."
+		},
+		"meeting": {
+			"name": "Catatan rapat",
+			"short": "catatan rapat",
+			"desc": "Siapa yang hadir, apa yang dibicarakan, dan apa langkah berikutnya."
+		},
+		"study": {
+			"name": "Catatan belajar",
+			"short": "catatan belajar",
+			"desc": "Ringkasan di atas, lalu ruang untuk matematika, kode, dan pertanyaan untuk ditinjau lagi."
+		}
+	},
+	"newNote": {
+		"sub": "Pilih bentuk catatan. Anda bisa mengubahnya nanti.",
+		"keys": "Tekan 1 sampai 6, atau Enter",
+		"heading": "Apa yang Anda tulis?",
+		"type": "Jenis catatan",
+		"topLevel": "Tingkat atas",
+		"title": "Catatan baru",
+		"saveIn": "Simpan di",
+		"journal": "Jurnal",
+		"saveInWhere": "Simpan di: {{where}}",
+		"create": "Buat {{kind}}"
+	},
+	"switcher": {
+		"count_other": "{{hits}} dari {{count}} hasil",
+		"create": "Buat halaman bernama “{{title}}”",
+		"typeToSearch": "Ketik untuk mencari di dalam setiap halaman.",
+		"placeholderAll": "Cari teks di setiap halaman",
+		"onDevice": "dicari di perangkat ini",
+		"matches": "Kecocokan di halaman Anda",
+		"nothing": "Belum ada yang cocok.",
+		"placeholderJump": "Cari atau lompat ke",
+		"searchAll": "Cari semua halaman",
+		"searchJump": "Cari dan lompat",
+		"filter": "Saring menurut jenis",
+		"close": "Tutup pencarian",
+		"hintEnter": "Enter buka",
+		"hintMove": "↑ ↓ pindah",
+		"hintTab": "Tab jenis",
+		"actions": "Tindakan",
+		"search": "Cari",
+		"recent": "Terbaru",
+		"notes": "Catatan",
+		"all": "Semua",
+		"daily": "Catatan harian"
+	},
+	"ago": {
+		"justNow": "baru saja",
+		"minutes_other": "{{count}} menit lalu",
+		"hours_other": "{{count}} jam lalu",
+		"yesterday": "kemarin",
+		"days_other": "{{count}} hari lalu"
+	},
+	"sync": {
+		"detail": {
+			"offline": "Tidak ada koneksi. Suntingan aman di sini dan akan digabung saat Anda terhubung kembali, bahkan jika Anda juga menyunting di perangkat lain.",
+			"local": "Catatan Anda tersimpan di perangkat ini. Masuk atau buat akun untuk menyinkronkannya ke perangkat Anda yang lain.",
+			"catching": "Menyusul server Anda. Anda bisa terus mengetik; tidak ada yang menunggu ini.",
+			"synced": "Setiap catatan ada di perangkat ini dan di server Anda. Sinkronisasi terakhir {{when}}.",
+			"sending_other": "Mengirim {{count}} suntingan. Anda bisa terus mengetik; tidak ada yang menunggu ini."
+		},
+		"offline": "Luring · tersimpan di perangkat ini",
+		"keepSafe": "Jaga catatan Anda tetap aman",
+		"local": "Hanya di perangkat ini",
+		"signIn": "Masuk untuk menyinkronkan",
+		"status": "Status sinkronisasi",
+		"syncing": "Menyinkronkan…",
+		"synced": "Tersinkron"
+	},
+	"footer": {
+		"saved": "Tersimpan di perangkat ini",
+		"words_other": "{{count}} kata"
+	},
+	"meta": {
+		"newTag": "Tag baru",
+		"tagPlaceholder": "tag",
+		"removeTag": "Hapus tag {{tag}}",
+		"edited": "Disunting {{when}}"
+	},
+	"today": {
+		"revisit": "Untuk ditinjau lagi",
+		"quickNote": "Catatan cepat",
+		"pinned": "Disematkan"
+	},
+	"todo": {
+		"note": "Dari daftar periksa Anda. Centang satu di sini dan tercentang juga di sana.",
+		"title": "Masih harus dikerjakan",
+		"overdue": "Terlambat",
+		"today": "Hari ini",
+		"high": "Tinggi",
+		"tomorrow": "Besok"
+	},
+	"capture": {
+		"newQuick": "Catatan cepat baru",
+		"page": "Sebuah halaman",
+		"title": "Tangkap cepat · Seijaku",
+		"placeholder": "Tuliskan sesuatu",
+		"hintLine": "Shift Enter baris baru",
+		"hintSave": "Enter untuk menyimpan",
+		"hintClose": "Esc untuk menutup",
+		"button": "Tangkap",
+		"addTo": "Tambahkan ke"
+	},
+	"links": {
+		"stopFailed": "Tidak bisa menghentikan pembagian.",
+		"inTrash": "(di Sampah)",
+		"shared": "Dibagikan {{date}}",
+		"nothing": "Tidak ada yang dibagikan.",
+		"useShare": "Gunakan Bagikan pada sebuah halaman untuk membuat tautan.",
+		"explain": "Tautan membuka halaman bagi siapa pun yang memilikinya, tanpa masuk. Menghentikan pembagian membuat tautan langsung berhenti berfungsi.",
+		"noneShared": "Tidak ada yang dibagikan",
+		"count": "{{count}} dibagikan",
+		"desc": "Halaman yang dibagikan dengan tautan.",
+		"title": "Halaman publik",
+		"manage": "Kelola tautan",
+		"stop": "Hentikan pembagian",
+		"stopping": "Menghentikan…"
+	},
+	"cache": {
+		"underMb": "kurang dari 0,1 MB",
+		"waiting_other": "{{count}} perubahan masih menunggu untuk diunggah. Mengosongkan sekarang akan menghilangkannya. Coba lagi setelah Seijaku menampilkan “Terbaru”.",
+		"used": "{{size}} terpakai di perangkat ini",
+		"explain": "Halaman dan gambar dihapus dari perangkat ini lalu diunduh lagi dari server Anda. Tidak ada yang dihapus dari akun Anda.",
+		"noAccount": "Tanpa akun, perangkat ini menyimpan satu-satunya salinan catatan Anda. Masuk dulu agar catatan ada di server Anda.",
+		"offline": "Seijaku tidak bisa menjangkau server Anda, sehingga tidak bisa memastikan semuanya tersimpan di sana. Coba lagi saat Anda terhubung.",
+		"blocked": "Peramban ini memblokir penyimpanan, jadi tidak ada yang perlu dikosongkan.",
+		"onDevice": "Penyimpanan luring di perangkat ini",
+		"title": "Kosongkan penyimpanan luring?",
+		"confirm": "Kosongkan dan muat ulang",
+		"clear": "Kosongkan cache",
+		"notYet": "Belum bisa"
+	},
+	"device": {
+		"unknown": "Perangkat tidak dikenal",
+		"generic": "Perangkat"
+	},
+	"account": {
+		"lastActive": "Terakhir aktif {{when}}",
+		"passkeyDefault": "Kunci sandi {{device}}",
+		"added": "Ditambahkan {{date}}",
+		"signedOutDesc": "Catatan Anda hanya ada di perangkat ini. Akun menjaganya tersinkron, terenkripsi, di perangkat Anda yang lain.",
+		"phraseDesc": "Dua belas kata yang memulihkan catatan Anda di perangkat baru. Simpan di tempat luring.",
+		"devicesOffline": "Hubungkan ke server Anda untuk melihat perangkat mana yang masuk.",
+		"addPasskeyDesc": "Buat di perangkat ini, di ponsel, atau pada kunci keamanan.",
+		"onlyPasskey": "Satu-satunya kunci sandi Anda. Tambahkan yang lain sebelum menghapus ini.",
+		"phraseNew": "Ini frasa baru Anda. Hanya ditampilkan sekarang.",
+		"signOutAllDesc": "Mengakhiri setiap sesi, termasuk yang ini.",
+		"devicesFailed": "Tidak bisa memuat daftar perangkat.",
+		"removeFailed": "Kunci sandi tidak bisa dihapus.",
+		"passkeysFailed": "Tidak bisa memuat kunci sandi Anda.",
+		"phraseFailed": "Tidak bisa membuat frasa baru.",
+		"noServer": "Tidak bisa menjangkau server.",
+		"phraseEnds": "Ini mengakhiri frasa lama Anda.",
+		"signOutFailed": "Tidak bisa keluar.",
+		"signOutAll": "Keluar di mana-mana",
+		"devicesTitle": "Perangkat yang masuk",
+		"newPhrase": "Buat frasa baru",
+		"phrase": "Frasa pemulihan",
+		"create": "Buat akun",
+		"replacePhrase": "Ganti frasa",
+		"addPasskey": "Tambah kunci sandi",
+		"passkeyName": "Nama kunci sandi",
+		"signOutAllButton": "Keluarkan semua",
+		"addPasskeyButton": "Tambah kunci sandi",
+		"activeNow": "Aktif sekarang",
+		"signOut": "Keluar",
+		"passkeys": "Kunci sandi",
+		"signIn": "Masuk",
+		"devices": "Perangkat",
+		"passkey": "Kunci sandi"
+	},
+	"share": {
+		"desc": "Siapa pun dengan tautan bisa membaca halaman ini. Mereka tidak bisa menyuntingnya, dan sub-halaman tidak disertakan.",
+		"revokeNote": "Mencabut mematikan tautan selamanya. Membagikan lagi membuat tautan baru.",
+		"needsAccount": "Membagikan perlu akun, karena server Anda yang menampung tautannya.",
+		"encrypted": "Halaman dienkripsi sebelum meninggalkan perangkat ini. Kuncinya menjadi bagian dari tautan, sehingga server Anda tidak bisa membacanya.",
+		"confirm": "Matikan tautan ini selamanya? Siapa pun yang memilikinya akan melihat bahwa halaman itu sudah tiada.",
+		"created": "Tautan dibuat {{when}}",
+		"placeholder": "Muncul saat pembagian aktif",
+		"heading": "Bagikan ke web",
+		"title": "Bagikan halaman ini",
+		"publicLink": "Tautan publik",
+		"revoke": "Cabut tautan"
+	},
+	"history": {
+		"todayAt": "hari ini, {{time}}",
+		"deviceEdited": "Perangkat ini · disunting {{when}}",
+		"group": {
+			"Today": "Hari ini",
+			"Yesterday": "Kemarin",
+			"Earlier": "Sebelumnya"
+		},
+		"signIn": "Masuk untuk menyimpan versi sebelumnya. Sebelum itu hanya halaman saat ini yang ada, di perangkat ini.",
+		"note": "Rekaman disimpan di server Anda, dijarangkan seiring usianya. Memulihkan menambah satu suntingan, sehingga tersinkron dan bisa dibatalkan.",
+		"listFailed": "Tidak bisa menjangkau server Anda untuk menampilkan versi sebelumnya.",
+		"empty": "Versi sebelumnya muncul di sini saat Anda menulis.",
+		"openFailed": "Versi itu tidak bisa dibuka.",
+		"fromOther": "Disinkronkan dari perangkat lain",
+		"fromHere": "Disinkronkan dari perangkat ini",
+		"close": "Tutup riwayat",
+		"created": "Halaman dibuat",
+		"title": "Riwayat",
+		"current": "Saat ini"
+	},
+	"datePicker": {
+		"choose": "{{label}}: pilih hari",
+		"prev": "Bulan sebelumnya",
+		"pick": "Pilih tanggal",
+		"next": "Bulan berikutnya",
+		"clear": "Hapus"
+	},
+	"public": {
+		"title": "{{title}} · Seijaku",
+		"sharedTitle": "Halaman dibagikan · Seijaku",
+		"sharedFrom": "Dibagikan dari {{name}} · hanya baca",
+		"goneDesc": "Tautan mungkin sudah dimatikan, atau ada bagian alamatnya yang hilang.",
+		"cta": "Simpan catatan Anda sendiri dengan Seijaku",
+		"goneTitle": "Halaman ini tidak tersedia",
+		"opening": "Membuka…",
+		"sharedReadOnly": "Halaman dibagikan · hanya baca"
+	},
+	"note": {
+		"missing": "Halaman ini tidak ada di sini",
+		"missingDesc": "Mungkin sudah dihapus di perangkat lain.",
+		"trashed": "Halaman ini ada di sampah",
+		"toKeepWorking": "untuk melanjutkan mengerjakannya.",
+		"goToPages": "Ke halaman Anda",
+		"restore": "Pulihkan",
+		"pageTitle": "Judul halaman"
+	},
+	"phrase": {
+		"fileHeader": "Frasa pemulihan Seijaku\nSimpan ini di tempat yang hanya Anda yang bisa jangkau. Siapa pun yang memilikinya bisa membaca catatan Anda.",
+		"placeholder": "Ketik atau tempel dua belas kata Anda",
+		"label": "Frasa pemulihan, dua belas kata",
+		"download": "Unduh .txt",
+		"copy": "Salin frasa"
+	},
+	"ctx": {
+		"copyLink": "Salin alamat tautan",
+		"openLink": "Buka tautan",
+		"reload": "Muat ulang",
+		"paste": "Tempel",
+		"cut": "Potong"
+	},
+	"window": {
+		"minimise": "Kecilkan",
+		"maximise": "Besarkan"
+	},
+	"trash": {
+		"pageTitle": "Sampah · Seijaku",
+		"today": "hari ini, {{time}}",
+		"yesterday": "kemarin",
+		"confirmOne": "Hapus “{{title}}” selamanya? Ini tidak bisa dibatalkan.",
+		"confirmOneSubs_other": "Hapus “{{title}}” dan {{count}} sub-halamannya selamanya? Ini tidak bisa dibatalkan.",
+		"confirmAll_other": "Hapus {{count}} halaman selamanya? Ini tidak bisa dibatalkan.",
+		"info": "{{where}} · dihapus {{when}}",
+		"subs_other": "{{count}} sub-halaman",
+		"selected": "{{count}} dipilih",
+		"restoreN": "Pulihkan {{count}}",
+		"deleteN": "Hapus {{count}} selamanya",
+		"pages_other": "{{count}} halaman",
+		"deleteForever": "Hapus {{pages}} selamanya?",
+		"body": {
+			"oneNone": "Halaman ini meninggalkan setiap perangkat yang Anda pakai. Ini tidak bisa dibatalkan.",
+			"oneSub": "Halaman ini dan sub-halamannya meninggalkan setiap perangkat yang Anda pakai. Ini tidak bisa dibatalkan.",
+			"oneSubs": "Halaman ini dan {{subs}} sub-halamannya meninggalkan setiap perangkat yang Anda pakai. Ini tidak bisa dibatalkan.",
+			"manyNone": "Halaman-halaman ini meninggalkan setiap perangkat yang Anda pakai. Ini tidak bisa dibatalkan.",
+			"manySub": "Halaman-halaman ini dan sub-halamannya meninggalkan setiap perangkat yang Anda pakai. Ini tidak bisa dibatalkan.",
+			"manySubs": "Halaman-halaman ini dan {{subs}} sub-halamannya meninggalkan setiap perangkat yang Anda pakai. Ini tidak bisa dibatalkan."
+		},
+		"hint": "Halaman yang dihapus menunggu di sini. Pulihkan satu, atau hapus selamanya.",
+		"empty": "Tidak ada apa-apa di sini. Halaman yang Anda hapus akan menunggu di sini lebih dulu.",
+		"hintSelect": "Centang halaman untuk dikembalikan atau dihapus selamanya.",
+		"toolbar": "Halaman terpilih",
+		"keep": "Simpan saja",
+		"deleteForeverButton": "Hapus selamanya",
+		"emptyTrash": "Kosongkan sampah",
+		"restore": "Pulihkan",
+		"select": "Pilih"
+	},
+	"quick": {
+		"pageTitle": "Catatan cepat · Seijaku",
+		"hideTicks": "Sembunyikan kotak centang",
+		"showTicks": "Tampilkan kotak centang",
+		"others": "Lainnya",
+		"unpin": "Lepas sematan",
+		"pin": "Sematkan",
+		"empty": "Belum ada apa-apa. Catatan cepat adalah satu pikiran, angka, atau nama.",
+		"toPage": "Ubah jenis menjadi halaman",
+		"take": "Catat sesuatu…",
+		"closeNote": "Tutup catatan",
+		"colour": "Warna",
+		"title": "Judul"
+	},
+	"tint": {
+		"washi": "Washi",
+		"kaki": "Kaki",
+		"matcha": "Matcha",
+		"ai": "Ai",
+		"sakura": "Sakura",
+		"kuchiba": "Kuchiba"
+	},
+	"auth": {
+		"noServerSignIn": "Perangkat ini tidak bisa menjangkau server saat ini, sehingga tidak bisa masuk.",
+		"setupIntro": "Pilih cara Anda akan masuk. Catatan Anda dienkripsi di perangkat Anda, dan Anda mendapat frasa dua belas kata untuk disimpan, apa pun pilihannya. Semua yang sudah Anda tulis ikut terbawa.",
+		"passkeyNote": "Kunci sandi memasukkan Anda dengan sidik jari, wajah, atau kunci perangkat. Frasa saja seperti dompet kripto: hanya kata-kata, tanpa apa pun untuk diingat.",
+		"phraseIntro": "Dua belas kata ini adalah kunci catatan Anda. Jika Anda kehilangan setiap perangkat yang masuk dan frasa ini, catatan Anda tidak bisa dipulihkan, bahkan oleh kami. Siapa pun yang memilikinya bisa membacanya. Frasa ini hanya ditampilkan sekarang.",
+		"setupOffline": "Perangkat ini tidak bisa menjangkau server saat ini. Periksa apakah server berjalan, lalu coba lagi.",
+		"phraseGone": "Frasa hanya ditampilkan sekali, dan halaman ini tidak lagi menyimpannya. Buat yang baru kapan saja di Pengaturan, di bawah Keamanan.",
+		"desktopDone": "Aplikasi desktop Anda akan muncul ke depan dan masuk. Anda bisa menutup tab ini setelahnya.",
+		"step1": "Langkah 1 dari 2",
+		"step2": "Langkah 2 dari 2",
+		"signedIn": "Sudah masuk",
+		"noLink": "Server tidak mau membuat tautan masuk.",
+		"unlockText": "Catatan Anda terenkripsi, dan perangkat ini belum memiliki kuncinya. Gunakan kunci sandi atau frasa pemulihan dua belas kata Anda untuk membukanya di sini.",
+		"idleText": "Anda menjauh, jadi Seijaku menyimpan kuncinya. Catatan Anda masih ada di sini.",
+		"passkeyCannot": "Kunci sandi itu tidak bisa membuka catatan Anda sendiri. Gunakan frasa pemulihan Anda.",
+		"codeNote": "Server ini meminta kode. Siapa pun yang mengelolanya bisa memberi Anda satu.",
+		"noServerRetry": "Tidak bisa menjangkau server. Periksa alamatnya dan coba lagi.",
+		"noServerAddress": "Tidak bisa menjangkau server. Periksa alamat di bawah.",
+		"badPhrase": "Tidak bisa masuk dengan frasa itu.",
+		"saved": "Saya sudah menyimpan kata-kata ini di tempat aman",
+		"unlockFailed": "Tidak bisa membuka dengan frasa itu.",
+		"keepWriting": "Terus menulis tanpa akun",
+		"passkeyRejected": "Kunci sandi itu tidak diterima.",
+		"usePhrase": "Pakai frasa pemulihan saya",
+		"noBrowser": "Tidak bisa membuka peramban.",
+		"newHere": "Baru di sini? Buat akun",
+		"withBrowser": "Masuk dengan peramban Anda",
+		"generatePhrase": "Buat frasa saja",
+		"titleRecovery": "Frasa pemulihan · Seijaku",
+		"titleCreate": "Buat akun · Seijaku",
+		"titleDesktop": "Buka Seijaku · Seijaku",
+		"keepSafe": "Simpan frasa ini dengan aman",
+		"withPasskey": "Masuk dengan kunci sandi",
+		"withPhrase": "Masuk dengan frasa",
+		"createHeading": "Buat akun Anda",
+		"unlockPasskey": "Buka dengan kunci sandi",
+		"unlockPhrase": "Buka dengan frasa",
+		"titleSignIn": "Masuk · Seijaku",
+		"unlockHeading": "Buka catatan Anda",
+		"nameDevice": "Beri nama perangkat ini",
+		"titleLocked": "Terkunci · Seijaku",
+		"titleUnlock": "Buka kunci · Seijaku",
+		"opening": "Membuka Seijaku",
+		"createPasskey": "Buat kunci sandi",
+		"devicePlaceholder": "Laptop studio",
+		"openNotes": "Buka catatan saya",
+		"signupCode": "Kode pendaftaran",
+		"openSeijaku": "Buka Seijaku",
+		"change": "Ubah",
+		"locked": "Terkunci"
+	},
+	"about": {
+		"titles": {
+			"news": "Yang baru",
+			"apps": "Dapatkan aplikasinya",
+			"privacy": "Privasi",
+			"licences": "Lisensi sumber terbuka"
+		},
+		"news": {
+			"date": "November 2026",
+			"version": "Versi {{version}}",
+			"listedOn": "Setiap rilis tercantum di",
+			"n1": "Catatan yang mengutamakan perangkat dan bekerja luring, dengan halaman bersarang, enam jenis catatan, dan editor blok.",
+			"n2": "Sinkronisasi terenkripsi ujung ke ujung antarperangkat: server hanya menyimpan salinan tersegel.",
+			"n3": "Masuk dengan kunci sandi atau frasa pemulihan dua belas kata.",
+			"n4": "Riwayat versi, tautan berbagi, impor dari Notion, Obsidian, Markdown dan lainnya, serta ekspor ke Markdown.",
+			"n5": "Bisa dipasang di iPhone dan Android sebagai aplikasi, serta aplikasi desktop untuk Windows, macOS, dan Linux."
+		},
+		"apps": {
+			"webLead": "Web.",
+			"web": "Anda sedang memakainya. Tidak perlu memasang apa pun.",
+			"phoneLead": "iPhone dan Android.",
+			"phone": "Buka halaman ini di Safari (iPhone) atau Chrome (Android), pilih Bagikan atau menu, lalu “Tambahkan ke Layar Utama”. Ia terbuka seperti aplikasi dan bekerja luring.",
+			"phoneKeep": "Di iPhone, ini juga menjaga catatan Anda agar tidak terhapus.",
+			"desktopLead": "Windows, macOS, dan Linux.",
+			"desktop": "Unduh aplikasi desktop dari",
+			"releases": "halaman rilis",
+			"capture": "Aplikasi ini menambahkan pintasan tangkap cepat yang berfungsi dari aplikasi mana pun.",
+			"share": "Semuanya berbagi satu ruang kerja setelah Anda masuk."
+		},
+		"privacy": {
+			"sealedLead": "Catatan Anda disegel di perangkat Anda.",
+			"sealed": "Halaman, judul, tag, dan berkas dienkripsi sebelum meninggalkannya. Server menyimpan dan meneruskan data tersegel yang tidak bisa dibacanya, dan menamai tiap halaman dengan hash, bukan judulnya.",
+			"knowsLead": "Yang memang diketahui server.",
+			"knows": "Bahwa sebuah akun ada, bagian publik kunci sandinya, kapan Anda terhubung, berapa banyak data tersegel yang Anda simpan, dan tautan berbagi mana yang ada. Frasa pemulihan Anda tidak pernah meninggalkan perangkat; hanya nilai turunannya yang disimpan agar bisa membuktikan bahwa itu milik Anda.",
+			"shareLead": "Tautan berbagi.",
+			"share": "Halaman yang dibagikan adalah salinan tersegel tersendiri. Kuncinya hanya ada di tautan setelah tanda #, yang tidak dikirim peramban ke server. Menghentikan pembagian menghapus salinannya.",
+			"previewLead": "Pratinjau tautan.",
+			"preview": "Saat Anda menambahkan kartu tautan, server Anda mengambil halaman web itu untuk membaca judul dan gambarnya.",
+			"deviceLead": "Di perangkat ini.",
+			"device": "Halaman dan gambar tetap di penyimpanan peramban ini sampai Anda menghapusnya (Pengaturan → Data). Seijaku tidak menjalankan analitik maupun iklan.",
+			"keyLead": "Kehilangan kunci.",
+			"key": "Karena server tidak bisa membaca catatan Anda, server juga tidak bisa memulihkannya. Simpan frasa pemulihan Anda di tempat aman."
+		},
+		"licencesIntro": "Seijaku berdiri di atas pustaka-pustaka ini. Terima kasih kepada semua yang membuatnya."
+	},
+	"import": {
+		"sources": {
+			"obsidian": {
+				"hint": "Folder vault atau .zip",
+				"drop": "Jatuhkan vault Obsidian Anda di sini, sebagai folder atau .zip"
+			},
+			"notion": {
+				"hint": "Ekspor .zip (Markdown)",
+				"drop": "Jatuhkan ekspor Notion Anda (.zip) di sini"
+			},
+			"keep": {
+				"hint": "Takeout .zip",
+				"drop": "Jatuhkan .zip Takeout Anda, atau folder Keep, di sini"
+			},
+			"evernote": {
+				"hint": "Berkas .enex",
+				"drop": "Jatuhkan berkas .enex Anda di sini"
+			},
+			"applenotes": {
+				"hint": "Catatan hasil ekspor",
+				"drop": "Jatuhkan catatan hasil ekspor Anda di sini, sebagai berkas, folder, atau .zip"
+			},
+			"applejournal": {
+				"hint": "Entri hasil ekspor",
+				"drop": "Jatuhkan entri hasil ekspor Anda di sini, sebagai berkas, folder, atau .zip"
+			},
+			"markdown": {
+				"hint": "Berkas atau folder",
+				"drop": "Jatuhkan berkas Markdown atau folder Anda di sini"
+			},
+			"html": {
+				"hint": "Berkas atau folder",
+				"drop": "Jatuhkan berkas HTML atau folder Anda di sini"
+			},
+			"text": {
+				"hint": "Berkas .txt",
+				"drop": "Jatuhkan berkas teks Anda di sini"
+			}
+		},
+		"dropAny": "Jatuhkan catatan Anda di sini: folder, .zip, atau berkas",
+		"noneImported": "Tidak ada catatan yang bisa diimpor. {{reason}}.",
+		"importing": "Mengimpor {{source}}",
+		"progress_other": "{{done}} dari {{count}} catatan",
+		"imagesSaved_other": "{{count}} gambar tersimpan",
+		"otherFiles_other": "{{count}} berkas lain",
+		"tagsFound_other": "{{count}} tag ditemukan",
+		"skippedCount_other": "{{count}} hal dilewati",
+		"filesReady_other": "{{count}} berkas siap",
+		"keepUsing": "Anda bisa terus memakai Seijaku. Catatan yang diimpor muncul di bilah samping begitu tiba.",
+		"intro": "Impor berjalan di perangkat ini, sehingga bekerja luring. Jatuhkan catatan Anda dan Seijaku mencari tahu dari mana asalnya, atau pilih sumber di bawah.",
+		"kept": "Tag, tanggal, dan sematan gambar dipertahankan jika sumbernya memilikinya.",
+		"reportNote": "Item yang dilewati tercantum dalam catatan bernama “{{title}}”.",
+		"noNotes": "Tidak ada catatan di apa yang Anda pilih.",
+		"nothingFound": "Tidak ada yang bisa diimpor di sana.",
+		"heading": "Bawa catatan Anda bersama Anda",
+		"background": "Lanjutkan di latar belakang",
+		"readingFiles": "Membaca berkas Anda",
+		"chooseFolder": "atau pilih folder",
+		"title": "Impor · Seijaku",
+		"chooseFile": "atau pilih berkas",
+		"progressLabel": "Kemajuan impor",
+		"failed": "Impor gagal.",
+		"opening": "Membuka berkas…",
+		"cancel": "Batalkan impor",
+		"inProgress": "Sedang berjalan",
+		"reading": "Membaca…",
+		"skipped": "Dilewati",
+		"reportTitle": "Laporan impor",
+		"reportHead_other": "{{count}} hal tidak terbawa dengan baik:"
+	},
+	"heads": {
+		"iconGroups": {
+			"Pages": "Halaman",
+			"Ideas": "Gagasan",
+			"Work": "Kerja",
+			"Life": "Hidup"
+		},
+		"icon": "Ikon {{icon}}",
+		"coverTint": "Sampul {{tint}}",
+		"removePerson": "Hapus {{name}}",
+		"moods": {
+			"Heavy": "Berat",
+			"Low": "Rendah",
+			"Even": "Datar",
+			"Good": "Baik",
+			"Bright": "Cerah"
+		},
+		"weather": {
+			"sun": "Cerah",
+			"cloud": "Berawan",
+			"rain": "Hujan",
+			"snow": "Salju",
+			"wind": "Berangin"
+		},
+		"confidence": {
+			"new": "baru",
+			"shaky": "goyah",
+			"solid": "mantap"
+		},
+		"notImage": "Tautan itu bukan gambar. Di situsnya, klik kanan gambar dan pilih Salin alamat gambar.",
+		"badUrl": "Tempel alamat web yang diawali https://",
+		"addFailed": "Tidak bisa menambahkan gambar itu.",
+		"upload": "Unggah dari perangkat ini…",
+		"noEntries": "Belum ada entri bulan ini.",
+		"highlight": "Hari ini dalam satu kalimat",
+		"dayTitlePlaceholder": "Beri judul untuk hari ini",
+		"pasteLink": "Tempel tautan gambar",
+		"highlightPlaceholder": "Apa yang tinggal bersama Anda",
+		"typeChar": "Ketik karakter apa saja",
+		"coverLink": "Tautan gambar sampul",
+		"room": "Ruangan atau alamat",
+		"journalMonth": "Bulan jurnal",
+		"meeting": "Catatan rapat",
+		"changeCover": "Ganti sampul",
+		"meetingLink": "Tautan rapat",
+		"addPerson": "Tambah orang",
+		"onThisPage": "Di halaman ini",
+		"sourceLink": "Tautan sumber",
+		"cover": "Sampul halaman",
+		"revisitOn": "Tinjau lagi pada",
+		"pageIcon": "Ikon halaman",
+		"addCover": "Tambah sampul",
+		"checklist": "Daftar periksa",
+		"showDone": "Tampilkan yang selesai",
+		"hideDone": "Sembunyikan yang selesai",
+		"dayTitle": "Judul hari",
+		"typeAny": "Ketik apa saja",
+		"addIcon": "Tambah ikon",
+		"dueDate": "Tenggat",
+		"progress": "Kemajuan",
+		"previous": "Sebelumnya",
+		"weatherLabel": "Cuaca",
+		"subject": "Subjek",
+		"revisit": "Tinjau lagi",
+		"source": "Sumber",
+		"place": "Tempat",
+		"where": "Di mana",
+		"start": "Mulai",
+		"add": "+ Tambah",
+		"next": "Berikutnya",
+		"mood": "Suasana hati",
+		"when": "Kapan",
+		"date": "Tanggal",
+		"link": "Tautan",
+		"use": "Pakai",
+		"due": "Tenggat",
+		"end": "Selesai",
+		"who": "Siapa",
+		"revisits": "Tinjauan ulang"
+	},
+	"editor": {
+		"blocksGroup": "Blok",
+		"blocks": {
+			"paragraph": {
+				"name": "Teks",
+				"hint": "Tulisan biasa"
+			},
+			"heading": {
+				"name": "Judul",
+				"hint": "Ketik # lalu spasi"
+			},
+			"todo": {
+				"name": "Daftar tugas",
+				"hint": "Ketik [] lalu spasi"
+			},
+			"bullets": {
+				"name": "Daftar berpoin",
+				"hint": "Ketik - lalu spasi"
+			},
+			"toggle": {
+				"name": "Lipat",
+				"hint": "Sembunyikan rincian di dalamnya"
+			},
+			"quote": {
+				"name": "Kutipan",
+				"hint": "Pisahkan sebuah baris"
+			},
+			"code": {
+				"name": "Kode",
+				"hint": "Ketik ``` lalu spasi"
+			},
+			"math": {
+				"name": "Rumus",
+				"hint": "Persamaan dalam LaTeX"
+			},
+			"table": {
+				"name": "Tabel",
+				"hint": "Baris dan kolom"
+			},
+			"callout": {
+				"name": "Catatan sorot",
+				"hint": "Pisahkan sebuah pikiran dari halaman"
+			}
+		},
+		"callout": {
+			"title": "Catatan sorot",
+			"hint": "Pisahkan sebuah pikiran dari halaman"
+		},
+		"link": {
+			"title": "Pratinjau tautan",
+			"hint": "Tampilkan halaman web sebagai kartu"
+		},
+		"math": {
+			"title": "Rumus",
+			"hint": "Tulis persamaan dalam LaTeX"
+		},
+		"groups": {
+			"basic": "Blok dasar",
+			"media": "Media",
+			"advanced": "Lanjutan"
+		},
+		"calloutStyle": "Ubah gaya catatan sorot",
+		"calloutLabel": "Catatan sorot: {{tone}}. Ubah gaya",
+		"mathEmpty": "Tulis persamaan di bawah",
+		"mathInvalid": "Persamaan tidak valid",
+		"linkPlaceholder": "Tempel tautan lalu tekan Enter",
+		"linkLabel": "Tautan untuk dipratinjau",
+		"linkNote": "Server Anda mengambil halaman itu sekali untuk membaca judulnya.",
+		"linkBad": "Itu tidak tampak seperti alamat web."
+	},
+	"templates": {
+		"who": "Siapa yang hadir",
+		"said": "Apa yang dibicarakan",
+		"next": "Apa langkah berikutnya",
+		"keyIdea": "Gagasan utama.",
+		"maths": "Matematika",
+		"code": "Kode",
+		"questions": "Pertanyaan untuk ditinjau lagi"
+	},
+	"toolbar": {
+		"linkPrompt": "Alamat tautan",
+		"formatting": "Pemformatan",
+		"insertBlock": "Sisipkan blok",
+		"textStyle": "Gaya teks",
+		"todo": "Tugas",
+		"link": "Tautan",
+		"undo": "Urungkan"
+	},
+	"errors": {
+		"badPhrase": "Itu bukan frasa pemulihan yang valid. Periksa kata-katanya.",
+		"tooMany": "Terlalu banyak percobaan. Tunggu beberapa menit lalu coba lagi.",
+		"noPhrase": "Server ini tidak punya catatan frasa pemulihan.",
+		"unlockFirst": "Buka perangkat ini dengan frasa Anda lebih dulu.",
+		"wrongPhrase": "Frasa itu tidak membuka ruang kerja ini.",
+		"noServer": "Atur alamat server lebih dulu.",
+		"uploadOffline": "Tidak bisa mengunggah. Periksa koneksi Anda lalu coba lagi.",
+		"fileUnlock": "Buka perangkat ini sebelum menambahkan berkas.",
+		"fileTooBig": "Berkas itu lebih besar dari 25 MB.",
+		"uploadFailed": "Tidak bisa mengunggah berkas itu.",
+		"fileSignIn": "Masuk untuk menambahkan berkas.",
+		"noServerMoment": "Tidak bisa menjangkau server Anda. Coba lagi sebentar lagi.",
+		"shareSignIn": "Masuk untuk membagikan halaman.",
+		"pageGone": "Halaman ini sudah tiada."
+	},
+	"accent": {
+		"vermilion": "Vermilion",
+		"matcha": "Matcha",
+		"indigo": "Indigo",
+		"gold": "Emas",
+		"ink": "Tinta"
+	},
+	"home": {
+		"poems": {
+			"p1": {
+				"l1": "Halaman kosong,",
+				"l2": "satu baris turun pelan,",
+				"l3": "bising pun mereda."
+			},
+			"p2": {
+				"l1": "Tinta temui kertas,",
+				"l2": "pikiran tenggelam bagai batu,",
+				"l3": "riak menjadi kata."
+			},
+			"p3": {
+				"l1": "Kerikil disapu rata,",
+				"l2": "tiap garis riak yang tenang,",
+				"l3": "tak ada yang dikejar."
+			},
+			"p4": {
+				"l1": "Salju di buku catatan,",
+				"l2": "yang kau tulis tetap hangat,",
+				"l3": "sisanya melebur putih."
+			},
+			"p5": {
+				"l1": "Angin berhenti di pintu,",
+				"l2": "halaman berbalik tanpa suara,",
+				"l3": "lampu menyala tenang."
+			},
+			"p6": {
+				"l1": "Luring, masih di sini,",
+				"l2": "kata-katamu punya waktunya sendiri,",
+				"l3": "bulan menunggu sinkron."
+			}
+		}
+	}
+}

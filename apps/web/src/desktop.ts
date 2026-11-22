@@ -1,4 +1,5 @@
 import { authStore } from "./auth/session";
+import { i18n } from "./i18n";
 import {
 	getDeviceToken,
 	savedServerUrl,
@@ -103,7 +104,7 @@ export async function initDesktop(onSignedIn: () => void): Promise<void> {
 /** Passkeys do not work reliably in a webview, so sign-in happens in the system browser. */
 export async function signInInBrowser(): Promise<void> {
 	const server = savedServerUrl();
-	if (!server) throw new Error("Set the server address first.");
+	if (!server) throw new Error(i18n.t("errors.noServer"));
 	const { openUrl } = await import("@tauri-apps/plugin-opener");
 	await openUrl(`${server}/desktop-link`);
 }

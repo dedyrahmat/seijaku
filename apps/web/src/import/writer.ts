@@ -3,6 +3,7 @@ import { blocksToYXmlFragment } from "@blocknote/core/yjs";
 import { createNote, normalizeTag, updateNote } from "@seijaku/sync";
 import type * as Y from "yjs";
 import { schema } from "../editor/schema";
+import { i18n } from "../i18n";
 import { uploadFile } from "../workspace/files";
 import { workspace } from "../workspace/store";
 import {
@@ -240,9 +241,11 @@ export async function writeNotes(
 
 	let reportId: string | null = null;
 	if (skipped.length > 0) {
-		reportId = createNote(workspace.index, { title: "Import report" });
+		reportId = createNote(workspace.index, {
+			title: i18n.t("import.reportTitle"),
+		});
 		const lines = [
-			`${skipped.length} ${skipped.length === 1 ? "thing" : "things"} did not come across cleanly:`,
+			i18n.t("import.reportHead", { count: skipped.length }),
 			"",
 			...skipped.map((s) => `${s.source}: ${s.reason}`),
 		];

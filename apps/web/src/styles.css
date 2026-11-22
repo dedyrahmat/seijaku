@@ -729,3 +729,14 @@ input::selection {
 	max-height: 18px;
 	align-self: center;
 }
+
+/* Scrollbars: thin, and invisible until the box is scrolled (scrollbars.ts sets data-scrolling), then they fade. */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: transparent transparent;
+	transition: scrollbar-color 0.5s ease;
+}
+[data-scrolling] {
+	scrollbar-color: color-mix(in srgb, var(--mute) 60%, transparent) transparent;
+	transition-duration: 0.12s;
+}

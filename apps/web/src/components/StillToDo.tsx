@@ -6,6 +6,7 @@ import {
 } from "@seijaku/sync";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type * as Y from "yjs";
 import { dueLabel } from "../editor/todoProps";
 import { openTodos, type Todo, tickTodo } from "../editor/todos";
@@ -45,6 +46,7 @@ const soonest = (g: Group) =>
 	"9999";
 
 export function StillToDo() {
+	const { t } = useTranslation();
 	const notes = useNotes();
 	const [groups, setGroups] = useState<Group[]>([]);
 	const today = isoDay(new Date());
@@ -100,7 +102,7 @@ export function StillToDo() {
 					id="still-to-do"
 					className="font-serif text-[22px] font-medium tracking-[-0.01em]"
 				>
-					Still to do
+					{t("todo.title")}
 				</h2>
 				<span className="text-[13px] text-mute">{left} left</span>
 			</div>
@@ -110,55 +112,53 @@ export function StillToDo() {
 						{...pageLink(g.note.id, g.note.title)}
 						className="self-start text-[13px] text-ink2 underline decoration-mute underline-offset-[3px]"
 					>
-						{g.note.title || "Untitled"}
+						{g.note.title || t("common.untitled")}
 						{dueOf(g.note) ? (
 							<span
 								className={`ml-2 no-underline ${dueOf(g.note) < today ? "text-accent" : "text-mute"}`}
 							>
 								{dueOf(g.note) < today
-									? "Overdue"
+									? t("todo.overdue")
 									: dueOf(g.note) === today
-										? "Today"
+										? t("todo.today")
 										: dueOf(g.note)}
 							</span>
 						) : null}
 					</Link>
-					{g.todos.map((t) => (
+					{g.todos.map((todo) => (
 						<label
-							key={t.id}
+							key={todo.id}
 							className="flex min-h-8 cursor-pointer items-start gap-3 text-base leading-normal"
 						>
 							<input
 								type="checkbox"
 								checked={false}
-								onChange={() => void tick(g.note.id, t.id)}
+								onChange={() => void tick(g.note.id, todo.id)}
 								className="mt-1 size-[18px] accent-ink"
 							/>
-							<span>{t.text}</span>
-							{t.due ? (
+							<span>{todo.text}</span>
+							{todo.due ? (
 								<span
-									className={`mt-0.5 rounded-full px-2 text-[11px] leading-5 ${dueLabel(t.due).hot ? "bg-accent-soft text-accent" : "bg-tag text-ink2"}`}
+									className={`mt-0.5 rounded-full px-2 text-[11px] leading-5 ${dueLabel(todo.due).hot ? "bg-accent-soft text-accent" : "bg-tag text-ink2"}`}
 								>
-									{dueLabel(t.due).text}
+									{dueLabel(todo.due).text}
 								</span>
 							) : null}
-							{t.high ? (
+							{todo.high ? (
 								<span className="mt-0.5 rounded-full bg-accent-soft px-2 text-[11px] leading-5 text-accent">
-									High
+									{t("todo.high")}
 								</span>
 							) : null}
-							{t.owner ? (
+							{todo.owner ? (
 								<span className="mt-0.5 rounded-full bg-tag px-2 text-[11px] leading-5 text-ink2">
-									{t.owner}
+									{todo.owner}
 								</span>
 							) : null}
 						</label>
 					))}
 				</div>
 			))}
-			<p className="text-xs leading-normal text-mute">
-				From your checklists. Tick one here and it is ticked there too.
-			</p>
+			<p className="text-xs leading-normal text-mute">{t("todo.note")}</p>
 		</section>
 	);
 }

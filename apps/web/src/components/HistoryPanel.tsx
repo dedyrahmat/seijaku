@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../auth/session";
 import type { Block } from "../editor/headless";
 import {
@@ -48,7 +49,7 @@ function stamp(at: number, now: number): string {
 }
 
 /**
- * The mockup's "Version history" panel. Snapshots are sealed on this device and kept by the
+ * The mockup's Version history panel. Snapshots are sealed on this device and kept by the
  * server; picking one previews it read-only above the page, and restoring adds it back as an
  * edit. Listing needs a connection.
  */
@@ -63,6 +64,7 @@ export function HistoryPanel({
 	onPreview: (id: string | null, preview: Preview | null) => void;
 	onClose: () => void;
 }) {
+	const { t } = useTranslation();
 	const note = useNotes().find((n) => n.id === noteId);
 	const words = useWordCount(useNoteSession(noteId));
 	const auth = useAuth();
@@ -77,10 +79,10 @@ export function HistoryPanel({
 				setVersions(await listVersions(noteId));
 				setProblem(null);
 			} catch {
-				setProblem("Could not reach your server to list earlier versions.");
+				setProblem(t("history.listFailed"));
 			}
 		},
-		[noteId],
+		[noteId, t],
 	);
 
 	useEffect(() => {
@@ -107,7 +109,10 @@ export function HistoryPanel({
 		try {
 			const blocks = await versionBlocks(noteId, v.id);
 			onPreview(v.id, {
-				label: `${group(v.at, Date.now()) === "Today" ? "today" : stamp(v.at, Date.now())}${group(v.at, Date.now()) === "Today" ? `, ${clock(v.at)}` : ""}`,
+				label:
+					group(v.at, Date.now()) === "Today"
+						? t("history.todayAt", { time: clock(v.at) })
+						: stamp(v.at, Date.now()),
 				title: note?.title ?? "",
 				blocks,
 				restore: async () => {
@@ -118,7 +123,7 @@ export function HistoryPanel({
 			});
 			setProblem(null);
 		} catch {
-			setProblem("That version could not be opened.");
+			setProblem(t("history.openFailed"));
 		} finally {
 			setBusy(false);
 		}
@@ -148,17 +153,17 @@ export function HistoryPanel({
 
 	return (
 		<aside
-			aria-label="Version history"
+			aria-label={t("shell.history")}
 			className="fixed inset-y-0 right-0 z-40 flex w-80 max-w-[85vw] flex-col border-l border-line2 bg-panel pt-[env(safe-area-inset-top)] shadow-[-8px_0_40px_rgba(40,30,15,0.18)] lg:static lg:max-w-none lg:shadow-none"
 		>
 			<div className="flex h-[52px] flex-none items-center border-b border-line2 px-5">
 				<span className="flex-1 font-serif text-[19px] font-medium">
-					History
+					{t("history.title")}
 				</span>
 				<button
 					type="button"
 					onClick={onClose}
-					aria-label="Close history"
+					aria-label={t("history.close")}
 					className="flex size-11 items-center justify-center rounded-2xl text-ink2 hover:bg-hover md:size-[30px]"
 				>
 					<svg
@@ -177,7 +182,7 @@ export function HistoryPanel({
 			</div>
 			<div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2.5 py-2">
 				<div className="px-2.5 pt-3.5 pb-1.5 text-[11px] font-medium tracking-[0.09em] text-mute uppercase">
-					Today
+					{t("history.group.Today")}
 				</div>
 				<button
 					type="button"
@@ -186,13 +191,15 @@ export function HistoryPanel({
 					className={`flex w-full flex-col gap-0.5 rounded-2xl px-3 py-2.5 text-left hover:bg-hover ${currentSelected ? "bg-hover" : ""}`}
 				>
 					<span className="flex justify-between text-sm font-medium">
-						<span>Current</span>
+						<span>{t("history.current")}</span>
 						<span className="text-xs font-normal text-mute">
-							{words} {words === 1 ? "word" : "words"}
+							{t("footer.words", { count: words })}
 						</span>
 					</span>
 					<span className="text-xs text-mute">
-						This device · edited {ago(note?.updatedAt ?? null, now)}
+						{t("history.deviceEdited", {
+							when: ago(note?.updatedAt ?? null, now),
+						})}
 					</span>
 				</button>
 
@@ -200,7 +207,7 @@ export function HistoryPanel({
 					<div key={g.label} className="flex flex-col gap-0.5">
 						{g.label !== "Today" ? (
 							<div className="px-2.5 pt-3.5 pb-1.5 text-[11px] font-medium tracking-[0.09em] text-mute uppercase">
-								{g.label}
+								{t(`history.group.${g.label as ReturnType<typeof group>}`)}
 							</div>
 						) : null}
 						{g.items.map(({ v, delta, created }) => (
@@ -217,15 +224,15 @@ export function HistoryPanel({
 									<span className="text-xs font-normal text-mute">
 										{delta === 0
 											? ""
-											: `${delta > 0 ? "+" : "−"}${Math.abs(delta)} ${Math.abs(delta) === 1 ? "word" : "words"}`}
+											: `${delta > 0 ? "+" : "−"}${t("footer.words", { count: Math.abs(delta) })}`}
 									</span>
 								</span>
 								<span className="text-xs text-mute">
 									{created
-										? "Page created"
+										? t("history.created")
 										: v.here
-											? "Synced from this device"
-											: "Synced from another device"}
+											? t("history.fromHere")
+											: t("history.fromOther")}
 								</span>
 							</button>
 						))}
@@ -234,8 +241,7 @@ export function HistoryPanel({
 
 				{auth.phase !== "signed-in" ? (
 					<p className="px-2.5 pt-4 text-[13px] leading-normal text-mute">
-						Sign in to keep earlier versions. Until then only the current page
-						exists, on this device.
+						{t("history.signIn")}
 					</p>
 				) : problem ? (
 					<p
@@ -246,13 +252,12 @@ export function HistoryPanel({
 					</p>
 				) : versions && versions.length === 0 ? (
 					<p className="px-2.5 pt-4 text-[13px] leading-normal text-mute">
-						Earlier versions appear here as you write.
+						{t("history.empty")}
 					</p>
 				) : null}
 			</div>
 			<p className="border-t border-line2 px-5 pt-3.5 pb-[18px] text-xs leading-[1.55] text-mute">
-				Snapshots are kept on your server, thinned out as they age. Restoring
-				adds an edit, so it syncs and can be undone.
+				{t("history.note")}
 			</p>
 		</aside>
 	);

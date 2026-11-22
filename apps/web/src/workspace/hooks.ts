@@ -2,6 +2,7 @@ import {
 	buildTree,
 	countWords,
 	fragmentText,
+	getWorkspaceName,
 	type NoteMeta,
 	parsePageSlug,
 	type SyncState,
@@ -32,6 +33,13 @@ export function useNoteId(): string | undefined {
 
 export function useNotes(): NoteMeta[] {
 	return useSyncExternalStore(workspace.subscribe, workspace.getNotes);
+}
+
+/** The workspace's name (synced); "" until someone sets one. */
+export function useWorkspaceName(): string {
+	return useSyncExternalStore(workspace.subscribe, () =>
+		getWorkspaceName(workspace.index),
+	);
 }
 
 export function useTree(): TreeNode[] {

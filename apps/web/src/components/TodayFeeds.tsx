@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { lazy, Suspense, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useNotes } from "../workspace/hooks";
 import { isoDay } from "./dates";
 import { Icon } from "./Icon";
@@ -11,6 +12,7 @@ const StillToDo = lazy(() =>
 
 /** What waits for you on Today: unticked to-dos, study notes due for a revisit, and pinned quick notes. */
 export function TodayFeeds() {
+	const { t } = useTranslation();
 	const notes = useNotes();
 	const today = isoDay(new Date());
 	const revisit = useMemo(
@@ -40,10 +42,10 @@ export function TodayFeeds() {
 				<StillToDo />
 			</Suspense>
 			{revisit.length > 0 ? (
-				<Feed title="To revisit" icon="history">
+				<Feed title={t("today.revisit")} icon="history">
 					{revisit.map((n) => (
 						<Link key={n.id} {...pageLink(n.id, n.title)} className="feed-row">
-							{n.title || "Untitled"}
+							{n.title || t("common.untitled")}
 							<span className="text-xs text-mute">
 								{String(n.fields.study?.revisitOn)}
 							</span>
@@ -52,10 +54,10 @@ export function TodayFeeds() {
 				</Feed>
 			) : null}
 			{pinned.length > 0 ? (
-				<Feed title="Pinned" icon="pin">
+				<Feed title={t("today.pinned")} icon="pin">
 					{pinned.map((n) => (
 						<Link key={n.id} {...quickLink(n.id, n.title)} className="feed-row">
-							{n.title || "Quick note"}
+							{n.title || t("today.quickNote")}
 						</Link>
 					))}
 				</Feed>

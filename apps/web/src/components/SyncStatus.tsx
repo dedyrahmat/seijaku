@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../auth/session";
 import { useHomeScreenNotice, useSyncState } from "../workspace/hooks";
 import { ago } from "./ago";
@@ -13,6 +14,7 @@ import { ago } from "./ago";
 type Kind = "synced" | "syncing" | "offline" | "keep-safe" | "local";
 
 export function SyncStatus() {
+	const { t } = useTranslation();
 	const state = useSyncState();
 	const keepSafe = useHomeScreenNotice();
 	const signedOut = useAuth().phase === "signed-out";
@@ -47,25 +49,22 @@ export function SyncStatus() {
 	}, [open]);
 
 	const label = {
-		local: "On this device only",
-		synced: "Synced",
-		syncing: "Syncing…",
-		offline: "Offline · saved on this device",
-		"keep-safe": "Keep your notes safe",
+		local: t("sync.local"),
+		synced: t("sync.synced"),
+		syncing: t("sync.syncing"),
+		offline: t("sync.offline"),
+		"keep-safe": t("sync.keepSafe"),
 	}[kind];
 
 	const detail = {
-		local:
-			"Your notes are saved on this device. Sign in or create an account to sync them to your other devices.",
-		synced: `Every note is on this device and on your server. Last sync ${ago(state.lastSyncedAt, now)}.`,
+		local: t("sync.detail.local"),
+		synced: t("sync.detail.synced", { when: ago(state.lastSyncedAt, now) }),
 		syncing:
 			state.pending > 0
-				? `Sending ${state.pending} ${state.pending === 1 ? "edit" : "edits"}. You can keep typing; nothing waits on this.`
-				: "Catching up with your server. You can keep typing; nothing waits on this.",
-		offline:
-			"No connection. Edits are safe here and merge when you reconnect, even if you edited on another device too.",
-		"keep-safe":
-			"This browser may clear stored notes when space runs low. Add Seijaku to your Home Screen so the copy on this device is kept.",
+				? t("sync.detail.sending", { count: state.pending })
+				: t("sync.detail.catching"),
+		offline: t("sync.detail.offline"),
+		"keep-safe": t("settings.sync.connection.keepSafe"),
 	}[kind];
 
 	// Filled dot: settled. Ring: in progress or waiting on you. Vermilion: needs attention.
@@ -98,7 +97,7 @@ export function SyncStatus() {
 			{open ? (
 				<div
 					role="dialog"
-					aria-label="Sync status"
+					aria-label={t("sync.status")}
 					className="absolute top-full right-0 z-50 mt-1 w-72 max-w-[calc(100vw-24px)] rounded-2xl border border-line bg-raised p-4 shadow-lg"
 				>
 					<p className="text-sm leading-[1.55] text-ink2 [text-wrap:pretty]">
@@ -109,7 +108,7 @@ export function SyncStatus() {
 							to="/sign-in"
 							className="mt-2.5 inline-block text-sm text-ink underline underline-offset-[3px]"
 						>
-							Sign in to sync
+							{t("sync.signIn")}
 						</Link>
 					) : null}
 				</div>

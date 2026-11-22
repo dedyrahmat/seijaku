@@ -1,12 +1,15 @@
+import { i18n } from "../i18n";
+
 /** "just now", "2 minutes ago": how the design words elapsed time. */
 export function ago(then: number | null, now: number): string {
-	if (!then) return "just now";
+	if (!then) return i18n.t("ago.justNow");
 	const mins = Math.floor((now - then) / 60_000);
-	if (mins < 1) return "just now";
-	if (mins === 1) return "1 minute ago";
-	if (mins < 60) return `${mins} minutes ago`;
+	if (mins < 1) return i18n.t("ago.justNow");
+	if (mins < 60) return i18n.t("ago.minutes", { count: mins });
 	const hours = Math.floor(mins / 60);
-	if (hours < 24) return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
+	if (hours < 24) return i18n.t("ago.hours", { count: hours });
 	const days = Math.floor(hours / 24);
-	return days === 1 ? "yesterday" : `${days} days ago`;
+	return days === 1
+		? i18n.t("ago.yesterday")
+		: i18n.t("ago.days", { count: days });
 }

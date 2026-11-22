@@ -1,5 +1,7 @@
 import { useNavigate, useParams, useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { AboutRow } from "../components/AboutDialogs";
 import {
 	AccountRow,
 	DevicesGroup,
@@ -10,8 +12,14 @@ import {
 } from "../components/AccountSettings";
 import { ago } from "../components/ago";
 import { CaptureTarget } from "../components/CaptureTarget";
+import {
+	ClearCache,
+	ManageLinks,
+	WorkspaceNameField,
+} from "../components/DeviceSettings";
 import { Icon, type IconName } from "../components/Icon";
 import { Logo } from "../components/Logo";
+import { usePrefLabels } from "../components/prefLabels";
 import {
 	Btn,
 	Group,
@@ -31,43 +39,24 @@ import {
 	updateApp,
 } from "../desktop";
 import { exportWorkspace } from "../export";
+import { i18n, LANGUAGES, languageOf } from "../i18n";
 import { ACCENTS, type Prefs, setPref, usePrefs } from "../preferences";
 import { useHomeScreenNotice, useSyncState } from "../workspace/hooks";
 import { workspace } from "../workspace/store";
 import { savedServerUrl, saveServerUrl } from "../workspace/syncUrl";
 
 const SECTIONS = [
-	["general", "General", "Your workspace, language and quick capture."],
-	[
-		"appearance",
-		"Appearance",
-		"Quiet by default. Change what you read and write in.",
-	],
-	["editor", "Editor", "How blocks, markdown and typing behave."],
-	[
-		"sync",
-		"Sync and devices",
-		"Where your notes sync to, and who can read them.",
-	],
-	[
-		"security",
-		"Security",
-		"Keep your notes private and your account recoverable.",
-	],
-	[
-		"shortcuts",
-		"Shortcuts",
-		"Everything you can do without leaving the keyboard.",
-	],
-	[
-		"data",
-		"Data and storage",
-		"Bring notes in, take them out, and decide what is kept.",
-	],
-	["about", "About", "Version, updates and the small print."],
+	"general",
+	"appearance",
+	"editor",
+	"sync",
+	"security",
+	"shortcuts",
+	"data",
+	"about",
 ] as const;
 
-type SectionId = (typeof SECTIONS)[number][0];
+type SectionId = (typeof SECTIONS)[number];
 
 const SECTION_ICONS: Record<string, IconName> = {
 	general: "home",
@@ -80,25 +69,23 @@ const SECTION_ICONS: Record<string, IconName> = {
 	about: "info",
 };
 
-const SOON = "Not available yet";
-
 /** The mockup's Settings boards: a dialog over the app, sections down the left. */
 export function SettingsPage() {
 	const { section } = useParams({ strict: false }) as { section?: string };
 	const navigate = useNavigate();
 	const router = useRouter();
-	const active: SectionId =
-		SECTIONS.find(([id]) => id === section)?.[0] ?? "general";
-	const [, title, blurb] =
-		SECTIONS.find(([id]) => id === active) ?? SECTIONS[0];
+	const { t } = useTranslation();
+	const active: SectionId = SECTIONS.find((id) => id === section) ?? "general";
+	const title = t(`settings.sections.${active}.name`);
+	const blurb = t(`settings.sections.${active}.blurb`);
 	const sync = useSyncState();
 	const [now, setNow] = useState(() => Date.now());
 	const body = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
-		document.title = `${title} · Settings · Seijaku`;
+		document.title = t("settings.title", { section: title });
 		body.current?.scrollTo({ top: 0 });
-	}, [title]);
+	}, [title, t]);
 
 	useEffect(() => {
 		const t = setInterval(() => setNow(Date.now()), 30_000);
@@ -119,13 +106,15 @@ export function SettingsPage() {
 		// biome-ignore lint/correctness/useExhaustiveDependencies: close only reads stable router state
 	}, [close]);
 
-	const syncedLine = `Synced ${ago(sync.lastSyncedAt, now)}`;
+	const syncedLine = t("settings.synced", {
+		when: ago(sync.lastSyncedAt, now),
+	});
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-stretch justify-center md:items-center">
 			<button
 				type="button"
-				aria-label="Close settings"
+				aria-label={t("settings.close")}
 				tabIndex={-1}
 				onClick={close}
 				className="absolute inset-0 bg-scrim"
@@ -133,18 +122,18 @@ export function SettingsPage() {
 			<div
 				role="dialog"
 				aria-modal="true"
-				aria-label="Settings"
+				aria-label={t("settings.name")}
 				className="relative flex h-full w-full flex-col overflow-hidden border-line bg-paper text-ink shadow-[0_30px_80px_rgba(40,30,15,0.28),0_2px_8px_rgba(40,30,15,0.1)] md:h-[min(720px,calc(100dvh-48px))] md:w-[min(1040px,calc(100vw-48px))] md:flex-row md:rounded-2xl md:border"
 			>
 				<nav
-					aria-label="Settings sections"
+					aria-label={t("settings.sectionsLabel")}
 					className="flex flex-none flex-col border-b border-line bg-panel pt-[env(safe-area-inset-top)] md:w-60 md:border-r md:border-b-0 md:px-3.5 md:pt-6 md:pb-[18px]"
 				>
 					<h2 className="hidden px-3 pb-4 font-serif text-[26px] font-medium tracking-[-0.01em] md:block">
-						Settings
+						{t("settings.name")}
 					</h2>
 					<div className="flex gap-0.5 overflow-x-auto px-2 py-2 md:flex-col md:overflow-visible md:p-0">
-						{SECTIONS.map(([id, label]) => {
+						{SECTIONS.map((id) => {
 							const on = id === active;
 							return (
 								<button
@@ -164,14 +153,14 @@ export function SettingsPage() {
 										name={SECTION_ICONS[id] ?? "info"}
 										className={on ? "text-accent" : "text-mute"}
 									/>
-									{label}
+									{t(`settings.sections.${id}.name`)}
 								</button>
 							);
 						})}
 					</div>
 					<div className="hidden flex-1 md:block" />
 					<p className="hidden px-3 text-xs leading-normal text-mute md:block">
-						Seijaku 0.1 · Web
+						{t("settings.navFooter", { where: t("settings.about.where.web") })}
 						<br />
 						{syncedLine}
 					</p>
@@ -187,7 +176,7 @@ export function SettingsPage() {
 						</div>
 						<button
 							type="button"
-							aria-label="Close settings"
+							aria-label={t("settings.close")}
 							onClick={close}
 							className="flex size-11 flex-none items-center justify-center rounded-full text-ink2 hover:bg-hover md:size-10"
 						>
@@ -243,92 +232,94 @@ const SHIFT = isMac ? "⇧" : "Shift";
 
 function General() {
 	const { p, set } = useSet();
+	const labels = usePrefLabels();
+	const { t } = useTranslation();
 	return (
 		<>
-			<Group name="Workspace">
+			<Group name={t("settings.general.workspace")}>
 				<Row
-					label="Workspace name"
-					desc="Shown in the sidebar and on shared pages."
+					label={t("settings.general.workspaceName.label")}
+					desc={t("settings.general.workspaceName.desc")}
 				>
-					<TextField
-						label="Workspace name"
-						value={p.workspaceName}
-						onChange={set("workspaceName")}
-						placeholder="My notes"
-						disabled
-					/>
+					<WorkspaceNameField />
 				</Row>
 				<Row
-					label="Language"
-					desc="Interface language. Your notes are not translated."
+					label={t("settings.general.language.label")}
+					desc={t("settings.general.language.desc")}
 				>
 					<Select
-						label="Language"
-						value={p.language}
-						options={["English"]}
+						label={t("settings.general.language.label")}
+						value={languageOf(p.language)}
+						options={LANGUAGES}
+						labels={Object.fromEntries(
+							LANGUAGES.map((l) => [l, t(`language.${l}`)]),
+						)}
 						onChange={set("language")}
 					/>
 				</Row>
 				<Row
-					label="Open on start"
-					desc="The page you land on when Seijaku opens."
+					label={t("settings.general.openOnStart.label")}
+					desc={t("settings.general.openOnStart.desc")}
 				>
 					<Select
-						label="Open on start"
+						label={t("settings.general.openOnStart.label")}
 						value={p.openOnStart}
 						options={["Today", "Last page", "Home"]}
+						labels={labels.openOnStart}
 						onChange={set("openOnStart")}
-						disabled
 					/>
 				</Row>
 			</Group>
-			<Group name="Quick capture">
+			<Group name={t("settings.general.quickCapture")}>
 				{isDesktop ? (
 					<CaptureShortcut />
 				) : (
-					<Row label="Global shortcut" note="Desktop app">
+					<Row
+						label={t("settings.general.globalShortcut")}
+						note={t("common.desktopApp")}
+					>
 						<Keys keys={[MOD, ALT, "Space"]} />
 					</Row>
 				)}
 				<Row
-					label="Add captures to"
-					desc="Where a quick note lands before you sort it."
+					label={t("settings.general.captureTo.label")}
+					desc={t("settings.general.captureTo.desc")}
 				>
 					<CaptureTarget className="h-9 max-w-[220px] pr-3.5 pl-3.5 text-[13px]" />
 				</Row>
 				<Row
-					label="Keep the capture window on top"
-					desc="Stays above other apps until you send or dismiss it."
-					note="Desktop app"
+					label={t("settings.general.onTop.label")}
+					desc={t("settings.general.onTop.desc")}
+					note={t("common.desktopApp")}
 				>
 					<Toggle
-						label="Keep the capture window on top"
+						label={t("settings.general.onTop.label")}
 						on={false}
 						onChange={() => {}}
 						disabled
 					/>
 				</Row>
 			</Group>
-			<Group name="Desktop app">
+			<Group name={t("common.desktopApp")}>
 				<Row
-					label="Launch at login"
-					desc="Starts quietly in the background so capture is always ready."
-					note="Desktop app"
+					label={t("settings.general.launch.label")}
+					desc={t("settings.general.launch.desc")}
+					note={t("common.desktopApp")}
 				>
 					<Toggle
-						label="Launch at login"
+						label={t("settings.general.launch.label")}
 						on={false}
 						onChange={() => {}}
 						disabled
 					/>
 				</Row>
 				<Row
-					label="Keep running in the menu bar"
-					desc="Closing the window leaves quick capture available."
-					note="Desktop app"
+					label={t("settings.general.tray.label")}
+					desc={t("settings.general.tray.desc")}
+					note={t("common.desktopApp")}
 				>
 					<Toggle
-						label="Keep running in the menu bar"
+						label={t("settings.general.tray.label")}
 						on={false}
 						onChange={() => {}}
 						disabled
@@ -340,42 +331,50 @@ function General() {
 }
 
 function Appearance() {
+	const { t } = useTranslation();
 	const { p, set } = useSet();
 	return (
 		<>
-			<Group name="Theme">
+			<Group name={t("settings.appearance.theme")}>
 				<Row
-					label="Colour theme"
-					desc="Washi paper by day, sumi ink by night. System follows your device."
+					label={t("settings.appearance.colourTheme.label")}
+					desc={t("settings.appearance.colourTheme.desc")}
 				>
 					<Segmented
-						label="Colour theme"
+						label={t("settings.appearance.colourTheme.label")}
 						value={p.theme}
 						options={["light", "dark", "system"]}
-						labels={{ light: "Light", dark: "Dark", system: "System" }}
+						labels={{
+							light: t("settings.appearance.light"),
+							dark: t("settings.appearance.dark"),
+							system: t("settings.appearance.system"),
+						}}
 						onChange={set("theme")}
 					/>
 				</Row>
 				<Row
-					label="Accent"
-					desc="Used for links, focus and the circle in the logo."
+					label={t("settings.appearance.accent.label")}
+					desc={t("settings.appearance.accent.desc")}
 				>
 					<Swatches
-						label="Accent"
+						label={t("settings.appearance.accent.label")}
 						value={p.accent}
 						onChange={set("accent")}
 						options={(Object.keys(ACCENTS) as Prefs["accent"][]).map((id) => ({
 							id,
-							label: ACCENTS[id].label,
+							label: t(`accent.${id}`),
 							color: `var(--swatch-${id})`,
 						}))}
 					/>
 				</Row>
 			</Group>
-			<Group name="Reading and writing">
-				<Row label="Text size" desc="Body text in the editor.">
+			<Group name={t("settings.appearance.reading")}>
+				<Row
+					label={t("settings.appearance.textSize.label")}
+					desc={t("settings.appearance.textSize.desc")}
+				>
 					<Range
-						label="Text size"
+						label={t("settings.appearance.textSize.label")}
 						value={p.textSize}
 						min={14}
 						max={22}
@@ -383,46 +382,53 @@ function Appearance() {
 					/>
 				</Row>
 				<Row
-					label="Page width"
-					desc="How wide a page can grow on large screens."
+					label={t("settings.appearance.pageWidth.label")}
+					desc={t("settings.appearance.pageWidth.desc")}
 				>
 					<Segmented
-						label="Page width"
+						label={t("settings.appearance.pageWidth.label")}
 						value={p.pageWidth}
 						options={["narrow", "comfortable", "wide"]}
 						labels={{
-							narrow: "Narrow",
-							comfortable: "Comfortable",
-							wide: "Wide",
+							narrow: t("settings.appearance.narrow"),
+							comfortable: t("settings.appearance.comfortable"),
+							wide: t("settings.appearance.wide"),
 						}}
 						onChange={set("pageWidth")}
 					/>
 				</Row>
-				<Row label="Line spacing">
+				<Row label={t("settings.appearance.lineSpacing")}>
 					<Segmented
-						label="Line spacing"
+						label={t("settings.appearance.lineSpacing")}
 						value={p.lineSpacing}
 						options={["tight", "relaxed", "airy"]}
-						labels={{ tight: "Tight", relaxed: "Relaxed", airy: "Airy" }}
+						labels={{
+							tight: t("settings.appearance.tight"),
+							relaxed: t("settings.appearance.relaxed"),
+							airy: t("settings.appearance.airy"),
+						}}
 						onChange={set("lineSpacing")}
 					/>
 				</Row>
-				<Row label="Heading font" desc="Body text always uses Hanken Grotesk.">
+				<Row
+					label={t("settings.appearance.headingFont.label")}
+					desc={t("settings.appearance.headingFont.desc")}
+				>
 					<Select
-						label="Heading font"
+						label={t("settings.appearance.headingFont.label")}
 						value={p.headingFont}
 						options={["Newsreader", "Hanken Grotesk"]}
 						onChange={set("headingFont")}
 					/>
 				</Row>
 			</Group>
-			<Group name="Motion">
+			<Group name={t("settings.appearance.motion")}>
 				<Row
-					label="Reduce motion"
-					desc="Removes fades and slides. Follows your system setting by default."
+					label={t("settings.appearance.reduceMotion.label")}
+					desc={t("settings.appearance.reduceMotion.desc")}
 				>
 					<Toggle
-						label="Reduce motion"
+						label={t("settings.appearance.reduceMotion.label")}
 						on={p.reduceMotion}
 						onChange={set("reduceMotion")}
 					/>
@@ -433,93 +439,96 @@ function Appearance() {
 }
 
 function EditorSettings() {
+	const { t } = useTranslation();
 	const { p, set } = useSet();
+	const labels = usePrefLabels();
 	return (
 		<>
-			<Group name="Writing">
+			<Group name={t("settings.editor.writing")}>
 				<Row
-					label="Markdown shortcuts"
-					desc="Type # for a heading, - for a list, [] for a to-do."
-					note="Always on"
+					label={t("settings.editor.markdown.label")}
+					desc={t("settings.editor.markdown.desc")}
+					note={t("common.alwaysOn")}
 				>
 					<Toggle
-						label="Markdown shortcuts"
+						label={t("settings.editor.markdown.label")}
 						on={p.markdownShortcuts}
 						onChange={set("markdownShortcuts")}
 						disabled
 					/>
 				</Row>
 				<Row
-					label="Smart punctuation"
-					desc="Curly quotes, proper dashes and ellipses as you type."
+					label={t("settings.editor.smart.label")}
+					desc={t("settings.editor.smart.desc")}
 				>
 					<Toggle
-						label="Smart punctuation"
+						label={t("settings.editor.smart.label")}
 						on={p.smartPunctuation}
 						onChange={set("smartPunctuation")}
-						disabled
 					/>
 				</Row>
 				<Row
-					label="Spellcheck"
-					desc="Underline misspelled words. Runs on your device."
+					label={t("settings.editor.spell.label")}
+					desc={t("settings.editor.spell.desc")}
 				>
 					<Toggle
-						label="Spellcheck"
+						label={t("settings.editor.spell.label")}
 						on={p.spellcheck}
 						onChange={set("spellcheck")}
-						disabled
 					/>
 				</Row>
-				<Row label="Auto-pair brackets and quotes">
+				<Row label={t("settings.editor.autoPair")}>
 					<Toggle
-						label="Auto-pair brackets and quotes"
+						label={t("settings.editor.autoPair")}
 						on={p.autoPair}
 						onChange={set("autoPair")}
-						disabled
 					/>
 				</Row>
 				<Row
-					label="Paste behaviour"
-					desc="What happens when you paste from a web page."
+					label={t("settings.editor.paste.label")}
+					desc={t("settings.editor.paste.desc")}
 				>
 					<Select
-						label="Paste behaviour"
+						label={t("settings.editor.paste.label")}
 						value={p.pasteStyle}
 						options={["Match page style", "Plain text"]}
+						labels={labels.pasteStyle}
 						onChange={set("pasteStyle")}
-						disabled
 					/>
 				</Row>
 			</Group>
-			<Group name="Blocks">
+			<Group name={t("settings.editor.blocks")}>
 				<Row
-					label="Show block handles on hover"
-					desc="Drag handle and add button next to each block."
+					label={t("settings.editor.handles.label")}
+					desc={t("settings.editor.handles.desc")}
 				>
 					<Toggle
-						label="Show block handles on hover"
+						label={t("settings.editor.handles.label")}
 						on={p.blockHandles}
 						onChange={set("blockHandles")}
 					/>
 				</Row>
 				<Row
-					label="Render math as you type"
-					desc="LaTeX between $ signs becomes typeset maths."
-					note="Always on"
+					label={t("settings.editor.math.label")}
+					desc={t("settings.editor.math.desc")}
+					note={t("common.alwaysOn")}
 				>
 					<Toggle
-						label="Render math as you type"
+						label={t("settings.editor.math.label")}
 						on={p.renderMath}
 						onChange={set("renderMath")}
 						disabled
 					/>
 				</Row>
-				<Row label="Code font" desc="Used in code blocks and inline code.">
+				<Row
+					label={t("settings.editor.codeFont.label")}
+					desc={t("settings.editor.codeFont.desc")}
+				>
 					<Select
-						label="Code font"
+						label={t("settings.editor.codeFont.label")}
 						value={p.codeFont}
 						options={["JetBrains Mono", "System mono"]}
+						labels={labels.codeFont}
 						onChange={set("codeFont")}
 					/>
 				</Row>
@@ -529,7 +538,9 @@ function EditorSettings() {
 }
 
 function SyncSettings({ syncedLine }: { syncedLine: string }) {
+	const { t } = useTranslation();
 	const { p, set } = useSet();
+	const labels = usePrefLabels();
 	const sync = useSyncState();
 	const signedOut = useSignedOut();
 	const keepSafe = useHomeScreenNotice();
@@ -539,26 +550,26 @@ function SyncSettings({ syncedLine }: { syncedLine: string }) {
 
 	const connection =
 		sync.status === "offline"
-			? "Not connected"
+			? t("settings.sync.notConnected")
 			: sync.status === "syncing"
-				? "Connected · catching up"
-				: "Connected · up to date";
+				? t("settings.sync.catchingUp")
+				: t("settings.sync.upToDate");
 
 	return (
 		<>
-			<Group name="Server">
+			<Group name={t("settings.sync.server")}>
 				<Row
-					label="Server address"
-					desc="Leave empty to use the server that gave you this page. Point it at your own server to self-host."
+					label={t("settings.sync.address.label")}
+					desc={t("settings.sync.address.desc")}
 				>
 					<TextField
-						label="Server address"
+						label={t("settings.sync.address.label")}
 						value={server}
 						onChange={(v) => {
 							setServer(v);
 							setSaved(false);
 						}}
-						placeholder="This site (default)"
+						placeholder={t("settings.sync.address.placeholder")}
 						width="w-[280px]"
 					/>
 					<button
@@ -571,15 +582,15 @@ function SyncSettings({ syncedLine }: { syncedLine: string }) {
 						}}
 						className="h-9 rounded-2xl bg-ink px-[18px] text-[13px] font-semibold text-paper hover:opacity-90"
 					>
-						{saved ? "Saved" : "Save"}
+						{saved ? t("common.saved") : t("common.save")}
 					</button>
 				</Row>
 				<Row
-					label="Connection"
+					label={t("settings.sync.connection.label")}
 					desc={
 						keepSafe
-							? "This browser may clear stored notes when space runs low. Add Seijaku to your Home Screen so the copy on this device is kept."
-							: "Every page is stored on this device first, then sent to your server."
+							? t("settings.sync.connection.keepSafe")
+							: t("settings.sync.connection.desc")
 					}
 					note={tested || sync.status !== "offline" ? connection : undefined}
 				>
@@ -589,29 +600,29 @@ function SyncSettings({ syncedLine }: { syncedLine: string }) {
 							workspace.sync.reconnectNow();
 						}}
 					>
-						Test connection
+						{t("settings.sync.test")}
 					</Btn>
 				</Row>
 			</Group>
-			<Group name="Syncing">
+			<Group name={t("settings.sync.syncing")}>
 				<Row
-					label="Sync"
-					desc="Pull and push changes right now."
+					label={t("settings.sync.sync.label")}
+					desc={t("settings.sync.sync.desc")}
 					note={syncedLine}
 				>
 					<Btn
 						onClick={() => workspace.sync.reconnectNow()}
 						disabled={p.workOffline}
 					>
-						Sync now
+						{t("settings.sync.syncNow")}
 					</Btn>
 				</Row>
 				<Row
-					label="Work offline"
-					desc="Pause syncing. Changes queue up and send when you turn this off."
+					label={t("settings.sync.offline.label")}
+					desc={t("settings.sync.offline.desc")}
 				>
 					<Toggle
-						label="Work offline"
+						label={t("settings.sync.offline.label")}
 						on={p.workOffline}
 						onChange={(v) => {
 							set("workOffline")(v);
@@ -621,20 +632,21 @@ function SyncSettings({ syncedLine }: { syncedLine: string }) {
 					/>
 				</Row>
 				<Row
-					label="When two edits collide"
-					desc="Both versions are kept. Choose what happens to the older one."
+					label={t("settings.sync.collide.label")}
+					desc={t("settings.sync.collide.desc")}
 				>
 					<Select
-						label="When two edits collide"
+						label={t("settings.sync.collide.label")}
 						value={p.collisions}
 						options={["Keep as a copy", "Keep the newer one"]}
+						labels={labels.collisions}
 						onChange={set("collisions")}
 						disabled
 					/>
 				</Row>
 			</Group>
 			{signedOut ? (
-				<Group name="Account">
+				<Group name={t("settings.account")}>
 					<AccountRow />
 				</Group>
 			) : (
@@ -649,47 +661,51 @@ function deviceName(): string {
 	if (/iPhone|iPad/.test(ua)) return "iPhone";
 	if (/Android/.test(ua)) return "Android";
 	if (/Mac/.test(ua)) return "Mac";
-	if (/Windows/.test(ua)) return "Windows PC";
-	if (/Linux/.test(ua)) return "Linux PC";
-	return "This device";
+	if (/Windows/.test(ua)) return i18n.t("settings.device.windows");
+	if (/Linux/.test(ua)) return i18n.t("settings.device.linux");
+	return i18n.t("settings.device.other");
 }
 
 function Security() {
+	const { t } = useTranslation();
 	const { p, set } = useSet();
+	const labels = usePrefLabels();
 	const signedOut = useSignedOut();
 	return (
 		<>
 			{signedOut ? (
-				<Group name="Account">
+				<Group name={t("settings.account")}>
 					<AccountRow />
 				</Group>
 			) : (
 				<PasskeysGroup deviceName={deviceName()} />
 			)}
-			<Group name="Recovery and lock">
+			<Group name={t("settings.security.recoveryLock")}>
 				{signedOut ? null : <RecoveryGroup />}
 				<Row
-					label="Lock after inactivity"
-					desc="Ask for your password or Face ID after you step away."
+					label={t("settings.security.lock.label")}
+					desc={t("settings.security.lock.desc")}
+					note={signedOut ? t("common.needsAccount") : undefined}
 				>
 					<Select
-						label="Lock after inactivity"
-						value={p.lockAfter}
+						label={t("settings.security.lock.label")}
+						value={p.lockAfterIdle}
 						options={["5 minutes", "15 minutes", "Never"]}
-						onChange={set("lockAfter")}
-						disabled
+						labels={labels.lockAfterIdle}
+						onChange={set("lockAfterIdle")}
+						disabled={signedOut}
 					/>
 				</Row>
 			</Group>
-			<Group name="Danger zone">
+			<Group name={t("settings.security.danger")}>
 				{signedOut ? null : <SignOutEverywhere />}
 				<Row
-					label="Delete account"
-					desc="Removes your notes from every device. Export first."
-					note={SOON}
+					label={t("settings.security.delete.label")}
+					desc={t("settings.security.delete.desc")}
+					note={t("common.notAvailable")}
 				>
 					<Btn danger disabled>
-						Delete…
+						{t("settings.security.delete.button")}
 					</Btn>
 				</Row>
 			</Group>
@@ -699,6 +715,7 @@ function Security() {
 
 /** Desktop only: the global hotkey that opens the capture window, as Tauri writes it (CommandOrControl+Alt+Space). */
 function CaptureShortcut() {
+	const { t } = useTranslation();
 	const [value, setValue] = useState("");
 	const [note, setNote] = useState<string | undefined>();
 	useEffect(() => {
@@ -706,12 +723,12 @@ function CaptureShortcut() {
 	}, []);
 	return (
 		<Row
-			label="Quick capture"
-			desc="Works while Seijaku is in the tray."
+			label={t("settings.general.quickCapture")}
+			desc={t("settings.shortcuts.captureDesc")}
 			note={note}
 		>
 			<TextField
-				label="Quick capture shortcut"
+				label={t("settings.shortcuts.captureLabel")}
 				value={value}
 				onChange={(v) => {
 					setValue(v);
@@ -722,48 +739,49 @@ function CaptureShortcut() {
 			<Btn
 				onClick={() =>
 					void setCaptureShortcut(value.trim()).then(
-						() => setNote("Saved"),
+						() => setNote(t("common.saved")),
 						(err) => setNote(String(err)),
 					)
 				}
 			>
-				Save
+				{t("common.save")}
 			</Btn>
 		</Row>
 	);
 }
 
 function Shortcuts() {
+	const { t } = useTranslation();
 	return (
 		<>
-			<Group name="Navigate">
-				<Row label="Quick switcher">
+			<Group name={t("settings.shortcuts.navigate")}>
+				<Row label={t("settings.shortcuts.switcher")}>
 					<Keys keys={[MOD, "K"]} />
 				</Row>
-				<Row label="Search all pages">
+				<Row label={t("settings.shortcuts.searchAll")}>
 					<Keys keys={[MOD, SHIFT, "F"]} />
 				</Row>
-				<Row label="Toggle sidebar">
+				<Row label={t("settings.shortcuts.sidebar")}>
 					<Keys keys={[MOD, "\\"]} />
 				</Row>
 				<Row
-					label="Go to Today"
+					label={t("settings.shortcuts.today")}
 					desc={
 						isDesktop || isStandalone
 							? undefined
-							: "In a browser tab, Ctrl+Shift+T belongs to the browser. It works in the desktop app and the installed app."
+							: t("settings.shortcuts.todayNote")
 					}
 				>
 					<Keys keys={[MOD, SHIFT, "T"]} />
 				</Row>
 			</Group>
-			<Group name="Write">
+			<Group name={t("settings.shortcuts.write")}>
 				<Row
-					label="New page"
+					label={t("settings.shortcuts.newPage")}
 					desc={
 						isDesktop || isStandalone
 							? undefined
-							: "In a browser tab, Ctrl+N belongs to the browser. It works in the desktop app and the installed app."
+							: t("settings.shortcuts.newPageNote")
 					}
 				>
 					<Keys keys={[MOD, "N"]} />
@@ -771,17 +789,20 @@ function Shortcuts() {
 				{isDesktop ? (
 					<CaptureShortcut />
 				) : (
-					<Row label="Quick capture" note="Desktop app">
+					<Row
+						label={t("settings.general.quickCapture")}
+						note={t("common.desktopApp")}
+					>
 						<Keys keys={[MOD, ALT, "Space"]} />
 					</Row>
 				)}
-				<Row label="Insert a block">
+				<Row label={t("settings.shortcuts.block")}>
 					<Keys keys={["/"]} />
 				</Row>
-				<Row label="Version history">
+				<Row label={t("settings.shortcuts.history")}>
 					<Keys keys={[MOD, SHIFT, "H"]} />
 				</Row>
-				<Row label="Switch light and dark">
+				<Row label={t("settings.shortcuts.theme")}>
 					<Keys keys={[MOD, SHIFT, "L"]} />
 				</Row>
 			</Group>
@@ -790,23 +811,27 @@ function Shortcuts() {
 }
 
 function DataSettings() {
+	const { t } = useTranslation();
 	const { p, set } = useSet();
+	const labels = usePrefLabels();
 	const navigate = useNavigate();
 	const [exporting, setExporting] = useState<"idle" | "busy" | "failed">(
 		"idle",
 	);
 	return (
 		<>
-			<Group name="Import and export">
+			<Group name={t("settings.data.importExport")}>
 				<Row
-					label="Import notes"
-					desc="From Notion, Obsidian, Markdown files or a Seijaku archive."
+					label={t("settings.data.import.label")}
+					desc={t("settings.data.import.desc")}
 				>
-					<Btn onClick={() => void navigate({ to: "/import" })}>Import…</Btn>
+					<Btn onClick={() => void navigate({ to: "/import" })}>
+						{t("settings.data.import.button")}
+					</Btn>
 				</Row>
 				<Row
-					label="Export everything"
-					desc="A zip of Markdown files with your images and attachments."
+					label={t("settings.data.export.label")}
+					desc={t("settings.data.export.desc")}
 				>
 					<Btn
 						disabled={exporting === "busy"}
@@ -819,22 +844,23 @@ function DataSettings() {
 						}}
 					>
 						{exporting === "busy"
-							? "Exporting…"
+							? t("settings.data.exporting")
 							: exporting === "failed"
-								? "Try again"
-								: "Export all"}
+								? t("settings.data.tryAgain")
+								: t("settings.data.exportAll")}
 					</Btn>
 				</Row>
 			</Group>
-			<Group name="Keeping and deleting">
+			<Group name={t("settings.data.keeping")}>
 				<Row
-					label="Empty trash automatically"
-					desc="Deleted pages can be restored until then."
+					label={t("settings.data.trash.label")}
+					desc={t("settings.data.trash.desc")}
 				>
 					<Select
-						label="Empty trash automatically"
+						label={t("settings.data.trash.label")}
 						value={p.trashAfter}
 						options={["After 7 days", "After 30 days", "Never"]}
+						labels={labels.trashAfter}
 						onChange={(v) => {
 							set("trashAfter")(v);
 							workspace.sweepTrash();
@@ -842,32 +868,25 @@ function DataSettings() {
 					/>
 				</Row>
 				<Row
-					label="Keep version history"
-					desc="Older versions are removed to save space."
+					label={t("settings.data.history.label")}
+					desc={t("settings.data.history.desc")}
 				>
 					<Select
-						label="Keep version history"
+						label={t("settings.data.history.label")}
 						value={p.historyFor}
 						options={["30 days", "90 days", "Forever"]}
+						labels={labels.historyFor}
 						onChange={set("historyFor")}
 					/>
 				</Row>
-				<Row
-					label="Public pages"
-					desc="Pages shared with a link."
-					note="Arrives with sharing"
-				>
-					<Btn disabled>Manage links</Btn>
-				</Row>
+				<ManageLinks />
 			</Group>
-			<Group name="On this device">
+			<Group name={t("settings.data.onDevice")}>
 				<Row
-					label="Offline storage"
-					desc="Notes and images are saved in this browser, so Seijaku works without a connection."
+					label={t("settings.data.offline.label")}
+					desc={t("settings.data.offline.desc")}
 				>
-					<Btn disabled title={SOON}>
-						Clear cache
-					</Btn>
+					<ClearCache />
 				</Row>
 			</Group>
 		</>
@@ -875,6 +894,7 @@ function DataSettings() {
 }
 
 function About() {
+	const { t } = useTranslation();
 	const [checked, setChecked] = useState(false);
 	const [found, setFound] = useState<string | null>(null);
 	return (
@@ -886,22 +906,29 @@ function About() {
 						Seijaku
 					</span>
 					<span className="font-serif text-[17px] text-ink2 italic">
-						Active calm. The opposite of noise.
+						{t("tagline")}
 					</span>
 					<span className="text-[13px] text-mute">
-						Version 0.1.0 · {isDesktop ? "Desktop" : "Web"}
+						{t("settings.versionLine", {
+							version: "0.1.0",
+							where: t(
+								isDesktop
+									? "settings.about.where.desktop"
+									: "settings.about.where.web",
+							),
+						})}
 					</span>
 				</div>
 			</div>
-			<Group name="Updates">
+			<Group name={t("settings.about.updates")}>
 				<Row
-					label="Version 0.1.0"
+					label={t("settings.about.version", { version: "0.1.0" })}
 					desc={
 						found
-							? `Version ${found} is installing.`
-							: "You have the latest version."
+							? t("settings.about.installing", { version: found })
+							: t("settings.about.latest")
 					}
-					note={checked ? "Checked just now" : undefined}
+					note={checked ? t("settings.about.checked") : undefined}
 				>
 					<Btn
 						onClick={() => {
@@ -914,47 +941,48 @@ function About() {
 									.then((r) => r?.update());
 						}}
 					>
-						Check for updates
+						{t("settings.about.check")}
 					</Btn>
 				</Row>
-				<Row label="What's new" desc="Release notes for each version.">
-					<Btn disabled title={SOON}>
-						Open
-					</Btn>
-				</Row>
+				<AboutRow
+					doc="news"
+					label={t("settings.about.news.label")}
+					desc={t("settings.about.news.desc")}
+					button={t("common.open")}
+				/>
 			</Group>
-			<Group name="Where it runs">
-				<Row
-					label="Platforms"
-					desc="Web, iPhone Home Screen app and a desktop app share one workspace."
-				>
-					<Btn disabled title={SOON}>
-						Get the apps
-					</Btn>
-				</Row>
+			<Group name={t("settings.about.runs")}>
+				<AboutRow
+					doc="apps"
+					label={t("settings.about.platforms.label")}
+					desc={t("settings.about.platforms.desc")}
+					button={t("settings.about.platforms.button")}
+				/>
 			</Group>
-			<Group name="The small print">
-				<Row label="Privacy" desc="What is stored, where, and for how long.">
-					<Btn disabled title={SOON}>
-						Read
-					</Btn>
-				</Row>
+			<Group name={t("settings.about.print")}>
+				<AboutRow
+					doc="privacy"
+					label={t("settings.about.privacy.label")}
+					desc={t("settings.about.privacy.desc")}
+					button={t("settings.about.privacy.button")}
+				/>
+				<AboutRow
+					doc="licences"
+					label={t("settings.about.licences.label")}
+					desc={t("settings.about.licences.desc")}
+					button={t("settings.about.licences.button")}
+				/>
 				<Row
-					label="Open-source licences"
-					desc="The libraries Seijaku is built on."
+					label={t("settings.about.feedback.label")}
+					desc={t("settings.about.feedback.desc")}
 				>
-					<Btn disabled title={SOON}>
-						View
-					</Btn>
-				</Row>
-				<Row label="Send feedback" desc="Tell us what felt noisy.">
 					<a
 						href="https://github.com/dedyrahmat/seijaku/issues"
 						target="_blank"
 						rel="noreferrer"
 						className="flex h-9 items-center rounded-2xl border border-line bg-raised px-4 text-[13px] font-medium text-ink hover:bg-hover"
 					>
-						Write to us
+						{t("settings.about.feedback.button")}
 					</a>
 				</Row>
 			</Group>

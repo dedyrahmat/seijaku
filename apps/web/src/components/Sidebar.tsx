@@ -16,7 +16,15 @@ import {
 } from "@seijaku/sync";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { readLocal, useNoteId, useNotes, writeLocal } from "../workspace/hooks";
+import { useTranslation } from "react-i18next";
+import { dateLocale } from "../i18n";
+import {
+	readLocal,
+	useNoteId,
+	useNotes,
+	useWorkspaceName,
+	writeLocal,
+} from "../workspace/hooks";
 import { workspace } from "../workspace/store";
 import { Icon } from "./Icon";
 import { Logo } from "./Logo";
@@ -45,7 +53,7 @@ interface TreeCtx {
 	toggle: (id: string, force?: boolean) => void;
 	dragId: React.MutableRefObject<string | null>;
 	addChild: (parentId: string) => void;
-	/** "Select pages" mode, and the rows in the order they are on screen (for Shift ranges). */
+	/** Select pages mode, and the rows in the order they are on screen (for Shift ranges). */
 	sel: ReturnType<typeof useSelection>;
 	order: string[];
 }
@@ -66,6 +74,7 @@ export function Sidebar({
 	/** Opens the "New note" picker. */
 	onNewNote: () => void;
 }) {
+	const { t } = useTranslation();
 	const notes = useNotes();
 	const newPage = useNewPage();
 	const noteId = useNoteId();
@@ -74,7 +83,7 @@ export function Sidebar({
 	const [expanded, setExpanded] = useState(loadExpanded);
 	const dragId = useRef<string | null>(null);
 
-	// Daily notes live behind "Today", not in the page tree.
+	// Daily notes live behind Today, not in the page tree.
 	const parents = useMemo(
 		() => new Set(notes.filter((n) => !n.trashed).map((n) => n.parentId)),
 		[notes],
@@ -91,6 +100,7 @@ export function Sidebar({
 		);
 	}, [notes, quickLeaves]);
 	const quickCount = quickLeaves.filter((n) => !n.trashed).length;
+	const workspaceName = useWorkspaceName();
 	const tags = useMemo(() => listTags(notes), [notes]);
 	const today = new Date();
 	const todayId = dailyNoteId(today);
@@ -171,19 +181,19 @@ export function Sidebar({
 			{open ? (
 				<button
 					type="button"
-					aria-label="Close pages"
+					aria-label={t("sidebar.close")}
 					onClick={onClose}
 					className="fixed inset-0 z-30 bg-ink/30 md:hidden"
 				/>
 			) : null}
 			<aside
-				aria-label="Pages"
+				aria-label={t("sidebar.pages")}
 				className={`chrome fixed inset-y-0 left-0 z-40 flex w-[326px] max-w-[85vw] flex-col border-r border-line2 bg-panel pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-[8px_0_40px_rgba(40,30,15,0.22)] transition-transform duration-200 md:static md:w-[264px] md:max-w-none md:translate-x-0 md:shadow-none ${open ? "translate-x-0" : "-translate-x-full"} ${hidden ? "md:hidden" : ""}`}
 			>
 				{sel.on ? (
 					<SelectHeader
 						onAll={() => sel.setAll(order)}
-						hint="Tick the pages you want to move. You can bring them back from Trash."
+						hint={t("sidebar.selectHint")}
 					/>
 				) : (
 					<>
@@ -191,14 +201,14 @@ export function Sidebar({
 							<Link to="/" className="flex items-center gap-2.5">
 								<Logo size={24} />
 								<span className="font-serif text-xl font-medium tracking-[0.01em]">
-									Seijaku
+									{workspaceName || "Seijaku"}
 								</span>
 							</Link>
 							<div className="flex-1" />
 							<button
 								type="button"
 								onClick={onNewNote}
-								aria-label="New page"
+								aria-label={t("sidebar.newPage")}
 								className="flex size-11 items-center justify-center rounded-2xl text-ink2 hover:bg-hover md:size-8"
 							>
 								<Icon name="plus" size={16} />
@@ -212,7 +222,7 @@ export function Sidebar({
 								className="flex h-11 w-full items-center gap-2.5 rounded-2xl border border-line bg-raised px-2.5 text-left text-[13px] text-ink2 hover:border-mute md:h-9"
 							>
 								<Icon name="search" />
-								<span className="flex-1">Search or jump to</span>
+								<span className="flex-1">{t("sidebar.search")}</span>
 								<span className="hidden font-mono text-[11px] text-mute md:inline">
 									{isMac ? "⌘ K" : "Ctrl K"}
 								</span>
@@ -227,8 +237,10 @@ export function Sidebar({
 								className={`flex h-11 w-full items-center gap-2.5 rounded-2xl px-2.5 text-left text-sm text-ink hover:bg-hover md:h-[34px] ${noteId === todayId ? "bg-hover" : ""}`}
 							>
 								<Icon name="today" className="text-ink2" />
-								<span className="flex-1">Today</span>
-								<span className="text-xs text-mute">{dailyTitle(today)}</span>
+								<span className="flex-1">{t("sidebar.today")}</span>
+								<span className="text-xs text-mute">
+									{dailyTitle(today, dateLocale())}
+								</span>
 							</button>
 							<Link
 								to="/quick-notes"
@@ -238,7 +250,7 @@ export function Sidebar({
 								className={`flex h-11 w-full items-center gap-2.5 rounded-2xl px-2.5 text-left text-sm text-ink hover:bg-hover md:h-[34px] ${path.startsWith("/quick-notes") ? "bg-hover" : ""}`}
 							>
 								<Icon name="wall" className="text-ink2" />
-								<span className="flex-1">Quick notes</span>
+								<span className="flex-1">{t("sidebar.quickNotes")}</span>
 								<span className="text-xs text-mute">{quickCount}</span>
 							</Link>
 						</div>
@@ -246,12 +258,12 @@ export function Sidebar({
 				)}
 
 				<div className="px-5 pt-4 pb-1.5 text-[11px] font-medium tracking-[0.09em] text-mute uppercase">
-					Pages
+					{t("sidebar.pages")}
 				</div>
 
 				<nav className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-4">
 					{tree.length === 0 ? (
-						<p className="px-2 py-2 text-sm text-mute">No pages yet.</p>
+						<p className="px-2 py-2 text-sm text-mute">{t("sidebar.empty")}</p>
 					) : (
 						<ul className="flex flex-col gap-px">
 							{tree.map((node) => (
@@ -263,7 +275,7 @@ export function Sidebar({
 					{tags.length > 0 && !sel.on ? (
 						<div className="hidden md:block">
 							<div className="px-2.5 pt-[18px] pb-1.5 text-[11px] font-medium tracking-[0.09em] text-mute uppercase">
-								Tags
+								{t("sidebar.tags")}
 							</div>
 							<div className="flex flex-wrap gap-x-3.5 gap-y-1 px-2.5 text-[13px] text-ink2">
 								{tags.map(({ tag }) => (
@@ -294,21 +306,21 @@ export function Sidebar({
 							className={`${foot} ${path === "/trash" ? "bg-hover" : ""}`}
 						>
 							<Icon name="trash" />
-							Trash
+							{t("sidebar.trash")}
 						</Link>
 						<Link
 							to="/import"
 							className={`${foot} ${path === "/import" ? "bg-hover" : ""}`}
 						>
 							<Icon name="import" />
-							Import
+							{t("sidebar.import")}
 						</Link>
 						<Link
 							to="/settings"
 							className={`${foot} ${path.startsWith("/settings") ? "bg-hover" : ""}`}
 						>
 							<Icon name="settings" />
-							Settings
+							{t("sidebar.settings")}
 						</Link>
 					</div>
 				)}
@@ -319,18 +331,19 @@ export function Sidebar({
 
 /** The mockup's "Sidebar · Select" top: a title, a plain-words hint and Select all. */
 function SelectHeader({ onAll, hint }: { onAll: () => void; hint: string }) {
+	const { t } = useTranslation();
 	return (
 		<>
 			<div className="flex h-14 flex-none items-center gap-2.5 pr-3 pl-5">
 				<span className="flex-1 font-serif text-xl font-medium">
-					Select pages
+					{t("sidebar.selectPages")}
 				</span>
 				<button
 					type="button"
 					onClick={onAll}
 					className="h-11 rounded-2xl px-3 text-[13px] font-medium text-ink underline underline-offset-[3px] hover:bg-hover md:h-8"
 				>
-					Select all
+					{t("sidebar.selectAll")}
 				</button>
 			</div>
 			<p className="flex-none px-5 pb-2.5 text-[13px] leading-normal text-mute">
@@ -350,15 +363,16 @@ function SelectBar({
 	onTrash: () => void;
 	onCancel: () => void;
 }) {
+	const { t } = useTranslation();
 	return (
 		<div className="flex-none border-t border-line2 p-3">
 			<div className="flex flex-col gap-3 rounded-2xl border border-line bg-raised p-3.5">
 				<div className="flex flex-col gap-0.5">
 					<span aria-live="polite" className="text-sm font-semibold">
-						{count} {count === 1 ? "page" : "pages"} selected
+						{t("sidebar.selected", { count })}
 					</span>
 					<span className="hidden text-xs text-mute md:inline">
-						Shift-click picks a range.
+						{t("sidebar.range")}
 					</span>
 				</div>
 				<div className="flex gap-2">
@@ -368,14 +382,14 @@ function SelectBar({
 						disabled={count === 0}
 						className="h-11 flex-1 rounded-2xl border border-accent px-2.5 text-[13px] font-semibold text-accent hover:bg-hover disabled:opacity-40 md:h-[38px]"
 					>
-						Move to trash
+						{t("sidebar.moveToTrash")}
 					</button>
 					<button
 						type="button"
 						onClick={onCancel}
 						className="h-11 rounded-2xl border border-line px-4 text-[13px] font-medium text-ink hover:bg-hover md:h-[38px]"
 					>
-						Cancel
+						{t("common.cancel")}
 					</button>
 				</div>
 			</div>
@@ -413,6 +427,7 @@ function TreeRow({
 	depth: number;
 	ctx: TreeCtx;
 }) {
+	const { t } = useTranslation();
 	const { note, children } = node;
 	const [zone, setZone] = useState<Zone | null>(null);
 	// Where a right-click opened the row menu (screen pixels); null when closed or opened by the ⋯ button.
@@ -485,7 +500,7 @@ function TreeRow({
 					<button
 						type="button"
 						onClick={() => ctx.toggle(note.id)}
-						aria-label={isOpen ? "Collapse" : "Expand"}
+						aria-label={isOpen ? t("common.collapse") : t("common.expand")}
 						aria-expanded={isOpen}
 						className="flex h-8 w-6 shrink-0 items-center justify-center text-mute hover:text-ink"
 					>
@@ -518,7 +533,9 @@ function TreeRow({
 					>
 						<SelectBox on={ticked} />
 						<RowGlyph note={note} open={isOpen} hasKids={children.length > 0} />
-						<span className="truncate">{note.title || "Untitled"}</span>
+						<span className="truncate">
+							{note.title || t("common.untitled")}
+						</span>
 					</button>
 				) : (
 					<>
@@ -539,7 +556,9 @@ function TreeRow({
 								open={isOpen}
 								hasKids={children.length > 0}
 							/>
-							<span className="truncate">{note.title || "Untitled"}</span>
+							<span className="truncate">
+								{note.title || t("common.untitled")}
+							</span>
 						</Link>
 						<RowMenu note={note} ctx={ctx} at={at} setAt={setAt} />
 					</>
@@ -569,6 +588,7 @@ function RowMenu({
 	at: Point | null;
 	setAt: (p: Point | null) => void;
 }) {
+	const { t } = useTranslation();
 	const [clicked, setClicked] = useState(false);
 	const open = clicked || at !== null;
 	const setOpen = (v: boolean) => {
@@ -618,27 +638,31 @@ function RowMenu({
 		const i = sibs.findIndex((n) => n.id === note.id);
 		const above = sibs[i - 1];
 		const parent = all.find((n) => n.id === note.parentId);
-		const name = (n: NoteMeta) => `“${n.title || "Untitled"}”`;
+		const name = (n: NoteMeta) => `“${n.title || t("common.untitled")}”`;
 		items.push({
-			label: "Add a page inside",
+			label: t("sidebar.menu.addInside"),
 			run: () => ctx.addChild(note.id),
 		});
-		if (above) items.push({ label: "Move up", run: () => nudge("up") });
+		if (above)
+			items.push({ label: t("sidebar.menu.up"), run: () => nudge("up") });
 		if (i >= 0 && i < sibs.length - 1)
-			items.push({ label: "Move down", run: () => nudge("down") });
+			items.push({ label: t("sidebar.menu.down"), run: () => nudge("down") });
 		if (above)
 			items.push({
-				label: `Put inside ${name(above)}`,
+				label: t("sidebar.menu.putInside", { name: name(above) }),
 				run: () => nudge("indent"),
 			});
 		if (parent)
 			items.push({
-				label: `Move out of ${name(parent)}`,
+				label: t("sidebar.menu.moveOut", { name: name(parent) }),
 				run: () => nudge("outdent"),
 			});
-		items.push({ label: "Select pages", run: () => ctx.sel.start(note.id) });
 		items.push({
-			label: "Move to trash",
+			label: t("sidebar.selectPages"),
+			run: () => ctx.sel.start(note.id),
+		});
+		items.push({
+			label: t("sidebar.moveToTrash"),
 			run: () => trashNote(workspace.index, note.id),
 			danger: true,
 		});
@@ -648,7 +672,9 @@ function RowMenu({
 		<div ref={root} className="relative">
 			<button
 				type="button"
-				aria-label={`Actions for ${note.title || "Untitled"}`}
+				aria-label={t("sidebar.menu.actionsFor", {
+					title: note.title || t("common.untitled"),
+				})}
 				aria-haspopup="menu"
 				aria-expanded={open}
 				onClick={() => setOpen(!open)}

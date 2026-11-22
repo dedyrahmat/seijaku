@@ -1,4 +1,5 @@
 import { defaultBlockSpecs } from "@blocknote/core";
+import { dateLocale, i18n } from "../i18n";
 
 /**
  * To-dos with a due date, a priority and an owner. The block keeps BlockNote's own type name and
@@ -22,12 +23,12 @@ const nextWeek = () => plus((8 - new Date().getDay()) % 7 || 7);
 export function dueLabel(due: string): { text: string; hot: boolean } {
 	const today = iso(new Date());
 	if (due < today) return { text: "Overdue", hot: true };
-	if (due === today) return { text: "Today", hot: true };
-	if (due === plus(1)) return { text: "Tomorrow", hot: false };
+	if (due === today) return { text: i18n.t("todo.today"), hot: true };
+	if (due === plus(1)) return { text: i18n.t("todo.tomorrow"), hot: false };
 	const [y, m, d] = due.split("-").map(Number);
 	return {
 		text: new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1).toLocaleDateString(
-			"en-GB",
+			dateLocale(),
 			{ day: "numeric", month: "short" },
 		),
 		hot: false,

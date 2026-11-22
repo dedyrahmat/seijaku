@@ -1,5 +1,6 @@
 import { Link, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Logo } from "../components/Logo";
 import { ReadOnlyNote } from "../components/ReadOnlyNote";
 import type { Block } from "../editor/headless";
@@ -11,11 +12,12 @@ import { openShared } from "../workspace/shares";
  * #fragment, which the browser never sends, so only this tab can open the page.
  */
 export function PublicPage() {
+	const { t } = useTranslation();
 	const { token } = useParams({ strict: false }) as { token?: string };
 	const [state, setState] = useState<
 		| { kind: "loading" }
 		| { kind: "gone" }
-		| { kind: "page"; title: string; blocks: Block[] }
+		| { kind: "page"; title: string; blocks: Block[]; workspace: string }
 	>({ kind: "loading" });
 
 	useEffect(() => {
@@ -25,17 +27,19 @@ export function PublicPage() {
 		void found.then((page) => {
 			if (!live) return;
 			if (page) {
-				document.title = `${page.title || "Untitled"} · Seijaku`;
+				document.title = t("public.title", {
+					title: page.title || t("common.untitled"),
+				});
 				setState({ kind: "page", ...page });
 			} else {
-				document.title = "Shared page · Seijaku";
+				document.title = t("public.sharedTitle");
 				setState({ kind: "gone" });
 			}
 		});
 		return () => {
 			live = false;
 		};
-	}, [token]);
+	}, [token, t]);
 
 	return (
 		<div className="relative flex min-h-dvh flex-col overflow-hidden bg-paper text-ink">
@@ -43,7 +47,11 @@ export function PublicPage() {
 				<Logo size={22} />
 				<span className="font-serif text-lg font-medium">Seijaku</span>
 				<div className="flex-1" />
-				<span className="text-[13px] text-mute">Shared page · read only</span>
+				<span className="text-[13px] text-mute">
+					{state.kind === "page" && state.workspace
+						? t("public.sharedFrom", { name: state.workspace })
+						: t("public.sharedReadOnly")}
+				</span>
 			</header>
 
 			{state.kind === "page" ? (
@@ -54,16 +62,15 @@ export function PublicPage() {
 				<main className="mx-auto w-full max-w-[760px] flex-1 px-6 pt-14">
 					{state.kind === "loading" ? (
 						<p aria-busy="true" className="text-[17px] text-mute">
-							Opening…
+							{t("public.opening")}
 						</p>
 					) : (
 						<>
 							<h1 className="font-serif text-[40px] leading-[1.1] font-medium tracking-[-0.015em]">
-								This page is not available
+								{t("public.goneTitle")}
 							</h1>
 							<p className="mt-4 text-[17px] leading-[1.75] text-ink2">
-								The link may have been turned off, or it is missing part of its
-								address.
+								{t("public.goneDesc")}
 							</p>
 						</>
 					)}
@@ -71,9 +78,9 @@ export function PublicPage() {
 			)}
 
 			<footer className="flex flex-col items-center gap-1 px-6 pt-10 pb-7 text-center text-[13px] text-mute">
-				<span>Active calm. The opposite of noise.</span>
+				<span>{t("tagline")}</span>
 				<Link to="/" className="text-ink2 underline">
-					Keep your own notes with Seijaku
+					{t("public.cta")}
 				</Link>
 			</footer>
 		</div>

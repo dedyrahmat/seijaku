@@ -1,5 +1,6 @@
 import {
 	fromBase64,
+	getWorkspaceName,
 	openShare,
 	type ShareInfo,
 	sealShare,
@@ -8,6 +9,7 @@ import {
 } from "@seijaku/sync";
 import { authStore } from "../auth/session";
 import { type Block, fragmentBlocks } from "../editor/headless";
+import { i18n } from "../i18n";
 import { readFile } from "./files";
 import { workspace } from "./store";
 import { apiUrl } from "./syncUrl";
@@ -35,6 +37,8 @@ export function shareLink(share: ShareInfo): string {
 interface Bundle {
 	v: 1;
 	title: string;
+	/** The workspace's name when the page was published; older copies have none. */
+	workspace?: string;
 	blocks: Block[];
 }
 
@@ -73,7 +77,7 @@ async function publish(
 	share: ShareInfo | null,
 ): Promise<ShareInfo> {
 	const note = workspace.getNotes().find((n) => n.id === noteId);
-	if (!note) throw new Error("This page is gone.");
+	if (!note) throw new Error(i18n.t("errors.pageGone"));
 	const key = share
 		? decodeKey(share.key)
 		: crypto.getRandomValues(new Uint8Array(32));
@@ -81,6 +85,7 @@ async function publish(
 	const bundle: Bundle = {
 		v: 1,
 		title: note.title,
+		workspace: getWorkspaceName(workspace.index) || undefined,
 		blocks: await inlineFiles(blocks, { left: MAX_TOTAL }),
 	};
 	const sealed = sealShare(
@@ -93,9 +98,8 @@ async function publish(
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ token: share?.token, data: toBase64(sealed) }),
 	});
-	if (res.status === 401) throw new Error("Sign in to share pages.");
-	if (!res.ok)
-		throw new Error("Could not reach your server. Try again in a moment.");
+	if (res.status === 401) throw new Error(i18n.t("errors.shareSignIn"));
+	if (!res.ok) throw new Error(i18n.t("errors.noServerMoment"));
 	const { token, createdAt } = (await res.json()) as {
 		token: string;
 		createdAt: number;
@@ -126,8 +130,7 @@ export async function stopSharing(noteId: string): Promise<void> {
 		method: "DELETE",
 		credentials: "include",
 	});
-	if (!res.ok)
-		throw new Error("Could not reach your server. Try again in a moment.");
+	if (!res.ok) throw new Error(i18n.t("errors.noServerMoment"));
 	setShare(workspace.index, noteId, null);
 }
 
@@ -180,7 +183,7 @@ export function cleanBlocks(node: unknown): unknown {
 export async function openShared(
 	token: string,
 	keyText: string,
-): Promise<{ title: string; blocks: Block[] } | null> {
+): Promise<{ title: string; workspace: string; blocks: Block[] } | null> {
 	try {
 		const res = await fetch(apiUrl(`/api/shares/${token}`));
 		if (!res.ok) return null;
@@ -191,6 +194,7 @@ export async function openShared(
 		const bundle = JSON.parse(new TextDecoder().decode(plain)) as Bundle;
 		return {
 			title: String(bundle.title ?? ""),
+			workspace: String(bundle.workspace ?? "").slice(0, 60),
 			blocks: cleanBlocks(bundle.blocks) as Block[],
 		};
 	} catch {

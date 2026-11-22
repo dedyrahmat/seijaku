@@ -9,6 +9,7 @@ import {
 	unwrapWorkspaceKey,
 	wrapWorkspaceKey,
 } from "@seijaku/sync";
+import { i18n } from "../i18n";
 import { apiUrl } from "../workspace/syncUrl";
 import { authClient } from "./client";
 
@@ -72,8 +73,7 @@ async function failure(res: Response, fallback: string): Promise<Error> {
 	const body = (await res.json().catch(() => null)) as {
 		message?: string;
 	} | null;
-	if (res.status === 429)
-		return new Error("Too many tries. Wait a few minutes and try again.");
+	if (res.status === 429) return new Error(i18n.t("errors.tooMany"));
 	return new Error(body?.message || fallback);
 }
 
@@ -224,8 +224,7 @@ export async function wrapHeldKeyForPasskey(
 /** Makes a new phrase for the key this device holds; the old phrase stops working. */
 export async function replacePhrase(): Promise<string> {
 	const workspaceKey = await loadWorkspaceKey();
-	if (!workspaceKey)
-		throw new Error("Unlock this device with your phrase first.");
+	if (!workspaceKey) throw new Error(i18n.t("errors.unlockFirst"));
 	return storePhrase(workspaceKey);
 }
 
@@ -243,8 +242,7 @@ async function storePhrase(workspaceKey: Uint8Array): Promise<string> {
 
 /** Signs in with the phrase alone and opens the workspace key. */
 export async function signInWithPhrase(input: string): Promise<void> {
-	if (!isValidPhrase(input))
-		throw new Error("That is not a valid recovery phrase. Check the words.");
+	if (!isValidPhrase(input)) throw new Error(i18n.t("errors.badPhrase"));
 	const { loginKey, wrapKey } = phraseKeys(input);
 	const res = await send("/phrase", { loginKey });
 	if (!res.ok) throw await failure(res, "That recovery phrase is not right.");
@@ -254,19 +252,18 @@ export async function signInWithPhrase(input: string): Promise<void> {
 
 /** Already signed in (by passkey) but this device has no key yet: open it with the phrase. */
 export async function unlockWithPhrase(input: string): Promise<void> {
-	if (!isValidPhrase(input))
-		throw new Error("That is not a valid recovery phrase. Check the words.");
+	if (!isValidPhrase(input)) throw new Error(i18n.t("errors.badPhrase"));
 	const { wrapKey } = phraseKeys(input);
 	const res = await send("/key-wraps", undefined, "GET");
 	if (!res.ok) throw await failure(res, "Could not reach your server.");
 	const wraps = (await res.json()) as { kind: string; wrapped: string }[];
 	const phrase = wraps.find((w) => w.kind === "phrase");
-	if (!phrase) throw new Error("This server has no recovery phrase on record.");
+	if (!phrase) throw new Error(i18n.t("errors.noPhrase"));
 	try {
 		await saveWorkspaceKey(
 			unwrapWorkspaceKey(wrapKey, fromBase64(phrase.wrapped)),
 		);
 	} catch {
-		throw new Error("That phrase does not open this workspace.");
+		throw new Error(i18n.t("errors.wrongPhrase"));
 	}
 }

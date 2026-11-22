@@ -8,6 +8,8 @@ import {
 } from "@seijaku/sync";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { dateLocale, i18n } from "../i18n";
 import { useNotes } from "../workspace/hooks";
 import { workspace } from "../workspace/store";
 import { Icon } from "./Icon";
@@ -42,7 +44,7 @@ function useNoteTexts(notes: NoteMeta[], active: boolean) {
 }
 
 function where(note: NoteMeta, notes: NoteMeta[]): string {
-	if (isDailyNoteId(note.id)) return "Daily note";
+	if (isDailyNoteId(note.id)) return i18n.t("switcher.daily");
 	return notes.find((n) => n.id === note.parentId)?.title || "";
 }
 
@@ -73,6 +75,7 @@ function SwitcherDialog({
 	mode: "jump" | "search";
 	onClose: () => void;
 }) {
+	const { t } = useTranslation();
 	const searching = mode === "search";
 	const notes = useNotes();
 	const navigate = useNavigate();
@@ -134,7 +137,7 @@ function SwitcherDialog({
 			onClose();
 		} else if (e.key === "Tab") {
 			e.preventDefault();
-			const ids = [null, ...NOTE_TYPES.map((t) => t.id)];
+			const ids = [null, ...NOTE_TYPES.map((k) => k.id)];
 			setOnly(ids[(ids.indexOf(only) + 1) % ids.length] ?? null);
 		} else if (e.key === "ArrowDown") {
 			e.preventDefault();
@@ -149,22 +152,26 @@ function SwitcherDialog({
 	};
 
 	const label = (n: NoteMeta) =>
-		n.title || (isDailyNoteId(n.id) ? dailyTitle(new Date()) : "Untitled");
+		n.title ||
+		(isDailyNoteId(n.id)
+			? dailyTitle(new Date(), dateLocale())
+			: t("common.untitled"));
 
 	return (
 		<div className="fixed inset-0 z-[60]">
 			<button
 				type="button"
-				aria-label="Close search"
+				aria-label={t("switcher.close")}
 				tabIndex={-1}
 				onClick={onClose}
 				className="absolute inset-0 bg-scrim"
 			/>
-			{/* biome-ignore lint/a11y/noStaticElementInteractions: key handling for the dialog's own input */}
 			<div
 				role="dialog"
 				aria-modal="true"
-				aria-label={searching ? "Search all pages" : "Search and jump"}
+				aria-label={
+					searching ? t("switcher.searchAll") : t("switcher.searchJump")
+				}
 				onKeyDown={onKeyDown}
 				className="absolute inset-x-3 top-[max(12px,env(safe-area-inset-top))] mx-auto flex max-h-[calc(100dvh-24px)] max-w-[640px] flex-col overflow-hidden rounded-2xl border border-line bg-raised shadow-[0_24px_60px_rgba(40,30,15,0.22),0_2px_8px_rgba(40,30,15,0.1)] md:top-[112px] md:max-h-[calc(100dvh-160px)]"
 			>
@@ -174,9 +181,11 @@ function SwitcherDialog({
 						ref={input}
 						value={query}
 						onChange={(e) => setQuery(e.target.value)}
-						aria-label="Search"
+						aria-label={t("switcher.search")}
 						placeholder={
-							searching ? "Search the text of every page" : "Search or jump to"
+							searching
+								? t("switcher.placeholderAll")
+								: t("switcher.placeholderJump")
 						}
 						autoComplete="off"
 						spellCheck={false}
@@ -191,11 +200,14 @@ function SwitcherDialog({
 				<div
 					className="flex flex-none gap-1.5 overflow-x-auto border-b border-line2 px-[18px] py-2"
 					role="group"
-					aria-label="Filter by type"
+					aria-label={t("switcher.filter")}
 				>
 					{[
-						{ id: null, short: "All" },
-						...NOTE_TYPES.map((t) => ({ id: t.id, short: t.name })),
+						{ id: null, short: t("switcher.all") },
+						...NOTE_TYPES.map((k) => ({
+							id: k.id,
+							short: t(`kinds.${k.id}.name`),
+						})),
 					].map((c) => (
 						<button
 							key={c.id ?? "all"}
@@ -214,15 +226,19 @@ function SwitcherDialog({
 					className="min-h-0 flex-1 overflow-y-auto px-2 pt-2.5 pb-1.5"
 				>
 					<div className="px-3 py-1.5 text-[11px] font-medium tracking-[0.09em] text-mute uppercase">
-						{searching ? "Matches in your pages" : trimmed ? "Notes" : "Recent"}
+						{searching
+							? t("switcher.matches")
+							: trimmed
+								? t("switcher.notes")
+								: t("switcher.recent")}
 					</div>
 					{hits.length === 0 ? (
 						<p className="px-3 py-2 text-sm text-mute">
 							{searching && !trimmed
-								? "Type to search inside every page."
+								? t("switcher.typeToSearch")
 								: trimmed
-									? "Nothing matches yet."
-									: "No pages yet."}
+									? t("switcher.nothing")
+									: t("sidebar.empty")}
 						</p>
 					) : (
 						hits.map((hit, i) => (
@@ -264,7 +280,7 @@ function SwitcherDialog({
 					{canCreate ? (
 						<>
 							<div className="px-3 pt-3 pb-1.5 text-[11px] font-medium tracking-[0.09em] text-mute uppercase">
-								Actions
+								{t("switcher.actions")}
 							</div>
 							<button
 								type="button"
@@ -276,7 +292,7 @@ function SwitcherDialog({
 							>
 								<Icon name="plus" size={16} className="text-ink2" />
 								<span className="truncate">
-									Create a page called “{trimmed}”
+									{t("switcher.create", { title: trimmed })}
 								</span>
 							</button>
 						</>
@@ -284,13 +300,18 @@ function SwitcherDialog({
 				</div>
 
 				<div className="flex flex-none gap-[18px] border-t border-line2 px-[18px] py-2.5 text-xs text-mute">
-					<span>↑ ↓ move</span>
-					<span>Tab type</span>
-					<span>Enter open</span>
+					<span>{t("switcher.hintMove")}</span>
+					<span>{t("switcher.hintTab")}</span>
+					<span>{t("switcher.hintEnter")}</span>
 					<span className="ml-auto">
 						{trimmed
-							? `${hits.length} of ${shown.length} ${shown.length === 1 ? "match" : "matches"}${only ? ` · ${NOTE_TYPES.find((t) => t.id === only)?.name ?? ""}` : ""} · searched on this device`
-							: "searched on this device"}
+							? t("switcher.count", {
+									hits: hits.length,
+									count: shown.length,
+								}) +
+								(only ? ` · ${t(`kinds.${only}.name`)}` : "") +
+								` · ${t("switcher.onDevice")}`
+							: t("switcher.onDevice")}
 					</span>
 				</div>
 			</div>

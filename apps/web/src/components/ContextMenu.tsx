@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { i18n } from "../i18n";
 
 type Item = { label: string; run: () => void; divider?: boolean };
 type Open = { x: number; y: number; items: Item[] };
@@ -25,36 +26,40 @@ function itemsFor(target: Element): Item[] {
 
 	if (link) {
 		items.push(
-			{ label: "Open link", run: () => link.click() },
-			{ label: "Copy link address", run: () => copyText(link.href) },
+			{ label: i18n.t("ctx.openLink"), run: () => link.click() },
+			{ label: i18n.t("ctx.copyLink"), run: () => copyText(link.href) },
 		);
 	}
 	if (editable) {
-		if (picked) items.push({ label: "Cut", run: exec("cut") });
-		if (picked) items.push({ label: "Copy", run: exec("copy") });
+		if (picked) items.push({ label: i18n.t("ctx.cut"), run: exec("cut") });
+		if (picked) items.push({ label: i18n.t("common.copy"), run: exec("copy") });
 		items.push(
 			{
-				label: "Paste",
+				label: i18n.t("ctx.paste"),
 				run: () =>
 					void navigator.clipboard
 						?.readText()
 						.then((t) => document.execCommand("insertText", false, t))
 						.catch(() => {}),
 			},
-			{ label: "Select all", run: exec("selectAll") },
+			{ label: i18n.t("sidebar.selectAll"), run: exec("selectAll") },
 		);
 	} else if (picked) {
-		items.push({ label: "Copy", run: exec("copy") });
+		items.push({ label: i18n.t("common.copy"), run: exec("copy") });
 	}
 	if (!items.length) {
 		items.push(
-			{ label: "Back", run: () => history.back() },
-			{ label: "Forward", run: () => history.forward() },
-			{ label: "Reload", run: () => location.reload() },
+			{ label: i18n.t("shell.back"), run: () => history.back() },
+			{ label: i18n.t("shell.forward"), run: () => history.forward() },
+			{ label: i18n.t("ctx.reload"), run: () => location.reload() },
 		);
 	} else {
 		// Always leave a way to navigate, set apart from the item above.
-		items.push({ label: "Back", run: () => history.back(), divider: true });
+		items.push({
+			label: i18n.t("shell.back"),
+			run: () => history.back(),
+			divider: true,
+		});
 	}
 	return items;
 }

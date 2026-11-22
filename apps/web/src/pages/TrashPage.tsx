@@ -6,24 +6,32 @@ import {
 	restoreNote,
 	withoutDescendants,
 } from "@seijaku/sync";
-
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { askConfirm } from "../components/Dialogs";
 import { Icon } from "../components/Icon";
 import { SelectBox } from "../components/SelectBox";
 import { useSelection } from "../components/useSelection";
+import { dateLocale, i18n } from "../i18n";
 import { useNotes } from "../workspace/hooks";
 import { workspace } from "../workspace/store";
 
 /** "today, 08:20", "yesterday", "Thu 12 Nov": how the design words a deletion time. */
 function when(ms: number, now = new Date()): string {
 	const d = new Date(ms);
+	const locale = dateLocale();
 	const day = (x: Date) =>
 		new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
 	const diff = Math.round((day(now) - day(d)) / 86_400_000);
 	if (diff === 0)
-		return `today, ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
-	if (diff === 1) return "yesterday";
-	return d.toLocaleDateString("en-GB", {
+		return i18n.t("trash.today", {
+			time: d.toLocaleTimeString(locale, {
+				hour: "2-digit",
+				minute: "2-digit",
+			}),
+		});
+	if (diff === 1) return i18n.t("trash.yesterday");
+	return d.toLocaleDateString(locale, {
 		weekday: "short",
 		day: "numeric",
 		month: "short",
@@ -45,14 +53,15 @@ function descendants(notes: NoteMeta[], id: string): number {
 }
 
 export function TrashPage() {
+	const { t } = useTranslation();
 	const notes = useNotes();
 	const trash = listTrash(notes).sort((a, b) => b.updatedAt - a.updatedAt);
 	const sel = useSelection();
 	const [confirming, setConfirming] = useState(false);
 
 	useEffect(() => {
-		document.title = "Trash · Seijaku";
-	}, []);
+		document.title = t("trash.pageTitle");
+	}, [t]);
 
 	useEffect(() => {
 		if (!sel.on) return;
@@ -62,24 +71,23 @@ export function TrashPage() {
 		return () => window.removeEventListener("keydown", esc);
 	}, [sel.on, sel.stop, confirming]);
 
-	const forever = (n: NoteMeta, subs: number) => {
-		const extra =
-			subs > 0 ? ` and its ${subs} sub-${subs === 1 ? "page" : "pages"}` : "";
-		if (
-			window.confirm(
-				`Delete “${n.title || "Untitled"}”${extra} forever? This cannot be undone.`,
-			)
-		)
-			purgeNote(workspace.index, n.id);
+	const forever = async (n: NoteMeta, subs: number) => {
+		const title = n.title || t("common.untitled");
+		const ok = await askConfirm(
+			subs > 0
+				? t("trash.confirmOneSubs", { title, count: subs })
+				: t("trash.confirmOne", { title }),
+			{ confirm: t("trash.deleteForeverButton"), danger: true },
+		);
+		if (ok) purgeNote(workspace.index, n.id);
 	};
 
-	const empty = () => {
-		if (
-			window.confirm(
-				`Delete ${trash.length} ${trash.length === 1 ? "page" : "pages"} forever? This cannot be undone.`,
-			)
-		)
-			purgeAllTrashed(workspace.index);
+	const empty = async () => {
+		const ok = await askConfirm(
+			t("trash.confirmAll", { count: trash.length }),
+			{ confirm: t("trash.deleteForeverButton"), danger: true },
+		);
+		if (ok) purgeAllTrashed(workspace.index);
 	};
 
 	// Only pages that are really in the trash list can be ticked; one restored on another device drops out.
@@ -116,12 +124,10 @@ export function TrashPage() {
 			<div className="flex items-end gap-4">
 				<div className="flex flex-1 flex-col gap-2">
 					<h1 className="font-serif text-[40px] leading-[1.1] font-medium tracking-[-0.015em]">
-						Trash
+						{t("sidebar.trash")}
 					</h1>
 					<p className="text-[15px] text-ink2">
-						{sel.on
-							? "Tick the pages to bring back or remove for good."
-							: "Deleted pages wait here. Restore one, or remove it for good."}
+						{sel.on ? t("trash.hintSelect") : t("trash.hint")}
 					</p>
 				</div>
 				{trash.length > 0 ? (
@@ -131,7 +137,7 @@ export function TrashPage() {
 							onClick={() => sel.setAll(order)}
 							className="flex h-11 items-center gap-1.5 shrink-0 rounded-2xl border border-line px-4 text-[13px] font-medium text-ink hover:bg-hover md:h-9"
 						>
-							<Icon name="check" size={14} /> Select all
+							<Icon name="check" size={14} /> {t("sidebar.selectAll")}
 						</button>
 					) : (
 						<div className="flex shrink-0 gap-2">
@@ -140,14 +146,14 @@ export function TrashPage() {
 								onClick={() => sel.start()}
 								className="flex h-11 items-center gap-1.5 rounded-2xl border border-line px-4 text-[13px] font-medium text-ink hover:bg-hover md:h-9"
 							>
-								<Icon name="check" size={14} /> Select
+								<Icon name="check" size={14} /> {t("trash.select")}
 							</button>
 							<button
 								type="button"
 								onClick={empty}
 								className="flex h-11 items-center gap-1.5 rounded-2xl border border-line px-4 text-[13px] font-medium text-accent hover:bg-hover md:h-9"
 							>
-								<Icon name="trash" size={14} /> Empty trash
+								<Icon name="trash" size={14} /> {t("trash.emptyTrash")}
 							</button>
 						</div>
 					)
@@ -156,7 +162,7 @@ export function TrashPage() {
 
 			{trash.length === 0 ? (
 				<p className="border-t border-line2 pt-6 text-[15px] text-mute">
-					Nothing here. Pages you delete will wait here first.
+					{t("trash.empty")}
 				</p>
 			) : (
 				<ul className="flex flex-col border-t border-line2">
@@ -167,13 +173,14 @@ export function TrashPage() {
 						const info = (
 							<>
 								<span className="truncate text-base font-medium">
-									{n.title || "Untitled"}
+									{n.title || t("common.untitled")}
 								</span>
 								<span className="text-[13px] text-mute">
-									{parent?.title || "Top level"} · deleted {when(n.updatedAt)}
-									{subs > 0
-										? ` · ${subs} sub-${subs === 1 ? "page" : "pages"}`
-										: ""}
+									{t("trash.info", {
+										where: parent?.title || t("newNote.topLevel"),
+										when: when(n.updatedAt),
+									})}
+									{subs > 0 ? ` · ${t("trash.subs", { count: subs })}` : ""}
 								</span>
 							</>
 						);
@@ -203,14 +210,15 @@ export function TrashPage() {
 											onClick={() => restoreNote(workspace.index, n.id)}
 											className="flex h-11 items-center gap-1.5 rounded-2xl border border-line px-3.5 text-[13px] text-ink hover:bg-hover md:h-[34px]"
 										>
-											<Icon name="history" size={14} /> Restore
+											<Icon name="history" size={14} /> {t("trash.restore")}
 										</button>
 										<button
 											type="button"
 											onClick={() => forever(n, subs)}
 											className="flex h-11 items-center gap-1.5 rounded-2xl px-2.5 text-[13px] text-accent hover:bg-hover md:h-[34px]"
 										>
-											<Icon name="trash" size={14} /> Delete forever
+											<Icon name="trash" size={14} />{" "}
+											{t("trash.deleteForeverButton")}
 										</button>
 									</div>
 								)}
@@ -223,11 +231,11 @@ export function TrashPage() {
 			{sel.on ? (
 				<div
 					role="toolbar"
-					aria-label="Selected pages"
+					aria-label={t("trash.toolbar")}
 					className="sticky bottom-6 mt-auto flex flex-wrap items-center gap-2.5 rounded-2xl border border-line bg-raised py-3 pr-3 pl-5 shadow-[0_18px_50px_rgba(40,30,15,0.16),0_2px_6px_rgba(40,30,15,0.08)]"
 				>
 					<span aria-live="polite" className="flex-1 text-sm font-semibold">
-						{count} selected
+						{t("trash.selected", { count })}
 					</span>
 					<button
 						type="button"
@@ -235,7 +243,7 @@ export function TrashPage() {
 						onClick={restoreSelected}
 						className="h-11 rounded-2xl border border-line px-[18px] text-[13px] font-medium text-ink hover:bg-hover disabled:opacity-40 md:h-10"
 					>
-						Restore {count}
+						{t("trash.restoreN", { count })}
 					</button>
 					<button
 						type="button"
@@ -243,14 +251,14 @@ export function TrashPage() {
 						onClick={() => setConfirming(true)}
 						className="h-11 rounded-2xl border border-accent px-[18px] text-[13px] font-semibold text-accent hover:bg-hover disabled:opacity-40 md:h-10"
 					>
-						Delete {count} forever
+						{t("trash.deleteN", { count })}
 					</button>
 					<button
 						type="button"
 						onClick={sel.stop}
 						className="h-11 rounded-2xl px-3.5 text-[13px] text-ink2 hover:bg-hover md:h-10"
 					>
-						Cancel
+						{t("common.cancel")}
 					</button>
 				</div>
 			) : null}
@@ -279,13 +287,14 @@ function ConfirmDelete({
 	onKeep: () => void;
 	onDelete: () => void;
 }) {
+	const { t } = useTranslation();
 	useEffect(() => {
 		const esc = (e: KeyboardEvent) => e.key === "Escape" && onKeep();
 		window.addEventListener("keydown", esc);
 		return () => window.removeEventListener("keydown", esc);
 	}, [onKeep]);
 
-	const pages = `${count} ${count === 1 ? "page" : "pages"}`;
+	const pages = t("trash.pages", { count });
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/35 p-5">
 			<div
@@ -298,15 +307,13 @@ function ConfirmDelete({
 					id="delete-title"
 					className="font-serif text-[26px] leading-[1.15] font-medium"
 				>
-					Delete {pages} forever?
+					{t("trash.deleteForever", { pages })}
 				</h2>
 				<p className="text-sm leading-[1.55] text-ink2">
-					{count === 1 ? "It" : "They"}
-					{subs > 0
-						? ` and ${count === 1 ? "its" : "their"} ${subs === 1 ? "sub-page" : `${subs} sub-pages`}`
-						: ""}{" "}
-					{count === 1 && subs === 0 ? "leaves" : "leave"} every device you use.
-					This can’t be undone.
+					{t(
+						`trash.body.${count === 1 ? "one" : "many"}${subs === 0 ? "None" : subs === 1 ? "Sub" : "Subs"}`,
+						{ subs },
+					)}
 				</p>
 				<div className="flex justify-end gap-2.5 pt-1.5">
 					<button
@@ -314,14 +321,14 @@ function ConfirmDelete({
 						onClick={onKeep}
 						className="h-11 rounded-2xl border border-line px-[18px] text-[13px] font-medium text-ink hover:bg-hover md:h-10"
 					>
-						Keep them
+						{t("trash.keep")}
 					</button>
 					<button
 						type="button"
 						onClick={onDelete}
 						className="h-11 rounded-2xl bg-accent px-5 text-[13px] font-semibold text-paper md:h-10"
 					>
-						Delete {count} forever
+						{t("trash.deleteN", { count })}
 					</button>
 				</div>
 			</div>

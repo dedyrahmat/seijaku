@@ -518,6 +518,22 @@ export function purgeAllTrashed(doc: Y.Doc): string[] {
 	return removed;
 }
 
+const SETTINGS_KEY = "settings";
+
+/** The workspace's name, shared by every device (sealed like titles). Empty when never set. */
+export function getWorkspaceName(doc: Y.Doc): string {
+	const v = doc.getMap<unknown>(SETTINGS_KEY).get("name");
+	return typeof v === "string" ? v : "";
+}
+
+export function setWorkspaceName(doc: Y.Doc, name: string): void {
+	const clean = name.trim().slice(0, 60);
+	const m = doc.getMap<unknown>(SETTINGS_KEY);
+	if ((m.get("name") ?? "") === clean) return;
+	if (clean) m.set("name", clean);
+	else m.delete("name");
+}
+
 /** Records (or with null, clears) the page's share link, so every device knows it and can revoke it. */
 export function setShare(
 	doc: Y.Doc,
@@ -573,8 +589,9 @@ export function isDailyNoteId(id: string): boolean {
 }
 
 /** "Sun 15 Nov", as in the design. */
-export function dailyTitle(date: Date): string {
-	return date.toLocaleDateString("en-GB", {
+/** "Sun 22 Nov". The stored title stays in English so every device agrees; screens may pass their own locale. */
+export function dailyTitle(date: Date, locale = "en-GB"): string {
+	return date.toLocaleDateString(locale, {
 		weekday: "short",
 		day: "numeric",
 		month: "short",

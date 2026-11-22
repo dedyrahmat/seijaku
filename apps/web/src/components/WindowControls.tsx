@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { isDesktop, isMacDesktop, windowAction } from "../desktop";
 
 const btn =
@@ -5,12 +6,13 @@ const btn =
 
 /** Minimise, maximise and close for the frameless desktop window (Windows and Linux). */
 export function WindowControls() {
+	const { t } = useTranslation();
 	if (!isDesktop || isMacDesktop) return null;
 	return (
 		<div className="ml-2 flex h-10 flex-none">
 			<button
 				type="button"
-				aria-label="Minimise"
+				aria-label={t("window.minimise")}
 				onClick={() => void windowAction("minimize")}
 				className={btn}
 			>
@@ -20,7 +22,7 @@ export function WindowControls() {
 			</button>
 			<button
 				type="button"
-				aria-label="Maximise"
+				aria-label={t("window.maximise")}
 				onClick={() => void windowAction("toggleMaximize")}
 				className={btn}
 			>
@@ -43,7 +45,7 @@ export function WindowControls() {
 			</button>
 			<button
 				type="button"
-				aria-label="Close"
+				aria-label={t("common.close")}
 				onClick={() => void windowAction("close")}
 				className={`${btn} hover:bg-accent hover:text-paper`}
 			>

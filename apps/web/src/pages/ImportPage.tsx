@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { pageLink } from "../components/pageLink";
 import {
 	type Picked,
@@ -24,6 +25,7 @@ const MAX_ROWS = 300;
  * writer makes the pages (see import/writer.ts).
  */
 export function ImportPage() {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	// null means "work it out from what is dropped"; picking a card overrides that.
 	const [sourceId, setSourceId] = useState<string | null>(null);
@@ -48,8 +50,8 @@ export function ImportPage() {
 	const list = useRef<HTMLUListElement>(null);
 
 	useEffect(() => {
-		document.title = "Import · Seijaku";
-	}, []);
+		document.title = t("import.title");
+	}, [t]);
 
 	// Keep the newest row in view as notes land.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: rows.length is the trigger
@@ -59,7 +61,7 @@ export function ImportPage() {
 
 	const take = (list: Picked[]) => {
 		setPicked(list);
-		setError(list.length === 0 ? "Nothing was found to import there." : null);
+		setError(list.length === 0 ? t("import.nothingFound") : null);
 	};
 
 	const run = async () => {
@@ -76,8 +78,8 @@ export function ImportPage() {
 			if (parsed.notes.length === 0) {
 				setError(
 					parsed.skipped.length > 0
-						? `No notes could be imported. ${parsed.skipped[0]?.reason}.`
-						: "No notes were found in what you chose.",
+						? t("import.noneImported", { reason: parsed.skipped[0]?.reason })
+						: t("import.noNotes"),
 				);
 				setStage("idle");
 				return;
@@ -95,13 +97,13 @@ export function ImportPage() {
 							{
 								source: note.source,
 								state: "active" as const,
-								detail: "Reading…",
+								detail: t("import.reading"),
 							},
 						].slice(-MAX_ROWS),
 					),
 				onResult: (result, done, total) => {
 					setProgress([done, total]);
-					for (const t of result.note.tags) tags.add(t.toLowerCase());
+					for (const tag of result.note.tags) tags.add(tag.toLowerCase());
 					setStats((s) => ({
 						images: s.images + result.images,
 						files: s.files + result.files - result.images,
@@ -137,7 +139,7 @@ export function ImportPage() {
 			setStage("idle");
 			setPicked([]);
 		} catch (err) {
-			setError(err instanceof Error ? err.message : "Import failed.");
+			setError(err instanceof Error ? err.message : t("import.failed"));
 			setStage("idle");
 		}
 	};
@@ -152,21 +154,18 @@ export function ImportPage() {
 				<div className="flex flex-col gap-2">
 					<h1 className="font-serif text-[32px] font-medium tracking-[-0.015em]">
 						{stage === "reading"
-							? "Reading your files"
-							: `Importing ${sourceName}`}
+							? t("import.readingFiles")
+							: t("import.importing", { source: sourceName })}
 					</h1>
-					<p className="text-[15px] text-ink2">
-						You can keep using Seijaku. Imported notes appear in the sidebar as
-						they land.
-					</p>
+					<p className="text-[15px] text-ink2">{t("import.keepUsing")}</p>
 				</div>
 
 				<div className="flex flex-col gap-2.5">
 					<div className="flex justify-between text-sm">
 						<span>
 							{stage === "reading"
-								? "Opening files…"
-								: `${done} of ${total} ${total === 1 ? "note" : "notes"}`}
+								? t("import.opening")
+								: t("import.progress", { done, count: total })}
 						</span>
 						<span className="text-mute">
 							{stage === "reading" ? "" : `${pct}%`}
@@ -174,7 +173,7 @@ export function ImportPage() {
 					</div>
 					<div
 						role="progressbar"
-						aria-label="Import progress"
+						aria-label={t("import.progressLabel")}
 						aria-valuemin={0}
 						aria-valuemax={100}
 						aria-valuenow={pct}
@@ -187,17 +186,13 @@ export function ImportPage() {
 					</div>
 					<div className="flex gap-7 pt-1 text-[13px] text-mute">
 						<span>
-							{stats.images} {stats.images === 1 ? "image" : "images"} saved
+							{t("import.imagesSaved", { count: stats.images })}
 							{stats.files > 0
-								? ` · ${stats.files} other ${stats.files === 1 ? "file" : "files"}`
+								? ` · ${t("import.otherFiles", { count: stats.files })}`
 								: ""}
 						</span>
-						<span>
-							{stats.tags} {stats.tags === 1 ? "tag" : "tags"} found
-						</span>
-						<span>
-							{stats.skipped} {stats.skipped === 1 ? "thing" : "things"} skipped
-						</span>
+						<span>{t("import.tagsFound", { count: stats.tags })}</span>
+						<span>{t("import.skippedCount", { count: stats.skipped })}</span>
 					</div>
 				</div>
 
@@ -223,7 +218,7 @@ export function ImportPage() {
 										strokeLinecap="round"
 										strokeLinejoin="round"
 										role="img"
-										aria-label="Done"
+										aria-label={t("common.done")}
 										className="text-ink2"
 									>
 										<path d="M3.5 8.5l3 3 6-7" />
@@ -239,7 +234,7 @@ export function ImportPage() {
 										strokeWidth="1.6"
 										strokeLinecap="round"
 										role="img"
-										aria-label="In progress"
+										aria-label={t("import.inProgress")}
 									>
 										<path d="M8 2.5a5.5 5.5 0 105.5 5.5" />
 									</svg>
@@ -254,7 +249,7 @@ export function ImportPage() {
 										strokeWidth="1.6"
 										strokeLinecap="round"
 										role="img"
-										aria-label="Skipped"
+										aria-label={t("import.skipped")}
 										className="text-accent"
 									>
 										<path d="M8 4v5M8 11.6v.4" />
@@ -275,7 +270,7 @@ export function ImportPage() {
 
 				<div className="flex flex-wrap items-center gap-3">
 					<span className="text-[13px] text-mute">
-						Skipped items are listed in a note called “Import report”.
+						{t("import.reportNote", { title: t("import.reportTitle") })}
 					</span>
 					<div className="flex-1" />
 					<button
@@ -283,7 +278,7 @@ export function ImportPage() {
 						onClick={() => abort.current?.abort()}
 						className="h-11 rounded-2xl border border-line px-[18px] text-sm text-accent hover:bg-hover md:h-10"
 					>
-						Cancel import
+						{t("import.cancel")}
 					</button>
 					<button
 						type="button"
@@ -293,7 +288,7 @@ export function ImportPage() {
 						}}
 						className="h-11 rounded-2xl bg-ink px-[22px] text-sm font-medium text-paper hover:opacity-90 md:h-10"
 					>
-						Keep going in background
+						{t("import.background")}
 					</button>
 				</div>
 			</div>
@@ -304,12 +299,9 @@ export function ImportPage() {
 		<div className="mx-auto flex w-full max-w-[880px] flex-col gap-[22px] px-5 pt-10 pb-24 md:px-11 md:pt-14">
 			<div className="flex flex-col gap-2">
 				<h1 className="font-serif text-[32px] font-medium tracking-[-0.015em]">
-					Bring your notes with you
+					{t("import.heading")}
 				</h1>
-				<p className="text-[15px] text-ink2">
-					Imports run on this device, so they work offline. Drop your notes in
-					and Seijaku works out where they came from, or pick a source below.
-				</p>
+				<p className="text-[15px] text-ink2">{t("import.intro")}</p>
 			</div>
 
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -335,7 +327,11 @@ export function ImportPage() {
 							</span>
 							<span className="flex min-w-0 flex-col gap-0.5">
 								<span className="text-[15px] font-medium">{s.name}</span>
-								<span className="text-xs text-mute">{s.hint}</span>
+								<span className="text-xs text-mute">
+									{t(
+										`import.sources.${s.id.replace("-", "") as "obsidian"}.hint`,
+									)}
+								</span>
 							</span>
 						</button>
 					);
@@ -358,9 +354,12 @@ export function ImportPage() {
 			>
 				<span className="text-[15px]">
 					{picked.length > 0
-						? `${picked.length} ${picked.length === 1 ? "file" : "files"} ready`
-						: (chosen?.drop ??
-							"Drop your notes here: a folder, a .zip or files")}
+						? t("import.filesReady", { count: picked.length })
+						: chosen
+							? t(
+									`import.sources.${chosen.id.replace("-", "") as "obsidian"}.drop`,
+								)
+							: t("import.dropAny")}
 				</span>
 				<span className="flex gap-4">
 					<button
@@ -368,7 +367,7 @@ export function ImportPage() {
 						onClick={() => picker.current?.click()}
 						className="text-sm underline underline-offset-[3px]"
 					>
-						or choose a file
+						{t("import.chooseFile")}
 					</button>
 					{chosen === null || chosen.folder ? (
 						<button
@@ -376,7 +375,7 @@ export function ImportPage() {
 							onClick={() => folderPicker.current?.click()}
 							className="text-sm underline underline-offset-[3px]"
 						>
-							or choose a folder
+							{t("import.chooseFolder")}
 						</button>
 					) : null}
 				</span>
@@ -411,16 +410,14 @@ export function ImportPage() {
 			) : null}
 
 			<div className="flex flex-wrap items-center gap-3">
-				<span className="text-[13px] text-mute">
-					Tags, dates and image embeds are kept where the source has them.
-				</span>
+				<span className="text-[13px] text-mute">{t("import.kept")}</span>
 				<div className="flex-1" />
 				<button
 					type="button"
 					onClick={() => void navigate({ to: "/" })}
 					className="h-11 rounded-2xl border border-line px-[18px] text-sm text-ink hover:bg-hover md:h-10"
 				>
-					Cancel
+					{t("common.cancel")}
 				</button>
 				<button
 					type="button"
@@ -428,7 +425,7 @@ export function ImportPage() {
 					disabled={picked.length === 0}
 					className="h-11 rounded-2xl bg-ink px-[22px] text-sm font-medium text-paper hover:opacity-90 disabled:opacity-40 md:h-10"
 				>
-					Continue
+					{t("common.continue")}
 				</button>
 			</div>
 		</div>

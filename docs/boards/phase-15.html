@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seijaku · Phase 15 boards</title>
+<style>
+:root{--paper:#f8f4eb;--panel:#f0eadd;--raised:#fcfaf4;--hover:#e6decb;--ink:#201d19;--ink2:#5b5448;--mute:#6e675a;--line:#ded6c5;--accent:#ae3b28;--off:#cfc6b3}
+.dark{--paper:#171512;--panel:#1d1b17;--raised:#23201b;--hover:#2b2822;--ink:#e9e3d6;--ink2:#b5ad9d;--mute:#968e7e;--line:#37332b;--accent:#e27a63;--off:#4a453b}
+*{box-sizing:border-box}
+body{margin:0;padding:32px;background:#d9d2c2;font:14px/1.5 "Hanken Grotesk",system-ui,sans-serif;color:#201d19}
+h1{font:500 28px "Newsreader",Georgia,serif;margin:0 0 4px}
+.lead{color:#5b5448;margin:0 0 28px}
+.row{display:flex;flex-wrap:wrap;gap:28px;margin-bottom:36px;align-items:flex-start}
+.cap{font:12px "JetBrains Mono",monospace;color:#5b5448;margin:0 0 8px}
+.board{background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.dlg{width:560px}.phone{width:375px;min-height:560px}
+.head{padding:18px 22px;border-bottom:1px solid var(--line);font:500 20px "Newsreader",Georgia,serif}
+.grp{padding:14px 22px 4px;font:600 11px "Hanken Grotesk",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.r{display:flex;align-items:center;gap:14px;padding:12px 22px;border-top:1px solid var(--line)}
+.r .t{flex:1;min-width:0}.r .t b{font-weight:500;display:block}.r .t span{color:var(--mute);font-size:13px}
+.r .t b.ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn{height:36px;padding:0 16px;border-radius:16px;border:1px solid var(--line);background:transparent;color:var(--ink);font:inherit;font-size:13px}
+.btn.pri{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.btn.dng{color:var(--accent);border-color:var(--accent)}
+.sel{height:36px;padding:0 14px;border-radius:16px;border:1px solid var(--line);background:var(--raised);display:flex;align-items:center;gap:8px;font-size:13px}
+.tog{width:44px;height:26px;border-radius:13px;background:var(--off);position:relative;flex:none}
+.tog.on{background:var(--ink)}.tog i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--paper)}.tog.on i{left:21px}
+.chip{font:12px "JetBrains Mono",monospace;color:var(--mute);border:1px solid var(--line);border-radius:10px;padding:1px 8px}
+.lock{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:48px 32px;min-height:460px}
+.lock .mark{width:72px;height:72px;border-radius:50%;border:2px solid var(--ink);position:relative}
+.lock .mark:after{content:"";position:absolute;inset:26px;border-radius:50%;background:var(--accent)}
+.lock h2{font:500 28px "Newsreader",Georgia,serif;margin:0}
+.lock p{margin:0;color:var(--ink2);max-width:300px}
+.lock .btn{width:100%;max-width:300px;height:48px;font-size:15px}
+.lock a{color:var(--mute);font-size:13px}
+.empty{padding:36px 22px;text-align:center;color:var(--mute)}
+.bar{height:6px;border-radius:3px;background:var(--hover);overflow:hidden}.bar i{display:block;height:100%;width:42%;background:var(--ink2)}
+.warn{margin:8px 22px 16px;padding:12px 14px;border-radius:12px;background:var(--panel);color:var(--ink2);font-size:13px}
+</style>
+</head>
+<body>
+<h1>Phase 15 · boards for approval</h1>
+<p class="lead">Settings rows that only need the device. Washi &amp; ink tokens, same rows and buttons as the existing Settings dialog. Light, dark and phone.</p>
+
+<p class="cap">Settings · Data · Public pages → Manage links (dialog opens over Settings)</p>
+<div class="row">
+  <div class="board dlg">
+    <div class="head">Public pages</div>
+    <div class="r"><div class="t"><b class="ell">Getting Started</b><span>Shared 12 Nov · opened 4 times</span></div><button class="btn">Open</button><button class="btn">Copy link</button><button class="btn dng">Stop sharing</button></div>
+    <div class="r"><div class="t"><b class="ell">Trip to Kyoto, packing list and a very long title that is cut</b><span>Shared 2 Nov · opened 0 times</span></div><button class="btn">Open</button><button class="btn">Copy link</button><button class="btn dng">Stop sharing</button></div>
+    <div class="r"><div class="t"><b class="ell">Untitled</b><span>Shared 28 Oct · opened 17 times</span></div><button class="btn">Open</button><button class="btn">Copy link</button><button class="btn dng">Stop sharing</button></div>
+    <div class="warn">The link opens the page for anyone who has it, without signing in. Stopping makes the link stop working at once.</div>
+  </div>
+  <div class="board dlg dark">
+    <div class="head">Public pages</div>
+    <div class="empty">Nothing is shared.<br>Use Share on a page to make a link.</div>
+  </div>
+</div>
+
+<p class="cap">Settings · Data · On this device → Clear cache (confirmation, and the refusal)</p>
+<div class="row">
+  <div class="board dlg">
+    <div class="head">Clear offline storage?</div>
+    <div class="r"><div class="t"><b>48.2 MB used on this device</b><span>Pages and images are removed from this device and downloaded again from your server. Nothing is deleted from your account.</span></div></div>
+    <div class="r" style="justify-content:flex-end"><button class="btn">Cancel</button><button class="btn pri">Clear and reload</button></div>
+  </div>
+  <div class="board dlg dark">
+    <div class="head">Not yet</div>
+    <div class="r"><div class="t"><b>3 changes are still waiting to upload</b><span>Clearing now would lose them. Try again once Seijaku says “Up to date”.</span></div></div>
+    <div class="r" style="justify-content:flex-end"><button class="btn pri">OK</button></div>
+  </div>
+</div>
+
+<p class="cap">Settings · Security → Lock after inactivity (row, and the lock screen; the same screen on desktop)</p>
+<div class="row">
+  <div class="board dlg">
+    <div class="grp">Recovery and lock</div>
+    <div class="r"><div class="t"><b>Lock after inactivity</b><span>Ask for your passkey or recovery phrase after you step away. Notes stay on this device.</span></div><div class="sel">15 minutes ▾</div></div>
+  </div>
+  <div class="board phone lock">
+    <div class="mark"></div>
+    <h2>Locked</h2>
+    <p>You stepped away, so Seijaku put the key away. Your notes are still here.</p>
+    <button class="btn pri">Unlock with passkey</button>
+    <a href="#">Use my recovery phrase instead</a>
+  </div>
+  <div class="board phone lock dark">
+    <div class="mark"></div>
+    <h2>Locked</h2>
+    <p>You stepped away, so Seijaku put the key away. Your notes are still here.</p>
+    <button class="btn pri">Unlock with passkey</button>
+    <a href="#">Use my recovery phrase instead</a>
+  </div>
+</div>
+
+<p class="cap">Settings · General → Open on start, workspace name · Editor → writing toggles</p>
+<div class="row">
+  <div class="board dlg">
+    <div class="grp">Workspace</div>
+    <div class="r"><div class="t"><b>Workspace name</b><span>Shown in the sidebar and on shared pages. Synced.</span></div><div class="sel" style="width:200px">Dedy’s notes</div></div>
+    <div class="r"><div class="t"><b>Language</b><span>Interface language. Your notes are not translated.</span></div><div class="sel">English ▾</div></div>
+    <div class="r"><div class="t"><b>Open on start</b><span>The page you land on when Seijaku opens.</span></div><div class="sel">Last page ▾</div></div>
+    <div class="grp">Writing</div>
+    <div class="r"><div class="t"><b>Smart punctuation</b><span>Curly quotes, proper dashes and ellipses as you type.</span></div><div class="tog on"><i></i></div></div>
+    <div class="r"><div class="t"><b>Spellcheck</b><span>Underline misspelled words. Runs on your device.</span></div><div class="tog on"><i></i></div></div>
+    <div class="r"><div class="t"><b>Auto-pair brackets and quotes</b></div><div class="tog"><i></i></div></div>
+    <div class="r"><div class="t"><b>Paste behaviour</b><span>What happens when you paste from a web page.</span></div><div class="sel">Plain text ▾</div></div>
+  </div>
+  <div class="board dlg">
+    <div class="grp">The small print (About)</div>
+    <div class="r"><div class="t"><b>What’s new</b><span>Release notes for each version.</span></div><button class="btn">Open</button></div>
+    <div class="r"><div class="t"><b>Platforms</b><span>Web, iPhone Home Screen app and a desktop app share one workspace.</span></div><button class="btn">Get the apps</button></div>
+    <div class="r"><div class="t"><b>Privacy</b><span>What is stored, where, and for how long.</span></div><button class="btn">Read</button></div>
+    <div class="r"><div class="t"><b>Open-source licences</b><span>The libraries Seijaku is built on.</span></div><button class="btn">View</button></div>
+  </div>
+</div>
+</body>
+</html>

@@ -5,12 +5,14 @@ import {
 	type TreeNode,
 } from "@seijaku/sync";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { i18n } from "../i18n";
 import { useNotes } from "../workspace/hooks";
 import { Icon } from "./Icon";
 import { NOTE_TYPES as TYPES } from "./noteKinds";
 import { useNewPage } from "./useNewPage";
 
-/** Pages in sidebar order, each with how deep it sits, for the "Save in" list. */
+/** Pages in sidebar order, each with how deep it sits, for the Save in list. */
 interface Choice {
 	id: string | null;
 	title: string;
@@ -19,23 +21,24 @@ interface Choice {
 
 function pageChoices(tree: TreeNode[], depth = 0): Choice[] {
 	return tree.flatMap((n) => [
-		{ id: n.note.id, title: n.note.title || "Untitled", depth },
+		{ id: n.note.id, title: n.note.title || i18n.t("common.untitled"), depth },
 		...pageChoices(n.children, depth + 1),
 	]);
 }
 
 /**
- * The mockup's "New note" board: pick what you are writing, where it goes, and go. Keys 1 to 6
+ * The mockup's New note board: pick what you are writing, where it goes, and go. Keys 1 to 6
  * pick a card, arrows move between them, Enter creates, Esc closes.
  */
 export function NewNoteDialog({
 	defaultParentId,
 	onClose,
 }: {
-	/** Where "Save in" starts: the open page's parent, or null for the top level. */
+	/** Where Save in starts: the open page's parent, or null for the top level. */
 	defaultParentId: string | null;
 	onClose: () => void;
 }) {
+	const { t } = useTranslation();
 	const notes = useNotes();
 	const newPage = useNewPage();
 	const [kind, setKind] = useState<NoteKind>("quick");
@@ -47,11 +50,10 @@ export function NewNoteDialog({
 		() => pageChoices(buildTree(notes.filter((n) => !isDailyNoteId(n.id)))),
 		[notes],
 	);
-	const chosen = TYPES.find((t) => t.id === kind) ?? TYPES[0];
 	const isJournal = kind === "journal";
 	const where = isJournal
-		? "Journal"
-		: (choices.find((c) => c.id === parentId)?.title ?? "Top level");
+		? t("newNote.journal")
+		: (choices.find((c) => c.id === parentId)?.title ?? t("newNote.topLevel"));
 
 	useEffect(() => {
 		cards.current[0]?.focus();
@@ -92,22 +94,20 @@ export function NewNoteDialog({
 			<div
 				role="dialog"
 				aria-modal="true"
-				aria-label="New note"
+				aria-label={t("newNote.title")}
 				onKeyDown={onKeyDown}
 				className="flex h-[100dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-line bg-paper text-ink shadow-[0_30px_80px_rgba(40,30,15,0.28),0_2px_8px_rgba(40,30,15,0.1)] md:h-auto md:max-h-full md:max-w-[840px] md:rounded-2xl"
 			>
 				<header className="flex items-start justify-between gap-4 px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-5 md:py-7 md:pr-7 md:pl-9">
 					<div className="flex flex-col gap-1">
 						<h2 className="font-serif text-[30px] leading-[1.1] font-medium tracking-[-0.01em]">
-							What are you writing?
+							{t("newNote.heading")}
 						</h2>
-						<p className="text-sm text-mute">
-							Pick a shape for the note. You can change it later.
-						</p>
+						<p className="text-sm text-mute">{t("newNote.sub")}</p>
 					</div>
 					<button
 						type="button"
-						aria-label="Close"
+						aria-label={t("common.close")}
 						onClick={onClose}
 						className="flex size-11 shrink-0 items-center justify-center rounded-2xl text-ink2 hover:bg-hover md:size-10"
 					>
@@ -128,15 +128,14 @@ export function NewNoteDialog({
 
 				<div
 					role="radiogroup"
-					aria-label="Note type"
+					aria-label={t("newNote.type")}
 					className="grid min-h-0 flex-1 auto-rows-min grid-cols-2 gap-3.5 overflow-y-auto px-5 pb-5 md:grid-cols-3 md:px-9"
 				>
-					{TYPES.map((t, i) => {
-						const on = t.id === kind;
+					{TYPES.map((type, i) => {
+						const on = type.id === kind;
 						return (
-							// biome-ignore lint/a11y/noLabelWithoutControl: the radio input is inside the label
 							<label
-								key={t.id}
+								key={type.id}
 								onDoubleClick={create}
 								className={`relative flex min-h-[148px] cursor-pointer flex-col items-start gap-3 rounded-2xl border-[1.5px] p-[18px] text-left has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent ${on ? "border-accent bg-raised" : "border-line2 hover:bg-hover/60"}`}
 							>
@@ -148,7 +147,7 @@ export function NewNoteDialog({
 									name="note-type"
 									data-card
 									checked={on}
-									onChange={() => setKind(t.id)}
+									onChange={() => setKind(type.id)}
 									className="sr-only"
 								/>
 								<span
@@ -165,13 +164,15 @@ export function NewNoteDialog({
 										strokeLinejoin="round"
 										aria-hidden="true"
 									>
-										<path d={t.icon} />
+										<path d={type.icon} />
 									</svg>
 								</span>
 								<span className="flex flex-col gap-1">
-									<span className="text-[15px] font-semibold">{t.name}</span>
+									<span className="text-[15px] font-semibold">
+										{t(`kinds.${type.id}.name`)}
+									</span>
 									<span className="text-[13px] leading-[1.4] text-mute">
-										{t.desc}
+										{t(`kinds.${type.id}.desc`)}
 									</span>
 								</span>
 								<kbd className="absolute top-4 right-4 hidden size-6 items-center justify-center rounded-lg border border-line bg-raised font-mono text-[11px] text-mute md:flex">
@@ -183,13 +184,13 @@ export function NewNoteDialog({
 				</div>
 
 				<footer className="flex flex-wrap items-center gap-3 border-t border-line2 bg-panel px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:mt-6 md:pr-7 md:pl-9">
-					<span className="text-[13px] text-mute">Save in</span>
+					<span className="text-[13px] text-mute">{t("newNote.saveIn")}</span>
 					<div className="relative">
 						<button
 							type="button"
 							aria-haspopup="true"
 							aria-expanded={listOpen}
-							aria-label={`Save in: ${where}`}
+							aria-label={t("newNote.saveInWhere", { where })}
 							disabled={isJournal}
 							onClick={() => setListOpen((v) => !v)}
 							className="flex h-11 max-w-[220px] items-center gap-2 rounded-2xl border border-line bg-raised px-3 text-[13px] hover:bg-hover disabled:opacity-60 md:h-9"
@@ -213,43 +214,44 @@ export function NewNoteDialog({
 						</button>
 						{listOpen ? (
 							<div className="absolute bottom-full left-0 z-10 mb-1 max-h-64 w-72 max-w-[80vw] overflow-y-auto rounded-2xl border border-line bg-raised p-1 shadow-lg">
-								{[{ id: null, title: "Top level", depth: 0 }, ...choices].map(
-									(c) => (
-										<button
-											key={c.id ?? "top"}
-											type="button"
-											aria-pressed={c.id === parentId}
-											onClick={() => {
-												setParentId(c.id);
-												setListOpen(false);
-											}}
-											style={{ paddingLeft: 12 + c.depth * 16 }}
-											className={`block min-h-11 w-full truncate rounded-2xl pr-3 text-left text-sm hover:bg-hover md:min-h-8 ${c.id === parentId ? "bg-hover font-medium" : ""}`}
-										>
-											{c.title}
-										</button>
-									),
-								)}
+								{[
+									{ id: null, title: t("newNote.topLevel"), depth: 0 },
+									...choices,
+								].map((c) => (
+									<button
+										key={c.id ?? "top"}
+										type="button"
+										aria-pressed={c.id === parentId}
+										onClick={() => {
+											setParentId(c.id);
+											setListOpen(false);
+										}}
+										style={{ paddingLeft: 12 + c.depth * 16 }}
+										className={`block min-h-11 w-full truncate rounded-2xl pr-3 text-left text-sm hover:bg-hover md:min-h-8 ${c.id === parentId ? "bg-hover font-medium" : ""}`}
+									>
+										{c.title}
+									</button>
+								))}
 							</div>
 						) : null}
 					</div>
 					<div className="flex-1" />
 					<span className="hidden text-xs text-mute md:inline">
-						Press 1 to 6, or Enter
+						{t("newNote.keys")}
 					</span>
 					<button
 						type="button"
 						onClick={onClose}
 						className="h-11 rounded-2xl border border-line px-4 text-[13px] font-medium hover:bg-hover md:h-[38px]"
 					>
-						Cancel
+						{t("common.cancel")}
 					</button>
 					<button
 						type="button"
 						onClick={create}
 						className="h-11 rounded-2xl bg-ink px-5 text-[13px] font-semibold text-paper md:h-[38px]"
 					>
-						Create {chosen?.short}
+						{t("newNote.create", { kind: t(`kinds.${kind}.short`) })}
 					</button>
 				</footer>
 			</div>

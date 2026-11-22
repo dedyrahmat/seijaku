@@ -1,0 +1,1125 @@
+{
+	"language": {
+		"en": "English",
+		"id": "Bahasa Indonesia"
+	},
+	"settings": {
+		"name": "Settings",
+		"close": "Close settings",
+		"sectionsLabel": "Settings sections",
+		"title": "{{section}} · Settings · Seijaku",
+		"sections": {
+			"general": {
+				"name": "General",
+				"blurb": "Your workspace, language and quick capture."
+			},
+			"appearance": {
+				"name": "Appearance",
+				"blurb": "Quiet by default. Change what you read and write in."
+			},
+			"editor": {
+				"name": "Editor",
+				"blurb": "How blocks, markdown and typing behave."
+			},
+			"sync": {
+				"name": "Sync and devices",
+				"blurb": "Where your notes sync to, and who can read them."
+			},
+			"security": {
+				"name": "Security",
+				"blurb": "Keep your notes private and your account recoverable."
+			},
+			"shortcuts": {
+				"name": "Shortcuts",
+				"blurb": "Everything you can do without leaving the keyboard."
+			},
+			"data": {
+				"name": "Data and storage",
+				"blurb": "Bring notes in, take them out, and decide what is kept."
+			},
+			"about": {
+				"name": "About",
+				"blurb": "Version, updates and the small print."
+			}
+		},
+		"general": {
+			"workspace": "Workspace",
+			"workspaceName": {
+				"label": "Workspace name",
+				"desc": "Shown in the sidebar and on shared pages."
+			},
+			"language": {
+				"label": "Language",
+				"desc": "Interface language. Your notes are not translated."
+			},
+			"openOnStart": {
+				"label": "Open on start",
+				"desc": "The page you land on when Seijaku opens.",
+				"Today": "Today",
+				"Last page": "Last page",
+				"Home": "Home"
+			},
+			"launch": {
+				"desc": "Starts quietly in the background so capture is always ready.",
+				"label": "Launch at login"
+			},
+			"onTop": {
+				"desc": "Stays above other apps until you send or dismiss it.",
+				"label": "Keep the capture window on top"
+			},
+			"tray": {
+				"desc": "Closing the window leaves quick capture available.",
+				"label": "Keep running in the menu bar"
+			},
+			"captureTo": {
+				"desc": "Where a quick note lands before you sort it.",
+				"label": "Add captures to"
+			},
+			"globalShortcut": "Global shortcut",
+			"quickCapture": "Quick capture"
+		},
+		"sync": {
+			"connection": {
+				"keepSafe": "This browser may clear stored notes when space runs low. Add Seijaku to your Home Screen so the copy on this device is kept.",
+				"desc": "Every page is stored on this device first, then sent to your server.",
+				"label": "Connection"
+			},
+			"address": {
+				"desc": "Leave empty to use the server that gave you this page. Point it at your own server to self-host.",
+				"placeholder": "This site (default)",
+				"label": "Server address"
+			},
+			"offline": {
+				"desc": "Pause syncing. Changes queue up and send when you turn this off.",
+				"label": "Work offline"
+			},
+			"collide": {
+				"desc": "Both versions are kept. Choose what happens to the older one.",
+				"label": "When two edits collide"
+			},
+			"sync": {
+				"desc": "Pull and push changes right now.",
+				"label": "Sync"
+			},
+			"catchingUp": "Connected · catching up",
+			"upToDate": "Connected · up to date",
+			"test": "Test connection",
+			"notConnected": "Not connected",
+			"syncNow": "Sync now",
+			"syncing": "Syncing",
+			"server": "Server"
+		},
+		"shortcuts": {
+			"todayNote": "In a browser tab, Ctrl+Shift+T belongs to the browser. It works in the desktop app and the installed app.",
+			"newPageNote": "In a browser tab, Ctrl+N belongs to the browser. It works in the desktop app and the installed app.",
+			"captureDesc": "Works while Seijaku is in the tray.",
+			"captureLabel": "Quick capture shortcut",
+			"theme": "Switch light and dark",
+			"searchAll": "Search all pages",
+			"history": "Version history",
+			"switcher": "Quick switcher",
+			"sidebar": "Toggle sidebar",
+			"block": "Insert a block",
+			"today": "Go to Today",
+			"navigate": "Navigate",
+			"newPage": "New page",
+			"write": "Write"
+		},
+		"security": {
+			"lock": {
+				"desc": "Ask for your passkey or recovery phrase after you step away. Notes stay on this device.",
+				"label": "Lock after inactivity"
+			},
+			"delete": {
+				"desc": "Removes your notes from every device. Export first.",
+				"label": "Delete account",
+				"button": "Delete…"
+			},
+			"recoveryLock": "Recovery and lock",
+			"danger": "Danger zone"
+		},
+		"data": {
+			"offline": {
+				"desc": "Notes and images are saved in this browser, so Seijaku works without a connection.",
+				"label": "Offline storage"
+			},
+			"import": {
+				"desc": "From Notion, Obsidian, Markdown files or a Seijaku archive.",
+				"label": "Import notes",
+				"button": "Import…"
+			},
+			"export": {
+				"desc": "A zip of Markdown files with your images and attachments.",
+				"label": "Export everything"
+			},
+			"trash": {
+				"desc": "Deleted pages can be restored until then.",
+				"label": "Empty trash automatically"
+			},
+			"history": {
+				"desc": "Older versions are removed to save space.",
+				"label": "Keep version history"
+			},
+			"keeping": "Keeping and deleting",
+			"importExport": "Import and export",
+			"onDevice": "On this device",
+			"exporting": "Exporting…",
+			"exportAll": "Export all",
+			"tryAgain": "Try again"
+		},
+		"appearance": {
+			"colourTheme": {
+				"desc": "Washi paper by day, sumi ink by night. System follows your device.",
+				"label": "Colour theme"
+			},
+			"reduceMotion": {
+				"desc": "Removes fades and slides. Follows your system setting by default.",
+				"label": "Reduce motion"
+			},
+			"accent": {
+				"desc": "Used for links, focus and the circle in the logo.",
+				"label": "Accent"
+			},
+			"pageWidth": {
+				"desc": "How wide a page can grow on large screens.",
+				"label": "Page width"
+			},
+			"headingFont": {
+				"desc": "Body text always uses Hanken Grotesk.",
+				"label": "Heading font"
+			},
+			"textSize": {
+				"desc": "Body text in the editor.",
+				"label": "Text size"
+			},
+			"reading": "Reading and writing",
+			"lineSpacing": "Line spacing",
+			"comfortable": "Comfortable",
+			"relaxed": "Relaxed",
+			"motion": "Motion",
+			"system": "System",
+			"narrow": "Narrow",
+			"theme": "Theme",
+			"light": "Light",
+			"tight": "Tight",
+			"dark": "Dark",
+			"wide": "Wide",
+			"airy": "Airy"
+		},
+		"about": {
+			"platforms": {
+				"desc": "Web, iPhone Home Screen app and a desktop app share one workspace.",
+				"button": "Get the apps",
+				"label": "Platforms"
+			},
+			"privacy": {
+				"desc": "What is stored, where, and for how long.",
+				"label": "Privacy",
+				"button": "Read"
+			},
+			"licences": {
+				"desc": "The libraries Seijaku is built on.",
+				"label": "Open-source licences",
+				"button": "View"
+			},
+			"news": {
+				"desc": "Release notes for each version.",
+				"label": "What's new"
+			},
+			"latest": "You have the latest version.",
+			"feedback": {
+				"desc": "Tell us what felt noisy.",
+				"label": "Send feedback",
+				"button": "Write to us"
+			},
+			"check": "Check for updates",
+			"checked": "Checked just now",
+			"print": "The small print",
+			"runs": "Where it runs",
+			"updates": "Updates",
+			"installing": "Version {{version}} is installing.",
+			"where": {
+				"desktop": "Desktop",
+				"web": "Web"
+			},
+			"version": "Version {{version}}"
+		},
+		"editor": {
+			"smart": {
+				"desc": "Curly quotes, proper dashes and ellipses as you type.",
+				"label": "Smart punctuation"
+			},
+			"markdown": {
+				"desc": "Type # for a heading, - for a list, [] for a to-do.",
+				"label": "Markdown shortcuts"
+			},
+			"spell": {
+				"desc": "Underline misspelled words. Runs on your device.",
+				"label": "Spellcheck"
+			},
+			"handles": {
+				"desc": "Drag handle and add button next to each block.",
+				"label": "Show block handles on hover"
+			},
+			"paste": {
+				"desc": "What happens when you paste from a web page.",
+				"label": "Paste behaviour"
+			},
+			"math": {
+				"desc": "LaTeX between $ signs becomes typeset maths.",
+				"label": "Render math as you type"
+			},
+			"codeFont": {
+				"desc": "Used in code blocks and inline code.",
+				"label": "Code font"
+			},
+			"autoPair": "Auto-pair brackets and quotes",
+			"writing": "Writing",
+			"blocks": "Blocks"
+		},
+		"device": {
+			"other": "This device",
+			"windows": "Windows PC",
+			"linux": "Linux PC"
+		},
+		"account": "Account",
+		"versionLine": "Version {{version}} · {{where}}",
+		"navFooter": "Seijaku 0.1 · {{where}}",
+		"synced": "Synced {{when}}"
+	},
+	"tagline": "Active calm. The opposite of noise.",
+	"common": {
+		"notAvailable": "Not available yet",
+		"needsAccount": "Needs an account",
+		"desktopApp": "Desktop app",
+		"alwaysOn": "Always on",
+		"saved": "Saved",
+		"save": "Save",
+		"open": "Open",
+		"collapse": "Collapse",
+		"cancel": "Cancel",
+		"expand": "Expand",
+		"untitled": "Untitled",
+		"close": "Close",
+		"copyLink": "Copy link",
+		"copied": "Copied",
+		"done": "Done",
+		"ok": "OK",
+		"loading": "Loading…",
+		"remove": "Remove",
+		"wrong": "Something went wrong.",
+		"copy": "Copy",
+		"continue": "Continue"
+	},
+	"prefs": {
+		"openOnStart": {
+			"Today": "Today",
+			"Last page": "Last page",
+			"Home": "Home"
+		},
+		"pasteStyle": {
+			"Match page style": "Match page style",
+			"Plain text": "Plain text"
+		},
+		"collisions": {
+			"Keep as a copy": "Keep as a copy",
+			"Keep the newer one": "Keep the newer one"
+		},
+		"trashAfter": {
+			"After 7 days": "After 7 days",
+			"After 30 days": "After 30 days",
+			"Never": "Never"
+		},
+		"historyFor": {
+			"30 days": "30 days",
+			"90 days": "90 days",
+			"Forever": "Forever"
+		},
+		"lockAfterIdle": {
+			"5 minutes": "5 minutes",
+			"15 minutes": "15 minutes",
+			"Never": "Never"
+		},
+		"codeFont": {
+			"JetBrains Mono": "JetBrains Mono",
+			"System mono": "System mono"
+		}
+	},
+	"sidebar": {
+		"selectHint": "Tick the pages you want to move. You can bring them back from Trash.",
+		"range": "Shift-click picks a range.",
+		"search": "Search or jump to",
+		"menu": {
+			"addInside": "Add a page inside",
+			"down": "Move down",
+			"up": "Move up",
+			"putInside": "Put inside {{name}}",
+			"moveOut": "Move out of {{name}}",
+			"actionsFor": "Actions for {{title}}"
+		},
+		"empty": "No pages yet.",
+		"moveToTrash": "Move to trash",
+		"selectPages": "Select pages",
+		"close": "Close pages",
+		"quickNotes": "Quick notes",
+		"selectAll": "Select all",
+		"newPage": "New page",
+		"settings": "Settings",
+		"import": "Import",
+		"pages": "Pages",
+		"today": "Today",
+		"trash": "Trash",
+		"tags": "Tags",
+		"selected_one": "{{count}} page selected",
+		"selected_other": "{{count}} pages selected"
+	},
+	"shell": {
+		"changeTypeNote": "Your writing stays exactly as it is. Only the look and the extra fields change.",
+		"restore": "Restore this version",
+		"exportMarkdown": "Export as Markdown",
+		"history": "Version history",
+		"backToCurrent": "Back to current",
+		"showSidebar": "Show sidebar",
+		"hideSidebar": "Hide sidebar",
+		"changeType": "Change type",
+		"openPages": "Open pages",
+		"breadcrumb": "Breadcrumb",
+		"forward": "Forward",
+		"share": "Share",
+		"back": "Back",
+		"more": "More",
+		"previewing": "Previewing {{label}}. Read-only. Your current page is unchanged."
+	},
+	"kinds": {
+		"quick": {
+			"name": "Quick note",
+			"short": "quick note",
+			"desc": "A sticky note. One thought, a number, a name. Saved the moment you stop typing."
+		},
+		"page": {
+			"name": "Page",
+			"short": "page",
+			"desc": "A blank page with a title. Headings, lists, images, anything."
+		},
+		"checklist": {
+			"name": "Checklist",
+			"short": "checklist",
+			"desc": "To-dos you can tick off. Unfinished ones show up in Today."
+		},
+		"journal": {
+			"name": "Journal entry",
+			"short": "journal entry",
+			"desc": "Dated for today and filed under Journal. One per day, picked up where you left it."
+		},
+		"meeting": {
+			"name": "Meeting notes",
+			"short": "meeting notes",
+			"desc": "Who was there, what was said, and what happens next."
+		},
+		"study": {
+			"name": "Study note",
+			"short": "study note",
+			"desc": "A summary callout up top, then room for maths, code and questions to revisit."
+		}
+	},
+	"newNote": {
+		"sub": "Pick a shape for the note. You can change it later.",
+		"keys": "Press 1 to 6, or Enter",
+		"heading": "What are you writing?",
+		"type": "Note type",
+		"topLevel": "Top level",
+		"title": "New note",
+		"saveIn": "Save in",
+		"journal": "Journal",
+		"saveInWhere": "Save in: {{where}}",
+		"create": "Create {{kind}}"
+	},
+	"switcher": {
+		"count_one": "{{hits}} of {{count}} match",
+		"count_other": "{{hits}} of {{count}} matches",
+		"create": "Create a page called “{{title}}”",
+		"typeToSearch": "Type to search inside every page.",
+		"placeholderAll": "Search the text of every page",
+		"onDevice": "searched on this device",
+		"matches": "Matches in your pages",
+		"nothing": "Nothing matches yet.",
+		"placeholderJump": "Search or jump to",
+		"searchAll": "Search all pages",
+		"searchJump": "Search and jump",
+		"filter": "Filter by type",
+		"close": "Close search",
+		"hintEnter": "Enter open",
+		"hintMove": "↑ ↓ move",
+		"hintTab": "Tab type",
+		"actions": "Actions",
+		"search": "Search",
+		"recent": "Recent",
+		"notes": "Notes",
+		"all": "All",
+		"daily": "Daily note"
+	},
+	"ago": {
+		"justNow": "just now",
+		"minutes_one": "{{count}} minute ago",
+		"minutes_other": "{{count}} minutes ago",
+		"hours_one": "{{count}} hour ago",
+		"hours_other": "{{count}} hours ago",
+		"yesterday": "yesterday",
+		"days_one": "{{count}} day ago",
+		"days_other": "{{count}} days ago"
+	},
+	"sync": {
+		"detail": {
+			"offline": "No connection. Edits are safe here and merge when you reconnect, even if you edited on another device too.",
+			"local": "Your notes are saved on this device. Sign in or create an account to sync them to your other devices.",
+			"catching": "Catching up with your server. You can keep typing; nothing waits on this.",
+			"synced": "Every note is on this device and on your server. Last sync {{when}}.",
+			"sending_one": "Sending {{count}} edit. You can keep typing; nothing waits on this.",
+			"sending_other": "Sending {{count}} edits. You can keep typing; nothing waits on this."
+		},
+		"offline": "Offline · saved on this device",
+		"keepSafe": "Keep your notes safe",
+		"local": "On this device only",
+		"signIn": "Sign in to sync",
+		"status": "Sync status",
+		"syncing": "Syncing…",
+		"synced": "Synced"
+	},
+	"footer": {
+		"saved": "Saved on this device",
+		"words_one": "{{count}} word",
+		"words_other": "{{count}} words"
+	},
+	"meta": {
+		"newTag": "New tag",
+		"tagPlaceholder": "tag",
+		"removeTag": "Remove tag {{tag}}",
+		"edited": "Edited {{when}}"
+	},
+	"today": {
+		"revisit": "To revisit",
+		"quickNote": "Quick note",
+		"pinned": "Pinned"
+	},
+	"todo": {
+		"note": "From your checklists. Tick one here and it is ticked there too.",
+		"title": "Still to do",
+		"overdue": "Overdue",
+		"today": "Today",
+		"high": "High",
+		"tomorrow": "Tomorrow"
+	},
+	"capture": {
+		"newQuick": "A new quick note",
+		"page": "A page",
+		"title": "Quick capture · Seijaku",
+		"placeholder": "Write something down",
+		"hintLine": "Shift Enter new line",
+		"hintSave": "Enter to save",
+		"hintClose": "Esc to close",
+		"button": "Capture",
+		"addTo": "Add to"
+	},
+	"links": {
+		"stopFailed": "Could not stop sharing.",
+		"inTrash": "(in Trash)",
+		"shared": "Shared {{date}}",
+		"nothing": "Nothing is shared.",
+		"useShare": "Use Share on a page to make a link.",
+		"explain": "The link opens the page for anyone who has it, without signing in. Stopping makes the link stop working at once.",
+		"noneShared": "None shared",
+		"count": "{{count}} shared",
+		"desc": "Pages shared with a link.",
+		"title": "Public pages",
+		"manage": "Manage links",
+		"stop": "Stop sharing",
+		"stopping": "Stopping…"
+	},
+	"cache": {
+		"underMb": "under 0.1 MB",
+		"waiting_one": "{{count}} change is still waiting to upload. Clearing now would lose it. Try again once Seijaku says “Up to date”.",
+		"waiting_other": "{{count}} changes are still waiting to upload. Clearing now would lose them. Try again once Seijaku says “Up to date”.",
+		"used": "{{size}} used on this device",
+		"explain": "Pages and images are removed from this device and downloaded again from your server. Nothing is deleted from your account.",
+		"noAccount": "Without an account, this device holds the only copy of your notes. Sign in so they are on your server first.",
+		"offline": "Seijaku cannot reach your server, so it cannot check that everything is saved there. Try again when you are connected.",
+		"blocked": "This browser blocks storage, so there is nothing to clear.",
+		"onDevice": "Offline storage on this device",
+		"title": "Clear offline storage?",
+		"confirm": "Clear and reload",
+		"clear": "Clear cache",
+		"notYet": "Not yet"
+	},
+	"device": {
+		"unknown": "Unknown device",
+		"generic": "Device"
+	},
+	"account": {
+		"lastActive": "Last active {{when}}",
+		"passkeyDefault": "{{device}} passkey",
+		"added": "Added {{date}}",
+		"signedOutDesc": "Your notes are on this device only. An account keeps them in sync, encrypted, on your other devices.",
+		"phraseDesc": "Twelve words that restore your notes on a new device. Keep them somewhere offline.",
+		"devicesOffline": "Connect to your server to see which devices are signed in.",
+		"addPasskeyDesc": "Make one on this device, on a phone, or on a security key.",
+		"onlyPasskey": "Your only passkey. Add another before removing this one.",
+		"phraseNew": "This is your new phrase. It is shown only now.",
+		"signOutAllDesc": "Ends every session, including this one.",
+		"devicesFailed": "Could not load the list of devices.",
+		"removeFailed": "The passkey could not be removed.",
+		"passkeysFailed": "Could not load your passkeys.",
+		"phraseFailed": "Could not make a new phrase.",
+		"noServer": "Could not reach the server.",
+		"phraseEnds": "This ends your old phrase.",
+		"signOutFailed": "Could not sign out.",
+		"signOutAll": "Sign out everywhere",
+		"devicesTitle": "Signed-in devices",
+		"newPhrase": "Make a new phrase",
+		"phrase": "Recovery phrase",
+		"create": "Create account",
+		"replacePhrase": "Replace phrase",
+		"addPasskey": "Add a passkey",
+		"passkeyName": "Passkey name",
+		"signOutAllButton": "Sign out all",
+		"addPasskeyButton": "Add passkey",
+		"activeNow": "Active now",
+		"signOut": "Sign out",
+		"passkeys": "Passkeys",
+		"signIn": "Sign in",
+		"devices": "Devices",
+		"passkey": "Passkey"
+	},
+	"share": {
+		"desc": "Anyone with the link can read this page. They cannot edit it, and sub-pages are not included.",
+		"revokeNote": "Revoking turns the link off for good. Sharing again creates a new one.",
+		"needsAccount": "Sharing needs an account, because your server hosts the link.",
+		"encrypted": "The page is encrypted before it leaves this device. The key is part of the link, so your server cannot read it.",
+		"confirm": "Turn this link off for good? Anyone who has it will see that the page is gone.",
+		"created": "Link created {{when}}",
+		"placeholder": "Appears when sharing is on",
+		"heading": "Share to the web",
+		"title": "Share this page",
+		"publicLink": "Public link",
+		"revoke": "Revoke link"
+	},
+	"history": {
+		"todayAt": "today, {{time}}",
+		"deviceEdited": "This device · edited {{when}}",
+		"group": {
+			"Today": "Today",
+			"Yesterday": "Yesterday",
+			"Earlier": "Earlier"
+		},
+		"signIn": "Sign in to keep earlier versions. Until then only the current page exists, on this device.",
+		"note": "Snapshots are kept on your server, thinned out as they age. Restoring adds an edit, so it syncs and can be undone.",
+		"listFailed": "Could not reach your server to list earlier versions.",
+		"empty": "Earlier versions appear here as you write.",
+		"openFailed": "That version could not be opened.",
+		"fromOther": "Synced from another device",
+		"fromHere": "Synced from this device",
+		"close": "Close history",
+		"created": "Page created",
+		"title": "History",
+		"current": "Current"
+	},
+	"datePicker": {
+		"choose": "{{label}}: choose a day",
+		"prev": "Previous month",
+		"pick": "Pick a date",
+		"next": "Next month",
+		"clear": "Clear"
+	},
+	"public": {
+		"title": "{{title}} · Seijaku",
+		"sharedTitle": "Shared page · Seijaku",
+		"sharedFrom": "Shared from {{name}} · read only",
+		"goneDesc": "The link may have been turned off, or it is missing part of its address.",
+		"cta": "Keep your own notes with Seijaku",
+		"goneTitle": "This page is not available",
+		"opening": "Opening…",
+		"sharedReadOnly": "Shared page · read only"
+	},
+	"note": {
+		"missing": "This page isn't here",
+		"missingDesc": "It may have been deleted on another device.",
+		"trashed": "This page is in the trash",
+		"toKeepWorking": "to keep working on it.",
+		"goToPages": "Go to your pages",
+		"restore": "Restore it",
+		"pageTitle": "Page title"
+	},
+	"phrase": {
+		"fileHeader": "Seijaku recovery phrase\nKeep this somewhere only you can reach. Anyone with it can read your notes.",
+		"placeholder": "Type or paste your twelve words",
+		"label": "Recovery phrase, twelve words",
+		"download": "Download .txt",
+		"copy": "Copy phrase"
+	},
+	"ctx": {
+		"copyLink": "Copy link address",
+		"openLink": "Open link",
+		"reload": "Reload",
+		"paste": "Paste",
+		"cut": "Cut"
+	},
+	"window": {
+		"minimise": "Minimise",
+		"maximise": "Maximise"
+	},
+	"trash": {
+		"pageTitle": "Trash · Seijaku",
+		"today": "today, {{time}}",
+		"yesterday": "yesterday",
+		"confirmOne": "Delete “{{title}}” forever? This cannot be undone.",
+		"confirmOneSubs_one": "Delete “{{title}}” and its {{count}} sub-page forever? This cannot be undone.",
+		"confirmOneSubs_other": "Delete “{{title}}” and its {{count}} sub-pages forever? This cannot be undone.",
+		"confirmAll_one": "Delete {{count}} page forever? This cannot be undone.",
+		"confirmAll_other": "Delete {{count}} pages forever? This cannot be undone.",
+		"info": "{{where}} · deleted {{when}}",
+		"subs_one": "{{count}} sub-page",
+		"subs_other": "{{count}} sub-pages",
+		"selected": "{{count}} selected",
+		"restoreN": "Restore {{count}}",
+		"deleteN": "Delete {{count}} forever",
+		"pages_one": "{{count}} page",
+		"pages_other": "{{count}} pages",
+		"deleteForever": "Delete {{pages}} forever?",
+		"body": {
+			"oneNone": "It leaves every device you use. This can’t be undone.",
+			"oneSub": "It and its sub-page leave every device you use. This can’t be undone.",
+			"oneSubs": "It and its {{subs}} sub-pages leave every device you use. This can’t be undone.",
+			"manyNone": "They leave every device you use. This can’t be undone.",
+			"manySub": "They and their sub-page leave every device you use. This can’t be undone.",
+			"manySubs": "They and their {{subs}} sub-pages leave every device you use. This can’t be undone."
+		},
+		"hint": "Deleted pages wait here. Restore one, or remove it for good.",
+		"empty": "Nothing here. Pages you delete will wait here first.",
+		"hintSelect": "Tick the pages to bring back or remove for good.",
+		"toolbar": "Selected pages",
+		"keep": "Keep them",
+		"deleteForeverButton": "Delete forever",
+		"emptyTrash": "Empty trash",
+		"restore": "Restore",
+		"select": "Select"
+	},
+	"quick": {
+		"pageTitle": "Quick notes · Seijaku",
+		"hideTicks": "Hide tick boxes",
+		"showTicks": "Show tick boxes",
+		"others": "Others",
+		"unpin": "Unpin",
+		"pin": "Pin",
+		"empty": "Nothing here yet. A quick note is one thought, a number, a name.",
+		"toPage": "Change type to page",
+		"take": "Take a note…",
+		"closeNote": "Close note",
+		"colour": "Colour",
+		"title": "Title"
+	},
+	"tint": {
+		"washi": "Washi",
+		"kaki": "Kaki",
+		"matcha": "Matcha",
+		"ai": "Ai",
+		"sakura": "Sakura",
+		"kuchiba": "Kuchiba"
+	},
+	"auth": {
+		"noServerSignIn": "This device cannot reach the server right now, so it cannot sign in.",
+		"setupIntro": "Choose how you will sign in. Your notes are encrypted on your devices, and you get a twelve-word phrase to keep either way. Everything you have written so far comes with you.",
+		"passkeyNote": "A passkey signs you in with your fingerprint, face or device lock. A phrase alone is like a crypto wallet: just the words, nothing to remember.",
+		"phraseIntro": "These twelve words are the key to your notes. If you lose every signed-in device and this phrase, your notes cannot be recovered, not even by us. Anyone who has it can read them. It is shown only now.",
+		"setupOffline": "This device cannot reach the server right now. Check that it is running, then try again.",
+		"phraseGone": "The phrase is shown once, and this page no longer has it. Make a new one any time in Settings, under Security.",
+		"desktopDone": "Your desktop app should come forward and sign in. You can close this tab afterwards.",
+		"step1": "Step 1 of 2",
+		"step2": "Step 2 of 2",
+		"signedIn": "Signed in",
+		"noLink": "The server would not make a sign-in link.",
+		"unlockText": "Your notes are encrypted, and this device does not have their key yet. Use your passkey or your twelve-word recovery phrase to open them here.",
+		"idleText": "You stepped away, so Seijaku put the key away. Your notes are still here.",
+		"passkeyCannot": "That passkey cannot open your notes by itself. Use your recovery phrase.",
+		"codeNote": "This server asks for a code. Whoever runs it can give you one.",
+		"noServerRetry": "Could not reach the server. Check the address and try again.",
+		"noServerAddress": "Could not reach the server. Check the address below.",
+		"badPhrase": "Could not sign in with that phrase.",
+		"saved": "I saved these words somewhere safe",
+		"unlockFailed": "Could not unlock with that phrase.",
+		"keepWriting": "Keep writing without an account",
+		"passkeyRejected": "That passkey was not accepted.",
+		"usePhrase": "Use my recovery phrase instead",
+		"noBrowser": "Could not open the browser.",
+		"newHere": "New here? Create an account",
+		"withBrowser": "Sign in with your browser",
+		"generatePhrase": "Generate a phrase instead",
+		"titleRecovery": "Recovery phrase · Seijaku",
+		"titleCreate": "Create account · Seijaku",
+		"titleDesktop": "Open Seijaku · Seijaku",
+		"keepSafe": "Keep this phrase safe",
+		"withPasskey": "Sign in with passkey",
+		"withPhrase": "Sign in with phrase",
+		"createHeading": "Create your account",
+		"unlockPasskey": "Unlock with passkey",
+		"unlockPhrase": "Unlock with phrase",
+		"titleSignIn": "Sign in · Seijaku",
+		"unlockHeading": "Unlock your notes",
+		"nameDevice": "Name this device",
+		"titleLocked": "Locked · Seijaku",
+		"titleUnlock": "Unlock · Seijaku",
+		"opening": "Opening Seijaku",
+		"createPasskey": "Create passkey",
+		"devicePlaceholder": "Studio laptop",
+		"openNotes": "Open my notes",
+		"signupCode": "Sign-up code",
+		"openSeijaku": "Open Seijaku",
+		"change": "Change",
+		"locked": "Locked"
+	},
+	"about": {
+		"titles": {
+			"news": "What’s new",
+			"apps": "Get the apps",
+			"privacy": "Privacy",
+			"licences": "Open-source licences"
+		},
+		"news": {
+			"date": "November 2026",
+			"version": "Version {{version}}",
+			"listedOn": "Every release is listed on",
+			"n1": "Local-first notes that work offline, with nested pages, six note types and a block editor.",
+			"n2": "End-to-end encrypted sync between devices: the server only holds sealed copies.",
+			"n3": "Sign in with a passkey or a twelve-word recovery phrase.",
+			"n4": "Version history, share links, import from Notion, Obsidian, Markdown and more, and export to Markdown.",
+			"n5": "Installable on iPhone and Android as an app, and a desktop app for Windows, macOS and Linux."
+		},
+		"apps": {
+			"webLead": "Web.",
+			"web": "You are using it. Nothing to install.",
+			"phoneLead": "iPhone and Android.",
+			"phone": "Open this page in Safari (iPhone) or Chrome (Android), choose Share or the menu, then “Add to Home Screen”. It opens like an app and works offline.",
+			"phoneKeep": "On iPhone this also keeps your notes from being cleared.",
+			"desktopLead": "Windows, macOS and Linux.",
+			"desktop": "Download the desktop app from",
+			"releases": "the releases page",
+			"capture": "It adds a quick-capture shortcut that works from any app.",
+			"share": "All of them share one workspace once you sign in."
+		},
+		"privacy": {
+			"sealedLead": "Your notes are sealed on your device.",
+			"sealed": "Pages, titles, tags and files are encrypted before they leave it. The server stores and relays sealed data it cannot read, and names each page by a hash, not its title.",
+			"knowsLead": "What the server does know.",
+			"knows": "That an account exists, its passkeys’ public parts, when you connect, how much sealed data you store, and which share links exist. Your recovery phrase never leaves your device; only a value derived from it is kept so it can prove it is yours.",
+			"shareLead": "Share links.",
+			"share": "A shared page is a separate sealed copy. Its key lives only in the link after the #, which browsers do not send to servers. Stopping sharing deletes the copy.",
+			"previewLead": "Link previews.",
+			"preview": "When you add a link card, your server fetches that web page to read its title and picture.",
+			"deviceLead": "On this device.",
+			"device": "Pages and images stay in this browser’s storage until you clear them (Settings → Data). Seijaku runs no analytics and no ads.",
+			"keyLead": "Losing the key.",
+			"key": "Because the server cannot read your notes, it cannot recover them either. Keep your recovery phrase somewhere safe."
+		},
+		"licencesIntro": "Seijaku stands on these libraries. Thank you to everyone who makes them."
+	},
+	"import": {
+		"sources": {
+			"obsidian": {
+				"hint": "Vault folder or .zip",
+				"drop": "Drop your Obsidian vault here, as a folder or a .zip"
+			},
+			"notion": {
+				"hint": "Export .zip (Markdown)",
+				"drop": "Drop your Notion export (.zip) here"
+			},
+			"keep": {
+				"hint": "Takeout .zip",
+				"drop": "Drop your Takeout .zip, or the Keep folder, here"
+			},
+			"evernote": {
+				"hint": ".enex files",
+				"drop": "Drop your .enex files here"
+			},
+			"applenotes": {
+				"hint": "Exported notes",
+				"drop": "Drop your exported notes here, as files, a folder or a .zip"
+			},
+			"applejournal": {
+				"hint": "Exported entries",
+				"drop": "Drop your exported entries here, as files, a folder or a .zip"
+			},
+			"markdown": {
+				"hint": "Files or folder",
+				"drop": "Drop your Markdown files or a folder here"
+			},
+			"html": {
+				"hint": "Files or folder",
+				"drop": "Drop your HTML files or a folder here"
+			},
+			"text": {
+				"hint": ".txt files",
+				"drop": "Drop your text files here"
+			}
+		},
+		"dropAny": "Drop your notes here: a folder, a .zip or files",
+		"noneImported": "No notes could be imported. {{reason}}.",
+		"importing": "Importing {{source}}",
+		"progress_one": "{{done}} of {{count}} note",
+		"progress_other": "{{done}} of {{count}} notes",
+		"imagesSaved_one": "{{count}} image saved",
+		"imagesSaved_other": "{{count}} images saved",
+		"otherFiles_one": "{{count}} other file",
+		"otherFiles_other": "{{count}} other files",
+		"tagsFound_one": "{{count}} tag found",
+		"tagsFound_other": "{{count}} tags found",
+		"skippedCount_one": "{{count}} thing skipped",
+		"skippedCount_other": "{{count}} things skipped",
+		"filesReady_one": "{{count}} file ready",
+		"filesReady_other": "{{count}} files ready",
+		"keepUsing": "You can keep using Seijaku. Imported notes appear in the sidebar as they land.",
+		"intro": "Imports run on this device, so they work offline. Drop your notes in and Seijaku works out where they came from, or pick a source below.",
+		"kept": "Tags, dates and image embeds are kept where the source has them.",
+		"reportNote": "Skipped items are listed in a note called “{{title}}”.",
+		"noNotes": "No notes were found in what you chose.",
+		"nothingFound": "Nothing was found to import there.",
+		"heading": "Bring your notes with you",
+		"background": "Keep going in background",
+		"readingFiles": "Reading your files",
+		"chooseFolder": "or choose a folder",
+		"title": "Import · Seijaku",
+		"chooseFile": "or choose a file",
+		"progressLabel": "Import progress",
+		"failed": "Import failed.",
+		"opening": "Opening files…",
+		"cancel": "Cancel import",
+		"inProgress": "In progress",
+		"reading": "Reading…",
+		"skipped": "Skipped",
+		"reportTitle": "Import report",
+		"reportHead_one": "{{count}} thing did not come across cleanly:",
+		"reportHead_other": "{{count}} things did not come across cleanly:"
+	},
+	"heads": {
+		"iconGroups": {
+			"Pages": "Pages",
+			"Ideas": "Ideas",
+			"Work": "Work",
+			"Life": "Life"
+		},
+		"icon": "Icon {{icon}}",
+		"coverTint": "Cover {{tint}}",
+		"removePerson": "Remove {{name}}",
+		"moods": {
+			"Heavy": "Heavy",
+			"Low": "Low",
+			"Even": "Even",
+			"Good": "Good",
+			"Bright": "Bright"
+		},
+		"weather": {
+			"sun": "Sun",
+			"cloud": "Cloud",
+			"rain": "Rain",
+			"snow": "Snow",
+			"wind": "Wind"
+		},
+		"confidence": {
+			"new": "new",
+			"shaky": "shaky",
+			"solid": "solid"
+		},
+		"notImage": "That link is not an image. On the site, right-click the picture and choose Copy image address.",
+		"badUrl": "Paste a web address that starts with https://",
+		"addFailed": "Could not add that image.",
+		"upload": "Upload from this device…",
+		"noEntries": "No entries this month.",
+		"highlight": "The day in a sentence",
+		"dayTitlePlaceholder": "Give the day a title",
+		"pasteLink": "Paste an image link",
+		"highlightPlaceholder": "What stays with you",
+		"typeChar": "Type any character",
+		"coverLink": "Cover image link",
+		"room": "Room or address",
+		"journalMonth": "Journal month",
+		"meeting": "Meeting notes",
+		"changeCover": "Change cover",
+		"meetingLink": "Meeting link",
+		"addPerson": "Add a person",
+		"onThisPage": "On this page",
+		"sourceLink": "Source link",
+		"cover": "Page cover",
+		"revisitOn": "Revisit on",
+		"pageIcon": "Page icon",
+		"addCover": "Add cover",
+		"checklist": "Checklist",
+		"showDone": "Show done",
+		"hideDone": "Hide done",
+		"dayTitle": "Day title",
+		"typeAny": "Type any",
+		"addIcon": "Add icon",
+		"dueDate": "Due date",
+		"progress": "Progress",
+		"previous": "Previous",
+		"weatherLabel": "Weather",
+		"subject": "Subject",
+		"revisit": "Revisit",
+		"source": "Source",
+		"place": "Place",
+		"where": "Where",
+		"start": "Start",
+		"add": "+ Add",
+		"next": "Next",
+		"mood": "Mood",
+		"when": "When",
+		"date": "Date",
+		"link": "Link",
+		"use": "Use",
+		"due": "Due",
+		"end": "End",
+		"who": "Who",
+		"revisits": "Revisits"
+	},
+	"editor": {
+		"blocksGroup": "Blocks",
+		"blocks": {
+			"paragraph": {
+				"name": "Text",
+				"hint": "Plain writing"
+			},
+			"heading": {
+				"name": "Heading",
+				"hint": "Type # and a space"
+			},
+			"todo": {
+				"name": "To-do list",
+				"hint": "Type [] and a space"
+			},
+			"bullets": {
+				"name": "Bulleted list",
+				"hint": "Type - and a space"
+			},
+			"toggle": {
+				"name": "Toggle",
+				"hint": "Hide detail inside"
+			},
+			"quote": {
+				"name": "Quote",
+				"hint": "Set a line apart"
+			},
+			"code": {
+				"name": "Code",
+				"hint": "Type ``` and a space"
+			},
+			"math": {
+				"name": "Math",
+				"hint": "An equation in LaTeX"
+			},
+			"table": {
+				"name": "Table",
+				"hint": "Rows and columns"
+			},
+			"callout": {
+				"name": "Callout",
+				"hint": "Set a thought apart from the page"
+			}
+		},
+		"callout": {
+			"title": "Callout",
+			"hint": "Set a thought apart from the page"
+		},
+		"link": {
+			"title": "Link preview",
+			"hint": "Show a web page as a card"
+		},
+		"math": {
+			"title": "Math",
+			"hint": "Write an equation in LaTeX"
+		},
+		"groups": {
+			"basic": "Basic blocks",
+			"media": "Media",
+			"advanced": "Advanced"
+		},
+		"calloutStyle": "Change callout style",
+		"calloutLabel": "Callout: {{tone}}. Change style",
+		"mathEmpty": "Write an equation below",
+		"mathInvalid": "Invalid equation",
+		"linkPlaceholder": "Paste a link and press Enter",
+		"linkLabel": "Link to preview",
+		"linkNote": "Your server fetches the page once to read its title.",
+		"linkBad": "That does not look like a web address."
+	},
+	"templates": {
+		"who": "Who was there",
+		"said": "What was said",
+		"next": "What happens next",
+		"keyIdea": "Key idea. ",
+		"maths": "Maths",
+		"code": "Code",
+		"questions": "Questions to revisit"
+	},
+	"toolbar": {
+		"linkPrompt": "Link address",
+		"formatting": "Formatting",
+		"insertBlock": "Insert block",
+		"textStyle": "Text style",
+		"todo": "To-do",
+		"link": "Link",
+		"undo": "Undo"
+	},
+	"errors": {
+		"badPhrase": "That is not a valid recovery phrase. Check the words.",
+		"tooMany": "Too many tries. Wait a few minutes and try again.",
+		"noPhrase": "This server has no recovery phrase on record.",
+		"unlockFirst": "Unlock this device with your phrase first.",
+		"wrongPhrase": "That phrase does not open this workspace.",
+		"noServer": "Set the server address first.",
+		"uploadOffline": "Could not upload. Check your connection and try again.",
+		"fileUnlock": "Unlock this device before adding files.",
+		"fileTooBig": "That file is larger than 25 MB.",
+		"uploadFailed": "Could not upload that file.",
+		"fileSignIn": "Sign in to add files.",
+		"noServerMoment": "Could not reach your server. Try again in a moment.",
+		"shareSignIn": "Sign in to share pages.",
+		"pageGone": "This page is gone."
+	},
+	"accent": {
+		"vermilion": "Vermilion",
+		"matcha": "Matcha",
+		"indigo": "Indigo",
+		"gold": "Gold",
+		"ink": "Ink"
+	},
+	"home": {
+		"poems": {
+			"p1": {
+				"l1": "Blank page, breath held still,",
+				"l2": "a first line settles slowly,",
+				"l3": "noise fades from the room."
+			},
+			"p2": {
+				"l1": "Ink finds the paper,",
+				"l2": "thoughts sink like stones in water,",
+				"l3": "ripples become words."
+			},
+			"p3": {
+				"l1": "Rake the gravel smooth,",
+				"l2": "each line a quiet ripple,",
+				"l3": "nothing left to chase."
+			},
+			"p4": {
+				"l1": "Snow on the notebook,",
+				"l2": "what you write is what stays warm,",
+				"l3": "the rest melts to white."
+			},
+			"p5": {
+				"l1": "Wind stops at the door,",
+				"l2": "pages turn without a sound,",
+				"l3": "the lamp burns steady."
+			},
+			"p6": {
+				"l1": "Offline and still here,",
+				"l2": "your words keep their own slow time,",
+				"l3": "the moon waits for sync."
+			}
+		}
+	}
+}

@@ -375,3 +375,15 @@ describe("note kinds and fields", () => {
 		expect(getNote(a, id)?.fields.meeting?.attendees).toEqual(["Ben"]);
 	});
 });
+
+import { getWorkspaceName, setWorkspaceName } from "./workspace";
+
+test("the workspace name syncs between devices and can be cleared", () => {
+	const a = new Y.Doc();
+	const b = new Y.Doc();
+	setWorkspaceName(a, "  Dedy's notes  ");
+	Y.applyUpdate(b, Y.encodeStateAsUpdate(a));
+	expect(getWorkspaceName(b)).toBe("Dedy's notes");
+	setWorkspaceName(a, "");
+	expect(getWorkspaceName(a)).toBe("");
+});

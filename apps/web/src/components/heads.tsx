@@ -10,9 +10,11 @@ import {
 } from "@seijaku/sync";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type * as Y from "yjs";
 import { type Block, fragmentBlocks } from "../editor/headless";
 import { todoCounts } from "../editor/todos";
+import { dateLocale } from "../i18n";
 import { resolveFileUrl, uploadFile } from "../workspace/files";
 import { readLocal, useNotes, writeLocal } from "../workspace/hooks";
 import { workspace } from "../workspace/store";
@@ -129,6 +131,7 @@ const ICON_GROUPS: [string, string[]][] = [
 
 /** The cover: a tint, or a sealed image from `uploadFile` (read back through `resolveFileUrl`). */
 function Cover({ cover }: { cover: string }) {
+	const { t } = useTranslation();
 	const isTint = (TINTS as readonly string[]).includes(cover);
 	const [src, setSrc] = useState("");
 	useEffect(() => {
@@ -142,7 +145,7 @@ function Cover({ cover }: { cover: string }) {
 	return (
 		<div
 			role="img"
-			aria-label="Page cover"
+			aria-label={t("heads.cover")}
 			className="h-32 rounded-2xl bg-cover bg-center md:h-44"
 			style={
 				isTint
@@ -157,6 +160,7 @@ function Cover({ cover }: { cover: string }) {
 }
 
 export function PageHead({ note }: { note: NoteMeta }) {
+	const { t } = useTranslation();
 	const cover = val(note, "page", "cover");
 	const [picking, setPicking] = useState(false);
 	const [iconOpen, setIconOpen] = useState(false);
@@ -175,7 +179,7 @@ export function PageHead({ note }: { note: NoteMeta }) {
 			url = new URL(link.trim());
 			if (!/^https?:$/.test(url.protocol)) throw new Error();
 		} catch {
-			return setProblem("Paste a web address that starts with https://");
+			return setProblem(t("heads.badUrl"));
 		}
 		const img = new Image();
 		img.onload = () => {
@@ -183,10 +187,7 @@ export function PageHead({ note }: { note: NoteMeta }) {
 			setLink("");
 			setPicking(false);
 		};
-		img.onerror = () =>
-			setProblem(
-				"That link is not an image. On the site, right-click the picture and choose Copy image address.",
-			);
+		img.onerror = () => setProblem(t("heads.notImage"));
 		img.src = url.href;
 	};
 	const upload = async (f: File | undefined) => {
@@ -196,7 +197,7 @@ export function PageHead({ note }: { note: NoteMeta }) {
 			put(note, "page", "cover", await uploadFile(f));
 			setPicking(false);
 		} catch (e) {
-			setProblem(e instanceof Error ? e.message : "Could not add that image.");
+			setProblem(e instanceof Error ? e.message : t("heads.addFailed"));
 		}
 	};
 	return (
@@ -207,7 +208,7 @@ export function PageHead({ note }: { note: NoteMeta }) {
 					<div className="relative">
 						<button
 							type="button"
-							aria-label="Page icon"
+							aria-label={t("heads.pageIcon")}
 							aria-expanded={iconOpen}
 							onClick={() => setIconOpen((v) => !v)}
 							className="size-14 rounded-2xl border border-line bg-raised text-center text-3xl text-mute"
@@ -220,14 +221,14 @@ export function PageHead({ note }: { note: NoteMeta }) {
 									{ICON_GROUPS.map(([name, set]) => (
 										<div key={name} className="mb-1.5">
 											<div className="px-1 py-1 text-[11px] font-medium tracking-[0.09em] text-mute uppercase">
-												{name}
+												{t(`heads.iconGroups.${name as "Pages"}`)}
 											</div>
 											<div className="grid grid-cols-6 gap-1">
 												{set.map((e) => (
 													<button
 														key={e}
 														type="button"
-														aria-label={`Icon ${e}`}
+														aria-label={t("heads.icon", { icon: e })}
 														onClick={() => setIcon(e)}
 														className="size-9 rounded-xl text-xl hover:bg-hover"
 													>
@@ -240,8 +241,8 @@ export function PageHead({ note }: { note: NoteMeta }) {
 								</div>
 								<div className="mt-2 flex items-center gap-2 text-[12px] text-mute">
 									<input
-										aria-label="Type any character"
-										placeholder="Type any"
+										aria-label={t("heads.typeChar")}
+										placeholder={t("heads.typeAny")}
 										maxLength={2}
 										onChange={(e) => e.target.value && setIcon(e.target.value)}
 										className="w-20 rounded-xl border border-line bg-transparent px-2 py-1 text-ink outline-none"
@@ -252,7 +253,7 @@ export function PageHead({ note }: { note: NoteMeta }) {
 											onClick={() => setIcon(null)}
 											className="rounded-2xl px-2 py-1 hover:bg-hover"
 										>
-											Remove
+											{t("common.remove")}
 										</button>
 									) : null}
 								</div>
@@ -268,7 +269,7 @@ export function PageHead({ note }: { note: NoteMeta }) {
 							onClick={() => setIconOpen(true)}
 							className="flex items-center gap-1 rounded-2xl px-2 py-1 hover:bg-hover"
 						>
-							<Icon name="page" size={13} /> Add icon
+							<Icon name="page" size={13} /> {t("heads.addIcon")}
 						</button>
 					) : null}
 					<button
@@ -278,30 +279,30 @@ export function PageHead({ note }: { note: NoteMeta }) {
 						className="flex items-center gap-1 rounded-2xl px-2 py-1 hover:bg-hover"
 					>
 						<Icon name="palette" size={13} />
-						{cover ? "Change cover" : "Add cover"}
+						{cover ? t("heads.changeCover") : t("heads.addCover")}
 					</button>
 					{picking ? (
 						<div className="absolute top-full right-0 z-20 mt-1 flex w-72 flex-wrap items-center gap-1.5 rounded-2xl border border-line bg-raised p-2 shadow-lg">
-							{TINTS.map((t) => (
+							{TINTS.map((tn) => (
 								<button
-									key={t}
+									key={tn}
 									type="button"
-									aria-label={`Cover ${t}`}
-									aria-pressed={cover === t}
+									aria-label={t("heads.coverTint", { tint: t(`tint.${tn}`) })}
+									aria-pressed={cover === tn}
 									onClick={() => {
-										put(note, "page", "cover", t);
+										put(note, "page", "cover", tn);
 										setPicking(false);
 									}}
-									className={`size-7 rounded-full border ${cover === t ? "border-ink" : "border-line"}`}
-									style={{ background: tintVar(t) }}
+									className={`size-7 rounded-full border ${cover === tn ? "border-ink" : "border-line"}`}
+									style={{ background: tintVar(tn) }}
 								/>
 							))}
 							<div className="flex w-full gap-1.5">
 								<input
 									type="url"
 									value={link}
-									placeholder="Paste an image link"
-									aria-label="Cover image link"
+									placeholder={t("heads.pasteLink")}
+									aria-label={t("heads.coverLink")}
 									onChange={(e) => setLink(e.target.value)}
 									onKeyDown={(e) => {
 										if (e.key === "Enter") {
@@ -316,7 +317,7 @@ export function PageHead({ note }: { note: NoteMeta }) {
 									onClick={applyLink}
 									className="rounded-xl border border-line px-2.5 py-1 text-ink hover:bg-hover"
 								>
-									Use
+									{t("heads.use")}
 								</button>
 							</div>
 							<input
@@ -331,7 +332,7 @@ export function PageHead({ note }: { note: NoteMeta }) {
 								onClick={() => file.current?.click()}
 								className="rounded-2xl px-2 py-1 hover:bg-hover"
 							>
-								Upload from this device…
+								{t("heads.upload")}
 							</button>
 							{cover ? (
 								<button
@@ -342,7 +343,7 @@ export function PageHead({ note }: { note: NoteMeta }) {
 									}}
 									className="rounded-2xl px-2 py-1 hover:bg-hover"
 								>
-									Remove
+									{t("common.remove")}
 								</button>
 							) : null}
 							{problem ? (
@@ -368,6 +369,7 @@ export function ChecklistHead({
 	/** The title field, shown right under the kicker. */
 	children?: React.ReactNode;
 }) {
+	const { t } = useTranslation();
 	const [counts, setCounts] = useState({ done: 0, total: 0 });
 	// biome-ignore lint/correctness/useExhaustiveDependencies: updatedAt moves on every content edit
 	useEffect(() => {
@@ -385,18 +387,18 @@ export function ChecklistHead({
 	return (
 		<div className="mb-5 flex flex-col gap-3">
 			<div className={kicker}>
-				<Icon name="checklist" size={13} /> Checklist
+				<Icon name="checklist" size={13} /> {t("heads.checklist")}
 			</div>
 			{children}
 			<div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-ink2">
 				<div className="flex items-center gap-1.5">
 					<Icon name="flag" size={13} className="text-mute" />
-					<span className={overdue ? "text-accent" : ""}>Due</span>
+					<span className={overdue ? "text-accent" : ""}>{t("heads.due")}</span>
 					<FieldInput
 						note={note}
 						kind="checklist"
 						name="due"
-						label="Due date"
+						label={t("heads.dueDate")}
 						type="date"
 						className={`rounded-lg px-1 ${overdue ? "text-accent" : ""}`}
 					/>
@@ -408,7 +410,7 @@ export function ChecklistHead({
 			</div>
 			<div
 				role="progressbar"
-				aria-label="Progress"
+				aria-label={t("heads.progress")}
 				aria-valuemin={0}
 				aria-valuemax={100}
 				aria-valuenow={pct}
@@ -424,6 +426,7 @@ const hideKey = (id: string) => `seijaku-hide-done-${id}`;
 export const hidesDone = (id: string) => readLocal(hideKey(id)) === "1";
 
 function HideDone({ id }: { id: string }) {
+	const { t } = useTranslation();
 	const [on, setOn] = useState(() => hidesDone(id));
 	useEffect(() => {
 		document
@@ -444,15 +447,15 @@ function HideDone({ id }: { id: string }) {
 			}}
 			className="rounded-2xl px-2 py-0.5 hover:bg-hover"
 		>
-			{on ? "Show done" : "Hide done"}
+			{on ? t("heads.showDone") : t("heads.hideDone")}
 		</button>
 	);
 }
 
 /* ---------- Journal ---------- */
 
-const MOODS = ["Heavy", "Low", "Even", "Good", "Bright"];
-const WEATHER: IconName[] = ["sun", "cloud", "rain", "snow", "wind"];
+const MOODS = ["Heavy", "Low", "Even", "Good", "Bright"] as const;
+const WEATHER = ["sun", "cloud", "rain", "snow", "wind"] as const;
 
 export const journalDate = (id: string): Date | null => {
 	const m = /^journal-(\d{4}-\d{2}-\d{2})$/.exec(id);
@@ -460,6 +463,7 @@ export const journalDate = (id: string): Date | null => {
 };
 
 export function JournalHead({ note }: { note: NoteMeta }) {
+	const { t } = useTranslation();
 	const notes = useNotes();
 	const date = journalDate(note.id) ?? new Date(note.createdAt);
 	const entries = useMemo(
@@ -495,18 +499,21 @@ export function JournalHead({ note }: { note: NoteMeta }) {
 	return (
 		<header className="mb-6 flex flex-col gap-4">
 			<div className="flex items-center gap-2">
-				{nav(prev, "Previous", "back")}
+				{nav(prev, t("heads.previous"), "back")}
 				<span className="flex-1" />
 				<span className="font-serif text-[15px] text-mute">日記</span>
 				<span className="flex-1" />
-				{nav(next, "Next", "forward")}
+				{nav(next, t("heads.next"), "forward")}
 			</div>
 			<div>
 				<div className={kicker}>
-					{date.toLocaleDateString("en-GB", { weekday: "long" })}
+					{date.toLocaleDateString(dateLocale(), { weekday: "long" })}
 				</div>
 				<h1 className="font-serif text-[56px] leading-none font-medium tracking-[-0.02em] md:text-[72px]">
-					{date.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}
+					{date.toLocaleDateString(dateLocale(), {
+						day: "numeric",
+						month: "long",
+					})}
 				</h1>
 				<div className="mt-1 text-sm text-mute">{date.getFullYear()}</div>
 			</div>
@@ -514,13 +521,13 @@ export function JournalHead({ note }: { note: NoteMeta }) {
 				note={note}
 				kind="journal"
 				name="dayTitle"
-				label="Day title"
-				placeholder="Give the day a title"
+				label={t("heads.dayTitle")}
+				placeholder={t("heads.dayTitlePlaceholder")}
 				className="font-serif text-2xl italic"
 			/>
 			<div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-[13px]">
 				{/* biome-ignore lint/a11y/useSemanticElements: a row of toggle buttons, not a form group */}
-				<div role="group" aria-label="Mood" className="flex gap-1">
+				<div role="group" aria-label={t("heads.mood")} className="flex gap-1">
 					{MOODS.map((m, i) => (
 						<button
 							key={m}
@@ -531,18 +538,22 @@ export function JournalHead({ note }: { note: NoteMeta }) {
 							}
 							className={`rounded-full border px-2.5 py-1 ${mood === String(i) ? "border-accent bg-accent-soft text-accent" : "border-line text-ink2 hover:bg-hover"}`}
 						>
-							{m}
+							{t(`heads.moods.${m}`)}
 						</button>
 					))}
 				</div>
 				{/* biome-ignore lint/a11y/useSemanticElements: a row of toggle buttons, not a form group */}
-				<div role="group" aria-label="Weather" className="flex gap-0.5">
+				<div
+					role="group"
+					aria-label={t("heads.weatherLabel")}
+					className="flex gap-0.5"
+				>
 					{WEATHER.map((w) => (
 						<button
 							key={w}
 							type="button"
 							aria-pressed={weather === w}
-							aria-label={w}
+							aria-label={t(`heads.weather.${w}`)}
 							onClick={() =>
 								put(note, "journal", "weather", weather === w ? null : w)
 							}
@@ -558,20 +569,20 @@ export function JournalHead({ note }: { note: NoteMeta }) {
 						note={note}
 						kind="journal"
 						name="place"
-						label="Place"
-						placeholder="Where"
+						label={t("heads.place")}
+						placeholder={t("heads.where")}
 						className="w-32"
 					/>
 				</div>
 			</div>
 			<div className="flex flex-col gap-1">
-				<span className="text-xs text-mute">The day in a sentence</span>
+				<span className="text-xs text-mute">{t("heads.highlight")}</span>
 				<FieldInput
 					note={note}
 					kind="journal"
 					name="highlight"
-					label="The day in a sentence"
-					placeholder="What stays with you"
+					label={t("heads.highlight")}
+					placeholder={t("heads.highlightPlaceholder")}
 					className="border-b border-line2 pb-1 font-serif text-lg"
 				/>
 			</div>
@@ -581,6 +592,7 @@ export function JournalHead({ note }: { note: NoteMeta }) {
 
 /** The "Journal" page itself: a month at a glance, with a mood strip and the entries. */
 export function JournalMonth() {
+	const { t } = useTranslation();
 	const notes = useNotes();
 	const [month, setMonth] = useState(() => isoDay(new Date()).slice(0, 7));
 	const entries = useMemo(
@@ -602,25 +614,25 @@ export function JournalMonth() {
 	const shift = (by: number) =>
 		setMonth(isoDay(new Date(y, m - 1 + by, 1)).slice(0, 7));
 	return (
-		<section aria-label="Journal month" className="mb-8">
+		<section aria-label={t("heads.journalMonth")} className="mb-8">
 			<div className="mb-3 flex items-center gap-2">
 				<button
 					type="button"
-					aria-label="Previous month"
+					aria-label={t("datePicker.prev")}
 					onClick={() => shift(-1)}
 					className="rounded-2xl p-1.5 hover:bg-hover"
 				>
 					<Icon name="back" />
 				</button>
 				<h2 className="flex-1 text-center font-serif text-2xl">
-					{new Date(y, m - 1, 1).toLocaleDateString("en-GB", {
+					{new Date(y, m - 1, 1).toLocaleDateString(dateLocale(), {
 						month: "long",
 						year: "numeric",
 					})}
 				</h2>
 				<button
 					type="button"
-					aria-label="Next month"
+					aria-label={t("datePicker.next")}
 					onClick={() => shift(1)}
 					className="rounded-2xl p-1.5 hover:bg-hover"
 				>
@@ -648,7 +660,7 @@ export function JournalMonth() {
 				})}
 			</div>
 			{entries.length === 0 ? (
-				<p className="text-sm text-mute">No entries this month.</p>
+				<p className="text-sm text-mute">{t("heads.noEntries")}</p>
 			) : (
 				<ul className="flex flex-col">
 					{entries.map((n) => {
@@ -662,13 +674,13 @@ export function JournalMonth() {
 								>
 									<span className="w-8 font-serif text-xl">{d.getDate()}</span>
 									<span className="w-10 text-xs text-mute">
-										{d.toLocaleDateString("en-GB", { weekday: "short" })}
+										{d.toLocaleDateString(dateLocale(), { weekday: "short" })}
 									</span>
 									<span className="min-w-0 flex-1 truncate text-sm text-ink2">
 										{val(n, "journal", "highlight") ||
 											val(n, "journal", "dayTitle")}
 									</span>
-									{WEATHER.includes(w) ? (
+									{(WEATHER as readonly string[]).includes(w) ? (
 										<Icon name={w} size={14} className="text-mute" />
 									) : null}
 									<span className="text-xs text-mute">
@@ -696,6 +708,7 @@ export function MeetingHead({
 	/** The title field, shown right under the kicker. */
 	children?: React.ReactNode;
 }) {
+	const { t } = useTranslation();
 	const [adding, setAdding] = useState("");
 	const attendees = list(note, "meeting", "attendees") as string[];
 	const row = "flex items-center gap-3 border-b border-line2 py-2";
@@ -703,26 +716,26 @@ export function MeetingHead({
 	return (
 		<div className="mb-6 flex flex-col">
 			<div className={kicker}>
-				<Icon name="meeting" size={13} /> Meeting notes
+				<Icon name="meeting" size={13} /> {t("heads.meeting")}
 			</div>
 			{children}
 			<div className="mt-2 flex flex-col border-t border-line2 text-sm">
 				<div className={row}>
 					<span className={lab}>
-						<Icon name="clock" size={13} /> When
+						<Icon name="clock" size={13} /> {t("heads.when")}
 					</span>
 					<FieldInput
 						note={note}
 						kind="meeting"
 						name="date"
-						label="Date"
+						label={t("heads.date")}
 						type="date"
 					/>
 					<FieldInput
 						note={note}
 						kind="meeting"
 						name="start"
-						label="Start"
+						label={t("heads.start")}
 						type="time"
 					/>
 					<span className="text-mute">to</span>
@@ -730,20 +743,20 @@ export function MeetingHead({
 						note={note}
 						kind="meeting"
 						name="end"
-						label="End"
+						label={t("heads.end")}
 						type="time"
 					/>
 				</div>
 				<div className={row}>
 					<span className={lab}>
-						<Icon name="place" size={13} /> Where
+						<Icon name="place" size={13} /> {t("heads.where")}
 					</span>
 					<FieldInput
 						note={note}
 						kind="meeting"
 						name="place"
-						label="Place"
-						placeholder="Room or address"
+						label={t("heads.place")}
+						placeholder={t("heads.room")}
 						className="min-w-0 flex-1"
 					/>
 					<Icon name="link" size={13} className="text-mute" />
@@ -751,15 +764,15 @@ export function MeetingHead({
 						note={note}
 						kind="meeting"
 						name="link"
-						label="Meeting link"
+						label={t("heads.meetingLink")}
 						type="url"
-						placeholder="Link"
+						placeholder={t("heads.link")}
 						className="min-w-0 flex-1"
 					/>
 				</div>
 				<div className={`${row} flex-wrap`}>
 					<span className={lab}>
-						<Icon name="meeting" size={13} /> Who
+						<Icon name="meeting" size={13} /> {t("heads.who")}
 					</span>
 					{attendees.map((a) => (
 						<span
@@ -769,7 +782,7 @@ export function MeetingHead({
 							{a}
 							<button
 								type="button"
-								aria-label={`Remove ${a}`}
+								aria-label={t("heads.removePerson", { name: a })}
 								onClick={() =>
 									removeFromField(
 										workspace.index,
@@ -787,8 +800,8 @@ export function MeetingHead({
 					))}
 					<input
 						value={adding}
-						aria-label="Add a person"
-						placeholder="+ Add"
+						aria-label={t("heads.addPerson")}
+						placeholder={t("heads.add")}
 						onChange={(e) => setAdding(e.target.value)}
 						onKeyDown={(e) => {
 							if (e.key !== "Enter" || !adding.trim()) return;
@@ -823,6 +836,7 @@ export function StudyHead({
 	/** The title field, shown right under the kicker. */
 	children?: React.ReactNode;
 }) {
+	const { t } = useTranslation();
 	const confidence = val(note, "study", "confidence") || "new";
 	const revisits = list(note, "study", "revisits") as {
 		date: string;
@@ -846,8 +860,8 @@ export function StudyHead({
 					note={note}
 					kind="study"
 					name="subject"
-					label="Subject"
-					placeholder="Subject"
+					label={t("heads.subject")}
+					placeholder={t("heads.subject")}
 					className="font-mono tracking-[0.1em] uppercase"
 				/>
 			</div>
@@ -859,28 +873,28 @@ export function StudyHead({
 						note={note}
 						kind="study"
 						name="source"
-						label="Source"
-						placeholder="Source"
+						label={t("heads.source")}
+						placeholder={t("heads.source")}
 						className="w-32"
 					/>
 					<FieldInput
 						note={note}
 						kind="study"
 						name="sourceUrl"
-						label="Source link"
+						label={t("heads.sourceLink")}
 						type="url"
-						placeholder="Link"
+						placeholder={t("heads.link")}
 						className="w-40"
 					/>
 				</div>
 				<div className="flex items-center gap-1.5">
 					<Icon name="history" size={13} className="text-mute" />
-					Revisit
+					{t("heads.revisit")}
 					<FieldInput
 						note={note}
 						kind="study"
 						name="revisitOn"
-						label="Revisit on"
+						label={t("heads.revisitOn")}
 						type="date"
 					/>
 				</div>
@@ -894,7 +908,7 @@ export function StudyHead({
 							onClick={() => record(c)}
 							className={`rounded-full border px-2.5 py-0.5 capitalize ${confidence === c ? "border-accent bg-accent-soft text-accent" : "border-line hover:bg-hover"}`}
 						>
-							{c}
+							{t(`heads.confidence.${c}`)}
 						</button>
 					))}
 				</div>
@@ -951,13 +965,14 @@ const jump = (id: string) =>
 type Revisit = { date: string; confidence: string };
 
 function Revisits({ revisits }: { revisits: Revisit[] }) {
+	const { t } = useTranslation();
 	if (revisits.length === 0) return null;
 	return (
 		<div className="mt-3 rounded-2xl border border-line2 bg-raised p-3 text-xs text-mute xl:mt-0">
-			<div className="mb-1 font-medium text-ink2">Revisits</div>
+			<div className="mb-1 font-medium text-ink2">{t("heads.revisits")}</div>
 			{revisits.map((r) => (
 				<div key={`${r.date}-${r.confidence}`}>
-					{r.date} · {r.confidence}
+					{r.date} · {t(`heads.confidence.${r.confidence as "new"}`)}
 				</div>
 			))}
 		</div>
@@ -965,10 +980,11 @@ function Revisits({ revisits }: { revisits: Revisit[] }) {
 }
 
 /**
- * Study notes: "On this page" rail beside the note (wide screens), the same list behind a button
+ * Study notes: On this page rail beside the note (wide screens), the same list behind a button
  * on phones, and the Revisits box under it.
  */
 export function StudyRail({ note }: { note: NoteMeta }) {
+	const { t } = useTranslation();
 	const heads = useHeadings(note);
 	const [open, setOpen] = useState(false);
 	const revisits = list(note, "study", "revisits") as Revisit[];
@@ -989,14 +1005,14 @@ export function StudyRail({ note }: { note: NoteMeta }) {
 	return (
 		<>
 			<aside
-				aria-label="On this page"
+				aria-label={t("heads.onThisPage")}
 				className="absolute inset-y-0 left-full ml-8 hidden w-52 xl:block"
 			>
 				<div className="sticky top-8 flex flex-col gap-5">
 					{heads.length > 0 ? (
 						<nav>
 							<div className="mb-1 text-[11px] font-medium tracking-[0.09em] text-mute uppercase">
-								On this page
+								{t("heads.onThisPage")}
 							</div>
 							{items}
 						</nav>
@@ -1012,7 +1028,7 @@ export function StudyRail({ note }: { note: NoteMeta }) {
 						onClick={() => setOpen((v) => !v)}
 						className="rounded-2xl border border-line px-3 py-1 text-[13px] text-ink2 hover:bg-hover"
 					>
-						On this page
+						{t("heads.onThisPage")}
 					</button>
 				) : null}
 				{open ? (
@@ -1036,10 +1052,10 @@ export function TodayHead() {
 				<span className="font-serif text-[15px] normal-case">今日</span> · Today
 			</div>
 			<div className="font-serif text-[22px] text-mute">
-				{d.toLocaleDateString("en-GB", { weekday: "long" })}
+				{d.toLocaleDateString(dateLocale(), { weekday: "long" })}
 			</div>
 			<h1 className="font-serif text-[56px] leading-none font-medium tracking-[-0.02em] md:text-[72px]">
-				{d.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}
+				{d.toLocaleDateString(dateLocale(), { day: "numeric", month: "long" })}
 			</h1>
 		</header>
 	);

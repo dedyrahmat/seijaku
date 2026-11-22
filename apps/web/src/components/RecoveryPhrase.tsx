@@ -1,13 +1,15 @@
 import { normalisePhrase, PHRASE_WORDS } from "@seijaku/sync";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 /** A recovery phrase as numbered words (like a wallet's), with Copy and Download, and a field to type one. */
 
 export function PhraseGrid({ phrase }: { phrase: string }) {
+	const { t } = useTranslation();
 	const words = phrase.split(" ");
 	return (
 		<ol
-			aria-label="Recovery phrase"
+			aria-label={t("account.phrase")}
 			className="grid grid-cols-2 gap-x-4 gap-y-2.5 rounded-2xl border border-line bg-raised p-5 font-mono text-[15px] text-ink select-all sm:grid-cols-3"
 		>
 			{words.map((word, i) => (
@@ -25,6 +27,7 @@ const GHOST =
 	"h-10 rounded-2xl border border-line px-[18px] text-sm text-ink hover:bg-hover disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent";
 
 export function PhraseActions({ phrase }: { phrase: string }) {
+	const { t } = useTranslation();
 	const [copied, setCopied] = useState(false);
 
 	const copy = async () => {
@@ -38,7 +41,10 @@ export function PhraseActions({ phrase }: { phrase: string }) {
 	};
 
 	const download = () => {
-		const text = `Seijaku recovery phrase\nKeep this somewhere only you can reach. Anyone with it can read your notes.\n\n${phrase}\n`;
+		const text = `${t("phrase.fileHeader")}
+
+${phrase}
+`;
 		const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
 		const a = document.createElement("a");
 		a.href = url;
@@ -50,10 +56,10 @@ export function PhraseActions({ phrase }: { phrase: string }) {
 	return (
 		<div className="flex gap-2.5">
 			<button type="button" onClick={() => void copy()} className={GHOST}>
-				{copied ? "Copied" : "Copy phrase"}
+				{copied ? t("common.copied") : t("phrase.copy")}
 			</button>
 			<button type="button" onClick={download} className={GHOST}>
-				Download .txt
+				{t("phrase.download")}
 			</button>
 		</div>
 	);
@@ -71,6 +77,7 @@ export function PhraseField({
 	onChange: (v: string) => void;
 	autoFocus?: boolean;
 }) {
+	const { t } = useTranslation();
 	const box = useRef<HTMLTextAreaElement>(null);
 	useEffect(() => {
 		if (autoFocus) box.current?.focus();
@@ -79,7 +86,7 @@ export function PhraseField({
 	return (
 		<div className="flex flex-col gap-1.5">
 			<label htmlFor={id} className="sr-only">
-				Recovery phrase, twelve words
+				{t("phrase.label")}
 			</label>
 			<textarea
 				id={id}
@@ -90,7 +97,7 @@ export function PhraseField({
 				spellCheck={false}
 				autoComplete="off"
 				autoCapitalize="none"
-				placeholder="Type or paste your twelve words"
+				placeholder={t("phrase.placeholder")}
 				className="resize-none rounded-2xl border border-line bg-raised px-3.5 py-3 font-mono text-[15px] leading-relaxed text-ink outline-none placeholder:font-sans placeholder:text-mute focus:border-mute"
 			/>
 			<span className="text-xs text-mute">

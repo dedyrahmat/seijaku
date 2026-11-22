@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useCreateBlockNote } from "@blocknote/react";
@@ -16,6 +17,7 @@ export function ReadOnlyNote({
 	title: string;
 	blocks: Block[];
 }) {
+	const { t } = useTranslation();
 	const scheme = useColorScheme();
 	const editor = useCreateBlockNote(
 		{ schema, initialContent: blocks as never, resolveFileUrl },
@@ -24,7 +26,7 @@ export function ReadOnlyNote({
 	return (
 		<article className="mx-auto w-full max-w-[var(--page-width,760px)] px-5 pt-10 pb-24 md:pt-[72px]">
 			<h1 className="mb-4 font-serif text-[42px] leading-[1.12] font-medium tracking-[-0.015em] text-ink md:text-[68px]">
-				{title || "Untitled"}
+				{title || t("common.untitled")}
 			</h1>
 			<BlockNoteView editor={editor} theme={scheme} editable={false} />
 		</article>

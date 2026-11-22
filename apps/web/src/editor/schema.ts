@@ -6,6 +6,7 @@ import {
 	defaultBlockSpecs,
 } from "@blocknote/core";
 import katex from "katex";
+import { i18n } from "../i18n";
 import { fetchPreview, webAddress } from "./preview";
 import { checkListItemWithProps } from "./todoProps";
 
@@ -37,10 +38,10 @@ const createCalloutBlock = createBlockSpec(
 			mark.contentEditable = "false";
 			mark.className = "seijaku-callout__mark";
 			mark.textContent = TONE_MARK[block.props.tone];
-			mark.title = "Change callout style";
+			mark.title = i18n.t("editor.calloutStyle");
 			mark.setAttribute(
 				"aria-label",
-				`Callout: ${block.props.tone}. Change style`,
+				i18n.t("editor.calloutLabel", { tone: block.props.tone }),
 			);
 			mark.addEventListener("click", () => {
 				const i = CALLOUT_TONES.indexOf(block.props.tone);
@@ -81,7 +82,7 @@ const createMathBlock = createBlockSpec(
 				const source = contentDOM.textContent ?? "";
 				preview.classList.remove("seijaku-math--empty", "seijaku-math--error");
 				if (!source.trim()) {
-					preview.textContent = "Write an equation below";
+					preview.textContent = i18n.t("editor.mathEmpty");
 					preview.classList.add("seijaku-math--empty");
 					return;
 				}
@@ -94,7 +95,7 @@ const createMathBlock = createBlockSpec(
 					preview.textContent =
 						err instanceof Error
 							? err.message.replace(/^KaTeX parse error: /, "")
-							: "Invalid equation";
+							: i18n.t("editor.mathInvalid");
 					preview.classList.add("seijaku-math--error");
 				}
 			};
@@ -145,19 +146,18 @@ const createLinkPreviewBlock = createBlockSpec(
 				const input = document.createElement("input");
 				input.type = "url";
 				input.className = "seijaku-linkcard__input";
-				input.placeholder = "Paste a link and press Enter";
-				input.setAttribute("aria-label", "Link to preview");
+				input.placeholder = i18n.t("editor.linkPlaceholder");
+				input.setAttribute("aria-label", i18n.t("editor.linkLabel"));
 				const note = document.createElement("span");
 				note.className = "seijaku-linkcard__note";
-				note.textContent =
-					"Your server fetches the page once to read its title.";
+				note.textContent = i18n.t("editor.linkNote");
 				input.addEventListener("keydown", async (e) => {
 					e.stopPropagation(); // typing here is not editing the note
 					if (e.key !== "Enter") return;
 					e.preventDefault();
 					const url = webAddress(input.value);
 					if (!url) {
-						note.textContent = "That does not look like a web address.";
+						note.textContent = i18n.t("editor.linkBad");
 						return;
 					}
 					input.disabled = true;

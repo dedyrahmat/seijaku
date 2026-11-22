@@ -14,6 +14,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	ChecklistHead,
 	JournalHead,
@@ -42,6 +43,7 @@ import { workspace } from "../workspace/store";
 import { LAST_NOTE_KEY } from "./Home";
 
 export function NotePage() {
+	const { t } = useTranslation();
 	const noteId = useNoteId() ?? "";
 	const { slug } = useParams({ strict: false }) as { slug?: string };
 	const navigate = useNavigate();
@@ -51,8 +53,10 @@ export function NotePage() {
 	const focusEditor = useRef<(() => void) | null>(null);
 
 	useEffect(() => {
-		document.title = `${note?.title || "Untitled"} · Seijaku`;
-	}, [note?.title]);
+		document.title = t("public.title", {
+			title: note?.title || t("common.untitled"),
+		});
+	}, [note?.title, t]);
 
 	useEffect(() => {
 		if (note && !note.trashed) writeLocal(LAST_NOTE_KEY, noteId);
@@ -72,10 +76,10 @@ export function NotePage() {
 
 	if (!note) {
 		return (
-			<Notice title="This page isn't here">
-				It may have been deleted on another device.{" "}
+			<Notice title={t("note.missing")}>
+				{t("note.missingDesc")}{" "}
 				<Link to="/" className="text-accent underline">
-					Go to your pages
+					{t("note.goToPages")}
 				</Link>
 			</Notice>
 		);
@@ -83,15 +87,15 @@ export function NotePage() {
 
 	if (note.trashed) {
 		return (
-			<Notice title="This page is in the trash">
+			<Notice title={t("note.trashed")}>
 				<button
 					type="button"
 					onClick={() => restoreNote(workspace.index, note.id)}
 					className="text-accent underline"
 				>
-					Restore it
+					{t("note.restore")}
 				</button>{" "}
-				to keep working on it.
+				{t("note.toKeepWorking")}
 			</Notice>
 		);
 	}
@@ -169,6 +173,7 @@ function TitleField({
 	onEnter: () => void;
 	autoFocus: boolean;
 }) {
+	const { t } = useTranslation();
 	const [value, setValue] = useState(title);
 	const input = useRef<HTMLTextAreaElement>(null);
 
@@ -195,8 +200,8 @@ function TitleField({
 			// A brand-new page opens ready for its title.
 			// biome-ignore lint/a11y/noAutofocus: intentional for new, empty pages
 			autoFocus={autoFocus}
-			placeholder="Untitled"
-			aria-label="Page title"
+			placeholder={t("common.untitled")}
+			aria-label={t("note.pageTitle")}
 			onChange={(e) => {
 				// Pasted line breaks become spaces: a title is one line of text, just wrapped.
 				const next = e.target.value.replace(/\s*\n\s*/g, " ");

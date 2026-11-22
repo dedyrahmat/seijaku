@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	authenticatePasskey,
 	createPhraseForNewWorkspace,
@@ -9,7 +10,7 @@ import {
 	signUpWithPhrase,
 	unlockWithPhrase,
 } from "../auth/keys";
-import { authStore, useAuth } from "../auth/session";
+import { authStore, IDLE_LOCK, useAuth } from "../auth/session";
 import { Logo } from "../components/Logo";
 import {
 	PhraseActions,
@@ -106,17 +107,19 @@ function message(err: unknown, fallback: string): string {
 
 /** Signing in is optional: notes stay on this device until there is an account. */
 function KeepWriting() {
+	const { t } = useTranslation();
 	return (
 		<Link
 			to="/"
 			className="text-center text-[13px] text-mute underline underline-offset-[3px]"
 		>
-			Keep writing without an account
+			{t("auth.keepWriting")}
 		</Link>
 	);
 }
 
 export function SignInPage() {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const auth = useAuth();
 	const [busy, setBusy] = useState(false);
@@ -125,9 +128,9 @@ export function SignInPage() {
 	const [phrase, setPhrase] = useState("");
 
 	useEffect(() => {
-		document.title = "Sign in · Seijaku";
+		document.title = t("auth.titleSignIn");
 		void authStore.refresh();
-	}, []);
+	}, [t]);
 	useEffect(() => {
 		// The browser half of desktop sign-in sends people back to its own page once they are in.
 		const next = new URLSearchParams(location.search).get("next");
@@ -150,9 +153,7 @@ export function SignInPage() {
 			await openWithPasskey(await authenticatePasskey());
 			await authStore.changed();
 		} catch (err) {
-			setError(
-				message(err, "Could not reach the server. Check the address below."),
-			);
+			setError(message(err, t("auth.noServerAddress")));
 		} finally {
 			setBusy(false);
 		}
@@ -166,7 +167,7 @@ export function SignInPage() {
 			await signInWithPhrase(phrase);
 			await authStore.changed();
 		} catch (err) {
-			setError(message(err, "Could not sign in with that phrase."));
+			setError(message(err, t("auth.badPhrase")));
 		} finally {
 			setBusy(false);
 		}
@@ -187,9 +188,7 @@ export function SignInPage() {
 						静寂
 					</span>
 				</div>
-				<p className="font-serif text-lg text-ink2 italic">
-					Active calm. The opposite of noise.
-				</p>
+				<p className="font-serif text-lg text-ink2 italic">{t("tagline")}</p>
 
 				<div className="mt-[18px] flex w-full flex-col gap-3.5 text-left">
 					{isDesktop ? (
@@ -199,13 +198,13 @@ export function SignInPage() {
 							onClick={() => {
 								setError(null);
 								signInInBrowser().catch((err) =>
-									setError(message(err, "Could not open the browser.")),
+									setError(message(err, t("auth.noBrowser"))),
 								);
 							}}
 							className={PRIMARY}
 						>
 							<PasskeyIcon />
-							Sign in with your browser
+							{t("auth.withBrowser")}
 						</button>
 					) : (
 						<button
@@ -215,7 +214,7 @@ export function SignInPage() {
 							className={PRIMARY}
 						>
 							<PasskeyIcon />
-							Sign in with passkey
+							{t("auth.withPasskey")}
 						</button>
 					)}
 					{usePhrase ? (
@@ -232,7 +231,7 @@ export function SignInPage() {
 								className={SECONDARY}
 							>
 								<PhraseIcon />
-								Sign in with phrase
+								{t("auth.withPhrase")}
 							</button>
 						</form>
 					) : (
@@ -242,22 +241,19 @@ export function SignInPage() {
 							className={SECONDARY}
 						>
 							<PhraseIcon />
-							Sign in with phrase
+							{t("auth.withPhrase")}
 						</button>
 					)}
 					{error ? <Notice error>{error}</Notice> : null}
 					{auth.offline ? (
 						<div className="flex flex-col items-center gap-2">
-							<Notice>
-								This device cannot reach the server right now, so it cannot sign
-								in.
-							</Notice>
+							<Notice>{t("auth.noServerSignIn")}</Notice>
 							<button
 								type="button"
 								onClick={() => void authStore.refresh()}
 								className="text-[13px] text-ink underline underline-offset-[3px]"
 							>
-								Try again
+								{t("settings.data.tryAgain")}
 							</button>
 						</div>
 					) : null}
@@ -265,21 +261,21 @@ export function SignInPage() {
 						to="/setup"
 						className="text-center text-[13px] text-mute underline underline-offset-[3px]"
 					>
-						New here? Create an account
+						{t("auth.newHere")}
 					</Link>
 					<KeepWriting />
 				</div>
 			</div>
 
 			<div className="flex w-full items-center justify-center gap-2 border-t border-line2 pt-[18px] text-[13px] text-mute">
-				<span>Server</span>
+				<span>{t("settings.sync.server")}</span>
 				<span className="font-mono text-xs text-ink2">{server}</span>
 				<Link
 					to="/settings/$section"
 					params={{ section: "sync" }}
 					className="text-ink2 underline underline-offset-[3px]"
 				>
-					Change
+					{t("auth.change")}
 				</Link>
 			</div>
 		</Page>
@@ -287,6 +283,7 @@ export function SignInPage() {
 }
 
 export function SetupPage() {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const auth = useAuth();
 	const [token, setToken] = useState("");
@@ -296,9 +293,9 @@ export function SetupPage() {
 	const working = useRef(false);
 
 	useEffect(() => {
-		document.title = "Create account · Seijaku";
+		document.title = t("auth.titleCreate");
 		void authStore.refresh();
-	}, []);
+	}, [t]);
 	useEffect(() => {
 		// Already signed in: nothing to create. Not while this page is making the account itself.
 		if (working.current) return;
@@ -312,7 +309,7 @@ export function SetupPage() {
 		try {
 			if (how === "passkey") {
 				const passkey = await registerPasskey({
-					name: device.trim() || "This device",
+					name: device.trim() || t("settings.device.other"),
 					context: auth.codeRequired ? token : "",
 					createSession: true,
 				});
@@ -325,12 +322,7 @@ export function SetupPage() {
 			await authStore.changed();
 			void navigate({ to: "/recovery-phrase" });
 		} catch (err) {
-			setError(
-				message(
-					err,
-					"Could not reach the server. Check the address and try again.",
-				),
-			);
+			setError(message(err, t("auth.noServerRetry")));
 			working.current = false;
 		} finally {
 			setBusy(false);
@@ -342,23 +334,21 @@ export function SetupPage() {
 
 	return (
 		<Page>
-			<StepHeader step="Step 1 of 2" />
+			<StepHeader step={t("auth.step1")} />
 			<div className="flex flex-1 flex-col justify-center gap-7">
 				<div className="flex flex-col gap-2.5">
 					<h1 className="font-serif text-4xl leading-[1.12] font-medium tracking-[-0.015em]">
-						Create your account
+						{t("auth.createHeading")}
 					</h1>
 					<p className="text-[15px] leading-relaxed text-pretty text-ink2">
-						Choose how you will sign in. Your notes are encrypted on your
-						devices, and you get a twelve-word phrase to keep either way.
-						Everything you have written so far comes with you.
+						{t("auth.setupIntro")}
 					</p>
 				</div>
 				<div className="flex flex-col gap-[18px]">
 					{auth.codeRequired ? (
 						<div className="flex flex-col gap-1.5">
 							<label htmlFor="setup-token" className="text-[13px] font-medium">
-								Sign-up code
+								{t("auth.signupCode")}
 							</label>
 							<input
 								id="setup-token"
@@ -368,21 +358,19 @@ export function SetupPage() {
 								onChange={(e) => setToken(e.target.value)}
 								className={field}
 							/>
-							<span className="text-xs text-mute">
-								This server asks for a code. Whoever runs it can give you one.
-							</span>
+							<span className="text-xs text-mute">{t("auth.codeNote")}</span>
 						</div>
 					) : null}
 					<div className="flex flex-col gap-1.5">
 						<label htmlFor="setup-device" className="text-[13px] font-medium">
-							Name this device
+							{t("auth.nameDevice")}
 						</label>
 						<input
 							id="setup-device"
 							type="text"
 							value={device}
 							onChange={(e) => setDevice(e.target.value)}
-							placeholder="Studio laptop"
+							placeholder={t("auth.devicePlaceholder")}
 							className={`${field} placeholder:text-mute`}
 						/>
 					</div>
@@ -395,7 +383,7 @@ export function SetupPage() {
 						className={PRIMARY}
 					>
 						<PasskeyIcon />
-						Create passkey
+						{t("auth.createPasskey")}
 					</button>
 					<button
 						type="button"
@@ -404,20 +392,13 @@ export function SetupPage() {
 						className={SECONDARY}
 					>
 						<PhraseIcon />
-						Generate a phrase instead
+						{t("auth.generatePhrase")}
 					</button>
 					<p className="text-xs leading-normal text-mute">
-						A passkey signs you in with your fingerprint, face or device lock. A
-						phrase alone is like a crypto wallet: just the words, nothing to
-						remember.
+						{t("auth.passkeyNote")}
 					</p>
 					{error ? <Notice error>{error}</Notice> : null}
-					{auth.offline ? (
-						<Notice>
-							This device cannot reach the server right now. Check that it is
-							running, then try again.
-						</Notice>
-					) : null}
+					{auth.offline ? <Notice>{t("auth.setupOffline")}</Notice> : null}
 				</div>
 				<KeepWriting />
 			</div>
@@ -427,26 +408,24 @@ export function SetupPage() {
 
 /** Setup step 2: the phrase, shown once. */
 export function RecoveryPage() {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const [saved, setSaved] = useState(false);
 	const [phrase] = useState(() => authStore.peekPhrase());
 	useEffect(() => {
-		document.title = "Recovery phrase · Seijaku";
-	}, []);
+		document.title = t("auth.titleRecovery");
+	}, [t]);
 
 	return (
 		<Page>
-			<StepHeader step="Step 2 of 2" />
+			<StepHeader step={t("auth.step2")} />
 			<div className="flex flex-1 flex-col justify-center gap-6">
 				<div className="flex flex-col gap-2.5">
 					<h1 className="font-serif text-4xl leading-[1.12] font-medium tracking-[-0.015em]">
-						Keep this phrase safe
+						{t("auth.keepSafe")}
 					</h1>
 					<p className="text-[15px] leading-relaxed text-pretty text-ink2">
-						These twelve words are the key to your notes. If you lose every
-						signed-in device and this phrase, your notes cannot be recovered,
-						not even by us. Anyone who has it can read them. It is shown only
-						now.
+						{t("auth.phraseIntro")}
 					</p>
 				</div>
 
@@ -461,13 +440,12 @@ export function RecoveryPage() {
 								onChange={(e) => setSaved(e.target.checked)}
 								className="size-5 accent-ink"
 							/>
-							I saved these words somewhere safe
+							{t("auth.saved")}
 						</label>
 					</>
 				) : (
 					<p className="text-[15px] leading-relaxed text-ink2">
-						The phrase is shown once, and this page no longer has it. Make a new
-						one any time in Settings, under Security.
+						{t("auth.phraseGone")}
 					</p>
 				)}
 
@@ -480,31 +458,63 @@ export function RecoveryPage() {
 					}}
 					className={PRIMARY}
 				>
-					Open my notes
+					{t("auth.openNotes")}
 				</button>
 			</div>
 		</Page>
 	);
 }
 
-/** Signed in, but this device does not hold the notes' key yet. */
+/** Signed in, but this device does not hold the notes' key: a new device, or the idle lock. */
 export function UnlockPage() {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const auth = useAuth();
+	const [idle] = useState(() => {
+		try {
+			return sessionStorage.getItem(IDLE_LOCK) === "1";
+		} catch {
+			return false;
+		}
+	});
+	const [usePhrase, setUsePhrase] = useState(false);
 	const [phrase, setPhrase] = useState("");
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
-		document.title = "Unlock · Seijaku";
+		document.title = idle ? t("auth.titleLocked") : t("auth.titleUnlock");
 		void authStore.refresh();
-	}, []);
+	}, [idle, t]);
 	useEffect(() => {
-		if (auth.phase === "signed-in") void navigate({ to: "/" });
-		else if (auth.phase === "signed-out") void navigate({ to: "/sign-in" });
+		if (auth.phase === "signed-in") {
+			try {
+				sessionStorage.removeItem(IDLE_LOCK);
+			} catch {
+				// Nothing to clear.
+			}
+			void navigate({ to: "/" });
+		} else if (auth.phase === "signed-out") void navigate({ to: "/sign-in" });
 	}, [auth.phase, navigate]);
 
-	const unlock = async (e: React.FormEvent) => {
+	const withPasskey = async () => {
+		setBusy(true);
+		setError(null);
+		try {
+			const opened = await openWithPasskey(await authenticatePasskey());
+			if (!opened) {
+				setUsePhrase(true);
+				setError(t("auth.passkeyCannot"));
+			}
+			await authStore.changed();
+		} catch (err) {
+			setError(message(err, t("auth.passkeyRejected")));
+		} finally {
+			setBusy(false);
+		}
+	};
+
+	const withPhrase = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setBusy(true);
 		setError(null);
@@ -512,7 +522,7 @@ export function UnlockPage() {
 			await unlockWithPhrase(phrase);
 			await authStore.changed();
 		} catch (err) {
-			setError(message(err, "Could not unlock with that phrase."));
+			setError(message(err, t("auth.unlockFailed")));
 		} finally {
 			setBusy(false);
 		}
@@ -520,63 +530,84 @@ export function UnlockPage() {
 
 	return (
 		<Page>
-			<StepHeader step="Signed in" />
+			{idle ? null : <StepHeader step={t("auth.signedIn")} />}
 			<form
-				onSubmit={unlock}
-				className="flex flex-1 flex-col justify-center gap-6"
+				onSubmit={withPhrase}
+				className={`flex flex-1 flex-col justify-center gap-6 ${idle ? "items-center text-center" : ""}`}
 			>
+				{idle ? <Logo size={72} /> : null}
 				<div className="flex flex-col gap-2.5">
 					<h1 className="font-serif text-4xl leading-[1.12] font-medium tracking-[-0.015em]">
-						Unlock your notes
+						{idle ? t("auth.locked") : t("auth.unlockHeading")}
 					</h1>
 					<p className="text-[15px] leading-relaxed text-pretty text-ink2">
-						Your notes are encrypted, and this device does not have their key
-						yet. Enter your twelve-word recovery phrase to open them here.
+						{idle ? t("auth.idleText") : t("auth.unlockText")}
 					</p>
 				</div>
-				<PhraseField
-					id="unlock-phrase"
-					value={phrase}
-					onChange={setPhrase}
-					autoFocus
-				/>
-				<div className="flex flex-col gap-3">
+				<div className="flex w-full max-w-[320px] flex-col gap-3 self-center">
 					<button
-						type="submit"
-						disabled={busy || phrase.trim().length < 12}
+						type="button"
+						disabled={busy}
+						onClick={() => void withPasskey()}
 						className={PRIMARY}
 					>
-						<PhraseIcon />
-						Unlock
+						<PasskeyIcon />
+						{t("auth.unlockPasskey")}
 					</button>
+					{usePhrase ? (
+						<>
+							<PhraseField
+								id="unlock-phrase"
+								value={phrase}
+								onChange={setPhrase}
+								autoFocus
+							/>
+							<button
+								type="submit"
+								disabled={busy || phrase.trim().length < 12}
+								className={SECONDARY}
+							>
+								<PhraseIcon />
+								{t("auth.unlockPhrase")}
+							</button>
+						</>
+					) : (
+						<button
+							type="button"
+							onClick={() => setUsePhrase(true)}
+							className="text-[13px] text-mute underline underline-offset-[3px]"
+						>
+							{t("auth.usePhrase")}
+						</button>
+					)}
 					{error ? <Notice error>{error}</Notice> : null}
 					<button
 						type="button"
 						onClick={() => void authStore.signOut()}
 						className="text-[13px] text-mute underline underline-offset-[3px]"
 					>
-						Sign out
+						{t("account.signOut")}
 					</button>
 				</div>
 			</form>
 		</Page>
 	);
 }
-
 /**
  * Browser half of desktop sign-in: once signed in here, hands the desktop app a short-lived
  * code through a seijaku:// link. The app trades it for its own session.
  */
 export function DesktopLinkPage() {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const auth = useAuth();
 	const [link, setLink] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
-		document.title = "Open Seijaku · Seijaku";
+		document.title = t("auth.titleDesktop");
 		void authStore.refresh();
-	}, []);
+	}, [t]);
 	useEffect(() => {
 		if (auth.phase === "signed-out")
 			void navigate({
@@ -592,30 +623,28 @@ export function DesktopLinkPage() {
 					headers: { "Content-Type": "application/json" },
 					body: "{}",
 				});
-				if (!res.ok)
-					throw new Error("The server would not make a sign-in link.");
+				if (!res.ok) throw new Error(t("auth.noLink"));
 				const { code } = (await res.json()) as { code: string };
 				const url = `seijaku://signin?code=${encodeURIComponent(code)}`;
 				setLink(url);
 				location.href = url;
 			} catch (err) {
-				setError(message(err, "Could not reach the server."));
+				setError(message(err, t("account.noServer")));
 			}
 		})();
-	}, [auth.phase, navigate]);
+	}, [auth.phase, navigate, t]);
 
 	return (
 		<Page>
 			<div className="flex w-full flex-1 flex-col items-center justify-center gap-[18px] text-center">
 				<Logo size={72} />
-				<h1 className="font-serif text-[30px] font-medium">Opening Seijaku</h1>
-				<p className="max-w-[360px] text-ink2">
-					Your desktop app should come forward and sign in. You can close this
-					tab afterwards.
-				</p>
+				<h1 className="font-serif text-[30px] font-medium">
+					{t("auth.opening")}
+				</h1>
+				<p className="max-w-[360px] text-ink2">{t("auth.desktopDone")}</p>
 				{link ? (
 					<a href={link} className={SECONDARY}>
-						Open Seijaku
+						{t("auth.openSeijaku")}
 					</a>
 				) : null}
 				{error ? <Notice error>{error}</Notice> : null}

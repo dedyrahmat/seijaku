@@ -4,6 +4,7 @@ import {
 	filterSuggestionItems,
 	insertOrUpdateBlockForSlashMenu,
 } from "@blocknote/core";
+import { useTranslation } from "react-i18next";
 import "@blocknote/core/fonts/inter.css";
 import { withCollaboration } from "@blocknote/core/yjs";
 import { BlockNoteView } from "@blocknote/mantine";
@@ -16,6 +17,7 @@ import "@blocknote/mantine/style.css";
 import { touchNote } from "@seijaku/sync";
 import "katex/dist/katex.min.css";
 import { type MutableRefObject, useEffect, useRef } from "react";
+import { getPrefs, usePrefs } from "../preferences";
 import { useColorScheme } from "../theme";
 import { resolveFileUrl, uploadFile } from "../workspace/files";
 import { flushSnapshot, noteEdited } from "../workspace/history";
@@ -25,6 +27,7 @@ import { workspace } from "../workspace/store";
 import { MobileToolbar } from "./MobileToolbar";
 import { schema } from "./schema";
 import { setOwnerNames } from "./todoProps";
+import { typingExtension } from "./typingExtension";
 
 /** BlockNote keys group headers by name, so items of one group must sit together. */
 function keepGroupsTogether<T extends { group?: string }>(items: T[]): T[] {
@@ -66,18 +69,18 @@ function settleDone(editor: any, siblings: AnyBlock[]) {
 }
 
 /** The slash menu's "Blocks" group: BlockNote's title, the board's name, and a Markdown hint where one really works. */
-const BLOCKS: [string, string, string][] = [
-	["Paragraph", "Text", "Plain writing"],
-	["Heading 1", "Heading", "Type # and a space"],
-	["Check List", "To-do list", "Type [] and a space"],
-	["Bullet List", "Bulleted list", "Type - and a space"],
-	["Toggle List", "Toggle", "Hide detail inside"],
-	["Quote", "Quote", "Set a line apart"],
-	["Code Block", "Code", "Type ``` and a space"],
-	["Math", "Math", "An equation in LaTeX"],
-	["Table", "Table", "Rows and columns"],
-	["Callout", "Callout", "Set a thought apart from the page"],
-];
+const BLOCKS = [
+	["Paragraph", "paragraph"],
+	["Heading 1", "heading"],
+	["Check List", "todo"],
+	["Bullet List", "bullets"],
+	["Toggle List", "toggle"],
+	["Quote", "quote"],
+	["Code Block", "code"],
+	["Math", "math"],
+	["Table", "table"],
+	["Callout", "callout"],
+] as const;
 
 interface Props {
 	session: NoteSession;
@@ -105,6 +108,7 @@ export function Editor({
 	owners,
 	editorRef,
 }: Props) {
+	const { t } = useTranslation();
 	const scheme = useColorScheme();
 	const touchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
 		undefined,
@@ -115,7 +119,15 @@ export function Editor({
 			schema,
 			uploadFile,
 			resolveFileUrl,
-			extensions: [syntaxHighlighter],
+			extensions: [syntaxHighlighter, typingExtension],
+			// "Paste behaviour": read when pasting, so changing it needs no reload.
+			pasteHandler: ({ event, editor: ed, defaultPasteHandler }) => {
+				if (getPrefs().pasteStyle !== "Plain text")
+					return defaultPasteHandler();
+				const text = event.clipboardData?.getData("text/plain");
+				if (!text) return defaultPasteHandler();
+				return ed.pasteText(text);
+			},
 			collaboration: {
 				fragment: session.fragment,
 				user: { name: "You", color: "#AE3B28" },
@@ -123,6 +135,12 @@ export function Editor({
 		}),
 		[session.id],
 	);
+
+	// "Spellcheck": the browser underlines on this device only.
+	const spellcheck = usePrefs().spellcheck;
+	useEffect(() => {
+		editor.domElement?.setAttribute("spellcheck", String(spellcheck));
+	}, [editor, spellcheck]);
 
 	useEffect(() => {
 		if (autoFocus) editor.focus();
@@ -197,19 +215,19 @@ export function Editor({
 					const defaults = getDefaultReactSlashMenuItems(editor);
 					const extra = [
 						{
-							title: "Callout",
-							subtext: "Set a thought apart from the page",
+							title: t("editor.callout.title"),
+							subtext: t("editor.callout.hint"),
 							aliases: ["note", "aside", "tip", "warning"],
-							group: "Basic blocks",
+							group: t("editor.groups.basic"),
 							icon: <span aria-hidden>ℹ</span>,
 							onItemClick: () =>
 								insertOrUpdateBlockForSlashMenu(editor, { type: "callout" }),
 						},
 						{
-							title: "Link preview",
-							subtext: "Show a web page as a card",
+							title: t("editor.link.title"),
+							subtext: t("editor.link.hint"),
 							aliases: ["bookmark", "embed", "url", "card"],
-							group: "Media",
+							group: t("editor.groups.media"),
 							icon: <span aria-hidden>↗</span>,
 							onItemClick: () =>
 								insertOrUpdateBlockForSlashMenu(editor, {
@@ -217,10 +235,10 @@ export function Editor({
 								}),
 						},
 						{
-							title: "Math",
-							subtext: "Write an equation in LaTeX",
+							title: t("editor.math.title"),
+							subtext: t("editor.math.hint"),
 							aliases: ["latex", "equation", "formula", "katex"],
-							group: "Advanced",
+							group: t("editor.groups.advanced"),
 							icon: <span aria-hidden>∑</span>,
 							onItemClick: () =>
 								insertOrUpdateBlockForSlashMenu(editor, { type: "math" }),
@@ -230,10 +248,24 @@ export function Editor({
 					// Typing finds every block; the open menu is the board's one "Blocks" group, in its order.
 					if (query)
 						return filterSuggestionItems(keepGroupsTogether(all), query);
-					return BLOCKS.flatMap(([title, as, hint]) => {
-						const item = all.find((i) => i.title === title);
+					return BLOCKS.flatMap(([title, key]) => {
+						// Callout and Math are ours, so their titles are translated; the rest are BlockNote's own English.
+						const wanted =
+							key === "callout"
+								? t("editor.callout.title")
+								: key === "math"
+									? t("editor.math.title")
+									: title;
+						const item = all.find((i) => i.title === wanted);
 						return item
-							? [{ ...item, title: as, group: "Blocks", subtext: hint }]
+							? [
+									{
+										...item,
+										title: t(`editor.blocks.${key}.name`),
+										group: t("editor.blocksGroup"),
+										subtext: t(`editor.blocks.${key}.hint`),
+									},
+								]
 							: [];
 					});
 				}}

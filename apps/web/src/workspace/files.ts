@@ -1,4 +1,5 @@
 import { authStore } from "../auth/session";
+import { i18n } from "../i18n";
 import { apiUrl } from "./syncUrl";
 
 /**
@@ -29,6 +30,12 @@ async function open(name: string): Promise<Cache | null> {
 	}
 }
 
+/** Attachments still waiting for the server. */
+export async function queuedUploads(): Promise<number> {
+	const queue = await open(QUEUE);
+	return queue ? (await queue.keys()).length : 0;
+}
+
 function put(url: string, sealed: Uint8Array): Promise<Response> {
 	return fetch(url, {
 		method: "PUT",
@@ -45,9 +52,9 @@ function put(url: string, sealed: Uint8Array): Promise<Response> {
  */
 export async function uploadFile(file: File): Promise<string> {
 	if (authStore.getState().phase === "signed-out")
-		throw new Error("Sign in to add files.");
+		throw new Error(i18n.t("errors.fileSignIn"));
 	const cipher = authStore.getCipher();
-	if (!cipher) throw new Error("Unlock this device before adding files.");
+	if (!cipher) throw new Error(i18n.t("errors.fileUnlock"));
 	const sealed = cipher.sealFile({
 		name: file.name,
 		type: file.type || "application/octet-stream",
@@ -63,13 +70,12 @@ export async function uploadFile(file: File): Promise<string> {
 		// Offline or the server is down: queued below.
 	}
 	if (res?.ok) return url;
-	if (res?.status === 413) throw new Error("That file is larger than 25 MB.");
+	if (res?.status === 413) throw new Error(i18n.t("errors.fileTooBig"));
 	if (res && res.status < 500 && res.status !== 401)
-		throw new Error("Could not upload that file.");
+		throw new Error(i18n.t("errors.uploadFailed"));
 
 	const queue = await open(QUEUE);
-	if (!queue)
-		throw new Error("Could not upload. Check your connection and try again.");
+	if (!queue) throw new Error(i18n.t("errors.uploadOffline"));
 	await queue.put(url, new Response(sealed as BlobPart));
 	return url;
 }

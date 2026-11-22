@@ -18,13 +18,13 @@ export interface Prefs {
 	autoPair: boolean;
 	blockHandles: boolean;
 	renderMath: boolean;
-	language: "English";
+	/** A language code from `i18n/index.ts`; anything unknown (like the old "English") falls back to English there. */
+	language: string;
 	openOnStart: "Today" | "Last page" | "Home";
-	workspaceName: string;
 	collisions: "Keep as a copy" | "Keep the newer one";
 	trashAfter: "After 7 days" | "After 30 days" | "Never";
 	historyFor: "30 days" | "90 days" | "Forever";
-	lockAfter: "5 minutes" | "15 minutes" | "Never";
+	lockAfterIdle: "5 minutes" | "15 minutes" | "Never";
 	pasteStyle: "Match page style" | "Plain text";
 	/** "today", "new" (a quick note) or "page:<id>". */
 	captureTo: string;
@@ -46,13 +46,12 @@ export const DEFAULTS: Prefs = {
 	autoPair: false,
 	blockHandles: true,
 	renderMath: true,
-	language: "English",
+	language: "en",
 	openOnStart: "Today",
-	workspaceName: "",
 	collisions: "Keep as a copy",
 	trashAfter: "After 30 days",
 	historyFor: "90 days",
-	lockAfter: "15 minutes",
+	lockAfterIdle: "Never",
 	pasteStyle: "Match page style",
 	captureTo: "today",
 };
@@ -143,7 +142,7 @@ export function setPref<K extends keyof Prefs>(key: K, value: Prefs[K]): void {
 	for (const l of listeners) l();
 }
 
-function subscribe(l: () => void): () => void {
+export function subscribe(l: () => void): () => void {
 	listeners.add(l);
 	return () => listeners.delete(l);
 }

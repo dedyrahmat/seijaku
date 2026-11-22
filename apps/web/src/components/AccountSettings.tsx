@@ -1,11 +1,13 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	registerPasskey,
 	replacePhrase,
 	wrapHeldKeyForPasskey,
 } from "../auth/keys";
 import { authClient, authMessage, authStore, useAuth } from "../auth/session";
+import { i18n } from "../i18n";
 import { ago } from "./ago";
 import { PhraseActions, PhraseGrid } from "./RecoveryPhrase";
 import { Btn, Group, Row, TextField } from "./SettingRows";
@@ -27,7 +29,7 @@ interface PasskeyRow {
 
 /** "Windows PC · Chrome" from a user agent string. */
 export function deviceLabel(ua: string | null | undefined): string {
-	if (!ua) return "Unknown device";
+	if (!ua) return i18n.t("device.unknown");
 	const os = /iPhone|iPad/.test(ua)
 		? "iPhone"
 		: /Android/.test(ua)
@@ -35,12 +37,12 @@ export function deviceLabel(ua: string | null | undefined): string {
 			: /Mac/.test(ua)
 				? "Mac"
 				: /Windows/.test(ua)
-					? "Windows PC"
+					? i18n.t("settings.device.windows")
 					: /Linux/.test(ua)
-						? "Linux PC"
-						: "Device";
+						? i18n.t("settings.device.linux")
+						: i18n.t("device.generic");
 	const app = /Seijaku/.test(ua)
-		? "Desktop app"
+		? i18n.t("common.desktopApp")
 		: /Edg\//.test(ua)
 			? "Edge"
 			: /Firefox\//.test(ua)
@@ -49,7 +51,7 @@ export function deviceLabel(ua: string | null | undefined): string {
 					? "Chrome"
 					: /Safari\//.test(ua)
 						? "Safari"
-						: "Web";
+						: i18n.t("settings.about.where.web");
 	return `${os} · ${app}`;
 }
 
@@ -60,14 +62,16 @@ export function useSignedOut(): boolean {
 
 /** Shown in place of the account rows when signed out. */
 export function AccountRow() {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	return (
-		<Row
-			label="Account"
-			desc="Your notes are on this device only. An account keeps them in sync, encrypted, on your other devices."
-		>
-			<Btn onClick={() => void navigate({ to: "/setup" })}>Create account</Btn>
-			<Btn onClick={() => void navigate({ to: "/sign-in" })}>Sign in</Btn>
+		<Row label={t("settings.account")} desc={t("account.signedOutDesc")}>
+			<Btn onClick={() => void navigate({ to: "/setup" })}>
+				{t("account.create")}
+			</Btn>
+			<Btn onClick={() => void navigate({ to: "/sign-in" })}>
+				{t("account.signIn")}
+			</Btn>
 		</Row>
 	);
 }
@@ -119,6 +123,7 @@ function Problem({ children }: { children: string }) {
 
 /** Every device that is signed in, each with a Sign out. */
 export function DevicesGroup() {
+	const { t } = useTranslation();
 	const { data, failed, reload } = useLoad(loadSessions);
 	const auth = useAuth();
 	const [now] = useState(() => Date.now());
@@ -127,12 +132,12 @@ export function DevicesGroup() {
 	const end = async (token: string) => {
 		setError(null);
 		const res = await authClient().revokeSession({ token });
-		if (res.error) setError(authMessage(res.error, "Could not sign out."));
+		if (res.error) setError(authMessage(res.error, t("account.signOutFailed")));
 		await reload();
 	};
 
 	return (
-		<Group name="Signed-in devices">
+		<Group name={t("account.devicesTitle")}>
 			{data?.sessions.map((s) => {
 				const here = s.id === data.currentId;
 				return (
@@ -141,34 +146,36 @@ export function DevicesGroup() {
 						label={deviceLabel(s.userAgent)}
 						desc={
 							here
-								? "Active now"
-								: `Last active ${ago(new Date(s.updatedAt).getTime(), now)}`
+								? t("account.activeNow")
+								: t("account.lastActive", {
+										when: ago(new Date(s.updatedAt).getTime(), now),
+									})
 						}
-						note={here ? "This device" : undefined}
+						note={here ? t("settings.device.other") : undefined}
 					>
 						<Btn
 							onClick={() => void (here ? authStore.signOut() : end(s.token))}
 						>
-							Sign out
+							{t("account.signOut")}
 						</Btn>
 					</Row>
 				);
 			})}
 			{!data && !failed ? (
-				<Row label="Devices" desc="Loading…">
+				<Row label={t("account.devices")} desc={t("common.loading")}>
 					<span />
 				</Row>
 			) : null}
 			{failed ? (
 				<Row
-					label="Devices"
+					label={t("account.devices")}
 					desc={
 						auth.offline
-							? "Connect to your server to see which devices are signed in."
-							: "Could not load the list of devices."
+							? t("account.devicesOffline")
+							: t("account.devicesFailed")
 					}
 				>
-					<Btn onClick={() => void reload()}>Try again</Btn>
+					<Btn onClick={() => void reload()}>{t("settings.data.tryAgain")}</Btn>
 				</Row>
 			) : null}
 			{error ? <Problem>{error}</Problem> : null}
@@ -178,6 +185,7 @@ export function DevicesGroup() {
 
 /** Passkeys on the account: list, add, remove. */
 export function PasskeysGroup({ deviceName }: { deviceName: string }) {
+	const { t } = useTranslation();
 	const { data, failed, reload } = useLoad(loadPasskeys);
 	const [name, setName] = useState("");
 	const [busy, setBusy] = useState(false);
@@ -188,14 +196,15 @@ export function PasskeysGroup({ deviceName }: { deviceName: string }) {
 		setError(null);
 		try {
 			await wrapHeldKeyForPasskey(
-				await registerPasskey({ name: name.trim() || `${deviceName} passkey` }),
+				await registerPasskey({
+					name:
+						name.trim() || t("account.passkeyDefault", { device: deviceName }),
+				}),
 			);
 			setName("");
 			await reload();
 		} catch (err) {
-			setError(
-				err instanceof Error ? err.message : "Could not reach the server.",
-			);
+			setError(err instanceof Error ? err.message : t("account.noServer"));
 		} finally {
 			setBusy(false);
 		}
@@ -204,49 +213,51 @@ export function PasskeysGroup({ deviceName }: { deviceName: string }) {
 	const remove = async (id: string) => {
 		setError(null);
 		const res = await authClient().passkey.deletePasskey({ id });
-		if (res.error)
-			setError(authMessage(res.error, "The passkey could not be removed."));
+		if (res.error) setError(authMessage(res.error, t("account.removeFailed")));
 		await reload();
 	};
 
 	const only = data?.length === 1;
 	return (
-		<Group name="Passkeys">
+		<Group name={t("account.passkeys")}>
 			{data?.map((k) => (
 				<Row
 					key={k.id}
-					label={k.name || "Passkey"}
+					label={k.name || t("account.passkey")}
 					desc={
 						only
-							? "Your only passkey. Add another before removing this one."
+							? t("account.onlyPasskey")
 							: k.createdAt
-								? `Added ${new Date(k.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}`
+								? t("account.added", {
+										date: new Date(k.createdAt).toLocaleDateString(undefined, {
+											day: "numeric",
+											month: "long",
+											year: "numeric",
+										}),
+									})
 								: undefined
 					}
 				>
 					<Btn danger disabled={only} onClick={() => void remove(k.id)}>
-						Remove
+						{t("common.remove")}
 					</Btn>
 				</Row>
 			))}
 			{failed ? (
-				<Row label="Passkeys" desc="Could not load your passkeys.">
-					<Btn onClick={() => void reload()}>Try again</Btn>
+				<Row label={t("account.passkeys")} desc={t("account.passkeysFailed")}>
+					<Btn onClick={() => void reload()}>{t("settings.data.tryAgain")}</Btn>
 				</Row>
 			) : null}
-			<Row
-				label="Add a passkey"
-				desc="Make one on this device, on a phone, or on a security key."
-			>
+			<Row label={t("account.addPasskey")} desc={t("account.addPasskeyDesc")}>
 				<TextField
-					label="Passkey name"
+					label={t("account.passkeyName")}
 					value={name}
 					onChange={setName}
-					placeholder={`${deviceName} passkey`}
+					placeholder={t("account.passkeyDefault", { device: deviceName })}
 					width="w-44"
 				/>
 				<Btn disabled={busy} onClick={() => void add()}>
-					Add passkey
+					{t("account.addPasskeyButton")}
 				</Btn>
 			</Row>
 			{error ? <Problem>{error}</Problem> : null}
@@ -256,6 +267,7 @@ export function PasskeysGroup({ deviceName }: { deviceName: string }) {
 
 /** Replace the recovery phrase: the old one stops working, notes stay as they are. */
 export function RecoveryGroup() {
+	const { t } = useTranslation();
 	const [confirming, setConfirming] = useState(false);
 	const [phrase, setPhrase] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
@@ -266,37 +278,32 @@ export function RecoveryGroup() {
 			setPhrase(await replacePhrase());
 			setConfirming(false);
 		} catch (err) {
-			setError(
-				err instanceof Error ? err.message : "Could not make a new phrase.",
-			);
+			setError(err instanceof Error ? err.message : t("account.phraseFailed"));
 		}
 	};
 
 	return (
 		<>
-			<Row
-				label="Recovery phrase"
-				desc="Twelve words that restore your notes on a new device. Keep them somewhere offline."
-			>
+			<Row label={t("account.phrase")} desc={t("account.phraseDesc")}>
 				{confirming ? (
 					<>
 						<span className="text-[13px] text-mute">
-							This ends your old phrase.
+							{t("account.phraseEnds")}
 						</span>
 						<Btn danger onClick={() => void replace()}>
-							Replace phrase
+							{t("account.replacePhrase")}
 						</Btn>
-						<Btn onClick={() => setConfirming(false)}>Cancel</Btn>
+						<Btn onClick={() => setConfirming(false)}>{t("common.cancel")}</Btn>
 					</>
 				) : (
-					<Btn onClick={() => setConfirming(true)}>Make a new phrase</Btn>
+					<Btn onClick={() => setConfirming(true)}>
+						{t("account.newPhrase")}
+					</Btn>
 				)}
 			</Row>
 			{phrase ? (
 				<div className="flex flex-col gap-3.5 border-b border-line2 py-4">
-					<p className="text-[13px] text-mute">
-						This is your new phrase. It is shown only now.
-					</p>
+					<p className="text-[13px] text-mute">{t("account.phraseNew")}</p>
 					<PhraseGrid phrase={phrase} />
 					<PhraseActions phrase={phrase} />
 				</div>
@@ -308,25 +315,23 @@ export function RecoveryGroup() {
 
 /** Sign out on every device, this one included. */
 export function SignOutEverywhere() {
+	const { t } = useTranslation();
 	const [error, setError] = useState<string | null>(null);
 	return (
 		<>
-			<Row
-				label="Sign out everywhere"
-				desc="Ends every session, including this one."
-			>
+			<Row label={t("account.signOutAll")} desc={t("account.signOutAllDesc")}>
 				<Btn
 					danger
 					onClick={() =>
 						void (async () => {
 							const res = await authClient().revokeSessions();
 							if (res.error)
-								setError(authMessage(res.error, "Could not sign out."));
+								setError(authMessage(res.error, t("account.signOutFailed")));
 							else await authStore.signOut();
 						})()
 					}
 				>
-					Sign out all
+					{t("account.signOutAllButton")}
 				</Btn>
 			</Row>
 			{error ? <Problem>{error}</Problem> : null}

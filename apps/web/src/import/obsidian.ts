@@ -2,6 +2,7 @@ import {
 	lookupFile,
 	nameIndex,
 	outsideCode,
+	pageLinkMarkdown,
 	rewriteImages,
 	text,
 } from "./markdown";
@@ -22,8 +23,8 @@ import {
 
 /**
  * An Obsidian vault: Markdown files in folders. Folders become parent pages; frontmatter
- * and #inline tags become tags; ![[image]] embeds become images; [[links]] become plain
- * text (Seijaku has no cross-page link syntax yet); %%comments%% are dropped.
+ * and #inline tags become tags; ![[image]] embeds become images; [[links]] become page links
+ * (the writer matches them to imported pages by title); %%comments%% are dropped.
  */
 
 const SKIP_DIR = /(^|\/)(\.obsidian|\.trash)(\/|$)/;
@@ -76,7 +77,8 @@ export function parseObsidian(entries: Entries): Parsed {
 				// [[Note]], [[Note#Heading]], [[Note|shown text]]
 				.replace(
 					/\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]*))?\]\]/g,
-					(_, target: string, alias?: string) => (alias ?? target).trim(),
+					(_, target: string, alias?: string) =>
+						pageLinkMarkdown((alias ?? target).trim(), target.trim()),
 				),
 		);
 		body = rewriteImages(body, entries, byName, path, refs, note.warnings);

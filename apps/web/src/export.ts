@@ -45,15 +45,53 @@ class Attachments {
 	}
 }
 
+/** Where the other pages of a whole-workspace export are, so a page link can become a relative link. */
+interface PageLinks {
+	/** Title and zip path of every exported page, by id. */
+	pages: Map<string, { title: string; path: string }>;
+	/** Zip path of the page being written. */
+	from: string;
+}
+
+/** "A/B.md" as seen from "A/C/D.md" is "../B.md", with each segment percent-encoded. */
+function relative(from: string, to: string): string {
+	const a = from.split("/").slice(0, -1);
+	const b = to.split("/");
+	let i = 0;
+	while (i < a.length && i < b.length - 1 && a[i] === b[i]) i++;
+	return [...a.slice(i).map(() => ".."), ...b.slice(i)]
+		.map(encodeURIComponent)
+		.join("/");
+}
+
+/** Page links have no Markdown form: write them as a link to the page's file, or as its title when it is not in the export. */
+function linkify(content: unknown, links: PageLinks | undefined): unknown {
+	if (!Array.isArray(content)) return content;
+	return content.map((c: { type?: string; props?: { noteId?: string } }) => {
+		if (c.type !== "pageLink") return c;
+		const page = links?.pages.get(String(c.props?.noteId ?? ""));
+		const text = {
+			type: "text",
+			text: page?.title || "Untitled",
+			styles: {},
+		};
+		return page && links
+			? { type: "link", href: relative(links.from, page.path), content: [text] }
+			: text;
+	});
+}
+
 /** Custom blocks have no Markdown form of their own: write them as the nearest plain one. */
 async function flatten(
 	blocks: Block[],
 	attachments: Attachments,
 	up: string,
+	links?: PageLinks,
 ): Promise<Block[]> {
 	const out: Block[] = [];
-	for (const b of blocks) {
-		const children = await flatten(b.children, attachments, up);
+	for (const raw of blocks) {
+		const b = { ...raw, content: linkify(raw.content, links) };
+		const children = await flatten(b.children, attachments, up, links);
 		if (b.type === "callout")
 			out.push({ ...b, type: "quote", props: {}, children });
 		else if (b.type === "math")
@@ -99,10 +137,11 @@ async function pageMarkdown(
 	note: NoteMeta,
 	attachments: Attachments,
 	depth: number,
+	links?: PageLinks,
 ): Promise<string> {
 	const ed = headless();
 	const blocks = await workspace.withFragment(note.id, fragmentBlocks);
-	const flat = await flatten(blocks, attachments, "../".repeat(depth));
+	const flat = await flatten(blocks, attachments, "../".repeat(depth), links);
 	const body = ed.blocksToMarkdownLossy(flat as never).trim();
 	const tags = note.tags.length
 		? `${note.tags.map((t) => `#${t}`).join(" ")}\n\n`
@@ -162,8 +201,13 @@ export async function exportWorkspace(): Promise<number> {
 	const live = listNotes(workspace.index).filter((n) => !n.trashed);
 	const entries = paths(buildTree(live));
 	const zipped: Record<string, Uint8Array> = {};
+	const pages = new Map(
+		entries.map((e) => [e.note.id, { title: e.note.title, path: e.path }]),
+	);
 	for (const { note, path, depth } of entries)
-		zipped[path] = strToU8(await pageMarkdown(note, attachments, depth));
+		zipped[path] = strToU8(
+			await pageMarkdown(note, attachments, depth, { pages, from: path }),
+		);
 	for (const [path, bytes] of attachments.files) zipped[path] = bytes;
 	const stamp = new Date().toISOString().slice(0, 10);
 	save(`seijaku-export-${stamp}.zip`, zipSync(zipped), "application/zip");

@@ -2,10 +2,10 @@ import * as Y from "yjs";
 import type { Cipher } from "./crypto";
 import {
 	decodeFrame,
+	encodeDrop,
 	encodePush,
 	encodeSnapshot,
 	encodeSubscribe,
-	encodeDrop,
 	encodeUnsubscribe,
 	FrameKind,
 	PING,

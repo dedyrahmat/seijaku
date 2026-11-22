@@ -21,7 +21,7 @@ const entries = (files: Record<string, string | Uint8Array>): Entries =>
 
 const PNG = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3]);
 
-test("Obsidian: folders nest, tags and embeds are kept, links become words", () => {
+test("Obsidian: folders nest, tags and embeds are kept, links become page links", () => {
 	const { notes, skipped } = parseObsidian(
 		entries({
 			"Studies/Signals/Fourier.md": [
@@ -50,7 +50,9 @@ test("Obsidian: folders nest, tags and embeds are kept, links become words", () 
 	expect(n?.parents).toEqual(["Studies", "Signals"]);
 	expect(n?.tags.sort()).toEqual(["math", "physics", "signals"]);
 	expect(n?.createdAt).toBe(Date.parse("2026-11-09"));
-	expect(n?.body.text).toContain("the matrix view and Other.");
+	expect(n?.body.text).toContain(
+		"[the matrix view](https://seijaku.invalid/page/Linear%20algebra) and [Other](https://seijaku.invalid/page/Other).",
+	);
 	expect(n?.body.text).not.toContain("private comment");
 	expect(n?.body.text).toContain("`#notatag` stays");
 	expect(n?.body.text).toContain("![wave.png](seijaku-file:1)");
@@ -78,7 +80,7 @@ test("Notion: ids are dropped, sub-pages nest under their page, properties becom
 	expect(projects?.body.text).toContain("Status: Active");
 	expect(projects?.body.text).not.toContain("Tags:");
 	expect(projects?.body.text).toContain(
-		"See Studio and [site](https://example.com).",
+		"See [Studio](https://seijaku.invalid/page/Studio) and [site](https://example.com).",
 	);
 	const studio = notes.find((n) => n.title === "Studio");
 	expect(studio?.parents).toEqual(["Projects"]);

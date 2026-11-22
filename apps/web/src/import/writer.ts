@@ -1,12 +1,14 @@
 import { BlockNoteEditor } from "@blocknote/core";
 import { blocksToYXmlFragment } from "@blocknote/core/yjs";
-import { createNote, normalizeTag, updateNote } from "@seijaku/sync";
+import { createNote, newId, normalizeTag, updateNote } from "@seijaku/sync";
 import type * as Y from "yjs";
 import { schema } from "../editor/schema";
 import { i18n } from "../i18n";
 import { uploadFile } from "../workspace/files";
 import { workspace } from "../workspace/store";
+import { PAGE_SCHEME } from "./markdown";
 import {
+	basename,
 	type ImportedFile,
 	type ImportedNote,
 	isImage,
@@ -68,6 +70,12 @@ function blockFor(url: string, file: ImportedFile): Block {
 	return { type, props: { url, name: file.name } };
 }
 
+/** Inline content as BlockNote hands it over: text runs and links, and links hold runs. */
+type Inline = { type: string; href?: string; content?: Inline[] } & Record<
+	string,
+	unknown
+>;
+
 const pathKey = (parents: string[], title: string) =>
 	[...parents, title].join("\u0000");
 
@@ -80,6 +88,10 @@ export async function writeNotes(
 	const tags = new Set<string>();
 	const skipped = [...parsed.skipped];
 	const pageIds = new Map<string, string>();
+	/** Pages made only as the folder of others; a note of the same name takes them over. */
+	const folderIds = new Set<string>();
+	/** Imported page ids by lower-cased title, for turning `seijaku-page:` links into page links. */
+	const titleIds = new Map<string, string>();
 	const uploads = new Map<ImportedFile, string | null>();
 	let images = 0;
 	let canUpload = true;
@@ -97,6 +109,7 @@ export async function writeNotes(
 					parentId,
 				});
 				pageIds.set(key, id);
+				folderIds.add(id);
 			}
 			parentId = id;
 		}
@@ -150,6 +163,45 @@ export async function writeNotes(
 	const ordered = [...parsed.notes].sort(
 		(a, b) => a.parents.length - b.parents.length,
 	);
+	// Every page gets its id before any body is written, so a link can point at a page that comes later.
+	for (const note of ordered) ensureParents(note.parents);
+	for (const note of ordered) {
+		const key = pathKey(note.parents, note.title);
+		const id = pageIds.get(key) ?? newId();
+		pageIds.set(key, id);
+		const lower = note.title.trim().toLowerCase();
+		if (!titleIds.has(lower)) titleIds.set(lower, id);
+	}
+
+	/** Swaps `seijaku-page:` links for real page links; those with no page in this import go back to plain words. Returns how many. */
+	const linkPages = (blocks: Block[]): number => {
+		let missing = 0;
+		const walk = (items: Inline[]): Inline[] =>
+			items.flatMap((item) => {
+				if (item.type !== "link" || !item.href?.startsWith(PAGE_SCHEME))
+					return [item];
+				let target = item.href.slice(PAGE_SCHEME.length);
+				try {
+					target = decodeURIComponent(target);
+				} catch {
+					// Not percent-encoded after all.
+				}
+				const title = basename(target).replace(/\.md$/i, "").trim();
+				const noteId = titleIds.get(title.toLowerCase());
+				if (noteId) return [{ type: "pageLink", props: { noteId } }];
+				missing++;
+				return item.content ?? [];
+			});
+		const visit = (list: Block[]) => {
+			for (const b of list) {
+				const c = (b as { content?: unknown }).content;
+				if (Array.isArray(c)) (b as { content?: unknown }).content = walk(c);
+				if (b.children) visit(b.children);
+			}
+		};
+		visit(blocks);
+		return missing;
+	};
 	const total = ordered.length;
 	let done = 0;
 
@@ -167,6 +219,11 @@ export async function writeNotes(
 						}))) as unknown as Block[];
 
 			let lost = await attach(blocks, note);
+			const unlinked = linkPages(blocks);
+			if (unlinked > 0)
+				note.warnings.push(
+					`${unlinked} ${unlinked === 1 ? "link" : "links"} to pages outside this import left as text`,
+				);
 			for (const extra of note.extras) {
 				const url = await upload(extra);
 				if (url) blocks.push(blockFor(url, extra));
@@ -175,18 +232,17 @@ export async function writeNotes(
 
 			const parentId = ensureParents(note.parents);
 			const key = pathKey(note.parents, note.title);
-			const known = pageIds.get(key);
+			const id = pageIds.get(key) as string;
 			// A page that was already made as a folder for its children becomes this note.
-			const id =
-				known ??
+			if (!folderIds.has(id))
 				createNote(workspace.index, {
+					id,
 					title: note.title,
 					parentId,
 					tags: note.tags.map(normalizeTag).filter(Boolean),
 					now: note.updatedAt ?? note.createdAt ?? Date.now(),
 				});
-			pageIds.set(key, id);
-			if (known) {
+			else {
 				updateNote(workspace.index, id, {
 					tags: note.tags.map(normalizeTag).filter(Boolean),
 				});

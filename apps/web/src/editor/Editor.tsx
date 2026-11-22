@@ -14,7 +14,7 @@ import {
 	useCreateBlockNote,
 } from "@blocknote/react";
 import "@blocknote/mantine/style.css";
-import { touchNote } from "@seijaku/sync";
+import { createNote, touchNote } from "@seijaku/sync";
 import "katex/dist/katex.min.css";
 import { type MutableRefObject, useEffect, useRef } from "react";
 import { getPrefs, usePrefs } from "../preferences";
@@ -209,6 +209,54 @@ export function Editor({
 				);
 			}}
 		>
+			<SuggestionMenuController
+				triggerCharacter="[["
+				getItems={async (query) => {
+					const q = query.trim().toLowerCase();
+					const link = (noteId: string) =>
+						// biome-ignore lint/suspicious/noExplicitAny: the editor is typed by the schema, which this file reads loosely
+						(editor as any).insertInlineContent([
+							{ type: "pageLink", props: { noteId } },
+							" ",
+						]);
+					const found = workspace
+						.getNotes()
+						.filter(
+							(n) =>
+								!n.trashed &&
+								n.id !== session.id &&
+								n.kind !== "quick" &&
+								n.title.toLowerCase().includes(q),
+						)
+						.sort(
+							(a, b) =>
+								Number(b.title.toLowerCase().startsWith(q)) -
+									Number(a.title.toLowerCase().startsWith(q)) ||
+								b.updatedAt - a.updatedAt,
+						)
+						.slice(0, 8)
+						.map((n) => ({
+							title: n.title || t("common.untitled"),
+							subtext:
+								workspace.getNotes().find((p) => p.id === n.parentId)?.title ??
+								"",
+							onItemClick: () => link(n.id),
+						}));
+					if (!q) return found;
+					const exact = found.some((i) => i.title.toLowerCase() === q);
+					return exact
+						? found
+						: [
+								...found,
+								{
+									title: t("wiki.create", { title: query.trim() }),
+									subtext: t("wiki.createHint"),
+									onItemClick: () =>
+										link(createNote(workspace.index, { title: query.trim() })),
+								},
+							];
+				}}
+			/>
 			<SuggestionMenuController
 				triggerCharacter="/"
 				getItems={async (query) => {

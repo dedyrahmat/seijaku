@@ -1,4 +1,10 @@
-import { nameIndex, outsideCode, rewriteImages, text } from "./markdown";
+import {
+	nameIndex,
+	outsideCode,
+	pageLinkMarkdown,
+	rewriteImages,
+	text,
+} from "./markdown";
 import {
 	dirname,
 	type Entries,
@@ -16,7 +22,7 @@ import {
  * A Notion export ("Markdown & CSV"): every page is "Title <32 hex>.md", and a page's
  * sub-pages sit in a folder of the same name. The ids are dropped from titles, folders
  * become the page tree, a leading "Tags:" property becomes tags, and links between pages
- * become plain text. Database tables (CSV) are not imported; their rows are pages already.
+ * become page links. Database tables (CSV) are not imported; their rows are pages already.
  */
 
 const ID = / [0-9a-f]{32}(?=\.|$)/;
@@ -95,10 +101,19 @@ export function parseNotion(entries: Entries): Parsed {
 		const refs = new FileRefs(entries, note.files);
 		let md = kept.join("\n");
 		md = outsideCode(md, (prose) =>
-			// Links to other pages: keep the words, drop the address.
+			// Links to other pages become page links (the writer matches them by title); to a table, just the words.
 			prose.replace(
-				/(?<!!)\[([^\]]*)\]\((?!https?:|mailto:)([^)\n]+\.(?:md|csv)(?:#[^)]*)?)\)/gi,
-				"$1",
+				/(?<!!)\[([^\]]*)\]\((?!https?:|mailto:)([^)\n]+\.(md|csv)(?:#[^)]*)?)\)/gi,
+				(_, words: string, href: string, ext: string) => {
+					if (ext.toLowerCase() !== "md") return words;
+					let name = href.replace(/#.*$/, "");
+					try {
+						name = decodeURIComponent(name);
+					} catch {
+						// Not percent-encoded after all.
+					}
+					return pageLinkMarkdown(words, strip(stem(name)));
+				},
 			),
 		);
 		md = rewriteImages(md, entries, byName, path, refs, note.warnings);

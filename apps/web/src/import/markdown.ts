@@ -20,6 +20,17 @@ export function outsideCode(
 		.join("");
 }
 
+/** Importers write a link to another imported page as `[words](https://seijaku.invalid/page/<target>)` (a plain web address, the one form the Markdown reader keeps as a link); the writer turns it into a real link once every page has an id. */
+export const PAGE_SCHEME = "https://seijaku.invalid/page/";
+
+export function pageLinkMarkdown(words: string, target: string): string {
+	const safe = encodeURIComponent(target).replace(
+		/[()]/g,
+		(c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+	);
+	return `[${words.replace(/[[\]]/g, "")}](${PAGE_SCHEME}${safe})`;
+}
+
 const REMOTE = /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i;
 
 /** Finds a file an export refers to: relative to the note, from the root, or by name anywhere. */

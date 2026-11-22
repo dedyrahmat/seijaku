@@ -4,9 +4,11 @@ import {
 	createBlockSpec,
 	createCodeBlockSpec,
 	defaultBlockSpecs,
+	defaultInlineContentSpecs,
 } from "@blocknote/core";
 import katex from "katex";
 import { i18n } from "../i18n";
+import { PageLink } from "./pageLinkSpec";
 import { fetchPreview, webAddress } from "./preview";
 import { checkListItemWithProps } from "./todoProps";
 
@@ -195,6 +197,7 @@ const createLinkPreviewBlock = createBlockSpec(
 );
 
 export const schema = BlockNoteSchema.create({
+	inlineContentSpecs: { ...defaultInlineContentSpecs, pageLink: PageLink },
 	blockSpecs: {
 		...defaultBlockSpecs,
 		checkListItem: checkListItemWithProps,

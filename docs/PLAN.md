@@ -304,10 +304,11 @@ From an audit of every mockup board against `apps/web/src`, plus the disabled Se
     - [x] Client: Settings → Security → Delete account (`components/DeleteAccount.tsx`, `auth/deleteAccount.ts`): what goes with Export first, passkey or phrase plus typing the word, progress, failure, then "Remove them from this device" (reuses the clear-cache flag) or keep them. Checked in a browser on Bun (wrong phrase refused, right phrase deletes, device wipe). The passkey path was not run here
     - [x] Delete forever removes the note's log and snapshots on the server: new `Drop` frame (`SyncClient.drop`, `UpdateStore.deleteDoc`) and `DELETE /api/versions?doc=`, triggered when a note leaves the index (also when another device purged it). shortcut: a drop waits in memory, so closing the app while offline leaves that sealed log until the account is deleted
 18. **[[Wiki links]] and backlinks**
-    - [ ] Boards first: `[[` picker, link look, "Linked from" under the note
-    - [ ] Inline page-link content storing the note id (renames never break it)
-    - [ ] Backlink index on the device beside search, never on the server
-    - [ ] Obsidian `[[links]]` and Notion page links import as real links; export writes relative Markdown links
+    - [x] Boards (`docs/boards/phase-18.html`, approved 2026-11-22)
+    - [x] Inline content `pageLink` with a `noteId` prop (`editor/pageLinkSpec.tsx`; shows the page's current title, muted and dashed when the page is in Trash or gone). Typing `[[` opens the picker (`SuggestionMenuController` in `Editor.tsx`): matching pages, last row "Create “…”". Shown aliases (`[[page|text]]`) are not kept: a link always reads as the page's title
+    - [x] Backlinks are read on the device (`fragmentLinks` in `packages/sync/src/text.ts`, `workspace/links.ts`, `components/LinkedFrom.tsx`), each note once per edit time, like search. shortcut: the snippet shows titles as they were when the note was last read
+    - [x] Obsidian `[[links]]` and Notion page links import as page links: importers write `[words](https://seijaku.invalid/page/<target>)` (the one form the Markdown reader keeps), and the writer gives every page its id first (`writer.ts`), then swaps matches by title; links to pages outside the import become plain words and are counted in the report. Export writes relative Markdown links (`export.ts`); a single-page export writes the title only
+    - Checked in a browser (picker, link, click-through, Linked from, import of a small vault, export). `bun run test:e2e` has the same two `device.e2e.ts` failures as before (the custom dropdown replaced `<select>`)
 19. **Known gaps and debt**
     - [ ] "N waiting to upload" in the sync status
     - [ ] Share links: optional expiry; "last updated" on the public page

@@ -1,6 +1,7 @@
 import { blobOwner } from "@seijaku/db";
 import { Hono, type MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
+import { mountAccount } from "./account";
 import { type AuthService, DESKTOP_ORIGINS } from "./auth";
 import {
 	BLOB_ID,
@@ -11,7 +12,6 @@ import {
 	MAX_UPLOAD_BYTES,
 	newBlobId,
 } from "./blobs";
-import { mountAccount } from "./account";
 import { mountHistory } from "./history";
 import { UnfurlError, type UnfurlOptions, unfurl } from "./unfurl";
 

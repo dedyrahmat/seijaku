@@ -1163,5 +1163,13 @@
 		"wrongPhraseDesc": "Check the words and their order, then try again. Nothing was deleted.",
 		"notConfirmed": "That did not confirm it is you",
 		"notConfirmedDesc": "Nothing was deleted. Try again."
+	},
+	"wiki": {
+		"deleted": "Page deleted",
+		"inTrash": "In Trash",
+		"create": "Create “{{title}}”",
+		"createHint": "New page",
+		"linkedFrom": "Linked from",
+		"linkedFrom_count": "Linked from · {{count}}"
 	}
 }

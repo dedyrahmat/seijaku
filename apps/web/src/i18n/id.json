@@ -1144,5 +1144,13 @@
 		"wrongPhraseDesc": "Periksa kata-kata dan urutannya, lalu coba lagi. Tidak ada yang dihapus.",
 		"notConfirmed": "Itu tidak memastikan bahwa ini Anda",
 		"notConfirmedDesc": "Tidak ada yang dihapus. Coba lagi."
+	},
+	"wiki": {
+		"deleted": "Halaman dihapus",
+		"inTrash": "Di Sampah",
+		"create": "Buat “{{title}}”",
+		"createHint": "Halaman baru",
+		"linkedFrom": "Ditautkan dari",
+		"linkedFrom_count": "Ditautkan dari · {{count}}"
 	}
 }

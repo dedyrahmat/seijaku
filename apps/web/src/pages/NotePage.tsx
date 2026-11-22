@@ -25,6 +25,7 @@ import {
 	StudyRail,
 	TodayHead,
 } from "../components/heads";
+import { LinkedFrom } from "../components/LinkedFrom";
 import { NoteMetaRow } from "../components/NoteMetaRow";
 import { pageLink, quickLink } from "../components/pageLink";
 import { TodayFeeds } from "../components/TodayFeeds";
@@ -158,6 +159,7 @@ export function NotePage() {
 					/>
 				</Suspense>
 			) : null}
+			<LinkedFrom noteId={noteId} />
 		</article>
 	);
 }

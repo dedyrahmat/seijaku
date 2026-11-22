@@ -831,3 +831,18 @@ input[type="range"]::-moz-range-thumb {
 input[type="range"]:focus-visible::-webkit-slider-thumb {
 	box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 25%, transparent);
 }
+
+/* [[Page links]]: ink with a thin accent underline; a page in Trash or gone is muted and dashed */
+.seijaku-wikilink {
+	color: var(--color-ink);
+	text-decoration: none;
+	border-bottom: 1px solid var(--color-accent);
+	cursor: pointer;
+}
+.seijaku-wikilink--gone {
+	color: var(--color-mute);
+	border-bottom: 1px dashed var(--color-mute);
+}
+.seijaku-wikilink:hover {
+	background: var(--color-hover);
+}

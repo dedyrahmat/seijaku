@@ -173,7 +173,7 @@ export function AboutRow({
 						<button
 							type="button"
 							onClick={() => setOpen(false)}
-							className="h-9 rounded-2xl bg-ink px-4 text-[13px] font-medium text-paper"
+							className="h-9 rounded-full bg-ink px-4 text-[13px] font-medium text-paper"
 						>
 							{t("common.done")}
 						</button>

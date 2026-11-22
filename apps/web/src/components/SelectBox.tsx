@@ -3,7 +3,7 @@ export function SelectBox({ on }: { on: boolean }) {
 	return (
 		<span
 			aria-hidden
-			className={`flex size-5 shrink-0 items-center justify-center rounded-md border-[1.5px] ${on ? "border-ink bg-ink" : "border-mute"}`}
+			className={`flex size-5 shrink-0 items-center justify-center rounded-full border-[1.5px] ${on ? "border-ink bg-ink" : "border-mute"}`}
 		>
 			{on ? (
 				<svg

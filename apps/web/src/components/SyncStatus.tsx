@@ -80,7 +80,7 @@ export function SyncStatus() {
 				aria-expanded={open}
 				aria-haspopup="dialog"
 				data-sync={kind}
-				className="flex h-8 items-center gap-1.5 rounded-2xl px-2.5 text-xs text-ink2 hover:bg-hover md:h-7"
+				className="flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs text-ink2 hover:bg-hover md:h-7"
 			>
 				<span
 					aria-hidden

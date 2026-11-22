@@ -69,14 +69,14 @@ export function DialogHost() {
 					<button
 						type="button"
 						onClick={() => close(null)}
-						className="h-9 rounded-2xl border border-line px-4 text-[13px] font-medium text-ink hover:bg-hover"
+						className="h-9 rounded-full border border-line px-4 text-[13px] font-medium text-ink hover:bg-hover"
 					>
 						{t("common.cancel")}
 					</button>
 					<button
 						type="button"
 						onClick={accept}
-						className={`h-9 rounded-2xl px-4 text-[13px] font-medium ${ask.danger ? "bg-accent text-white" : "bg-ink text-paper"}`}
+						className={`h-9 rounded-full px-4 text-[13px] font-medium ${ask.danger ? "bg-accent text-white" : "bg-ink text-paper"}`}
 					>
 						{ask.confirm ?? t("common.ok")}
 					</button>
@@ -98,7 +98,7 @@ export function DialogHost() {
 						aria-label={ask.title}
 						value={text}
 						onChange={(e) => setText(e.target.value)}
-						className="h-10 w-full rounded-2xl border border-line bg-raised px-3.5 text-sm text-ink outline-none focus:border-mute"
+						className="h-10 w-full rounded-full border border-line bg-raised px-3.5 text-sm text-ink outline-none focus:border-mute"
 					/>
 				</form>
 			) : null}

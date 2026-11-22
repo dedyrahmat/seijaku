@@ -6,6 +6,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent,
 };
+use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 const DEFAULT_CAPTURE_SHORTCUT: &str = "CommandOrControl+Alt+Space";
@@ -18,6 +19,10 @@ struct BoundShortcut(Mutex<Option<Shortcut>>);
 #[derive(Serialize, Deserialize, Default)]
 struct Config {
     capture_shortcut: Option<String>,
+    /// Quick capture window stays above other apps (default on).
+    capture_on_top: Option<bool>,
+    /// Closing the main window hides it to the tray instead of quitting (default on).
+    keep_in_tray: Option<bool>,
 }
 
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -42,6 +47,11 @@ fn show_main(app: &AppHandle) {
     }
 }
 
+fn write_config(app: &AppHandle, config: &Config) -> Result<(), String> {
+    let json = serde_json::to_string(config).map_err(|e| e.to_string())?;
+    fs::write(config_path(app)?, json).map_err(|e| e.to_string())
+}
+
 /// The small frameless window from the Quick-Capture board; made on first use, then reused.
 fn show_capture(app: &AppHandle) {
     let window = match app.get_webview_window(CAPTURE) {
@@ -55,7 +65,7 @@ fn show_capture(app: &AppHandle) {
         .inner_size(480.0, 300.0)
         .decorations(false)
         .transparent(true)
-        .always_on_top(true)
+        .always_on_top(read_config(app).capture_on_top.unwrap_or(true))
         .skip_taskbar(true)
         .resizable(false)
         .shadow(false)
@@ -108,8 +118,50 @@ fn set_capture_shortcut(app: AppHandle, accelerator: String) -> Result<(), Strin
     }
     let mut config = read_config(&app);
     config.capture_shortcut = Some(accelerator);
-    let json = serde_json::to_string(&config).map_err(|e| e.to_string())?;
-    fs::write(config_path(&app)?, json).map_err(|e| e.to_string())
+    write_config(&app, &config)
+}
+
+/// The three desktop-only switches shown in Settings → General.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopSettings {
+    capture_on_top: bool,
+    keep_in_tray: bool,
+    launch_at_login: bool,
+}
+
+#[tauri::command]
+fn desktop_settings(app: AppHandle) -> DesktopSettings {
+    let config = read_config(&app);
+    DesktopSettings {
+        capture_on_top: config.capture_on_top.unwrap_or(true),
+        keep_in_tray: config.keep_in_tray.unwrap_or(true),
+        launch_at_login: app.autolaunch().is_enabled().unwrap_or(false),
+    }
+}
+
+#[tauri::command]
+fn set_capture_on_top(app: AppHandle, on: bool) -> Result<(), String> {
+    let mut config = read_config(&app);
+    config.capture_on_top = Some(on);
+    write_config(&app, &config)?;
+    if let Some(w) = app.get_webview_window(CAPTURE) {
+        w.set_always_on_top(on).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn set_keep_in_tray(app: AppHandle, on: bool) -> Result<(), String> {
+    let mut config = read_config(&app);
+    config.keep_in_tray = Some(on);
+    write_config(&app, &config)
+}
+
+#[tauri::command]
+fn set_launch_at_login(app: AppHandle, on: bool) -> Result<(), String> {
+    let launch = app.autolaunch();
+    if on { launch.enable() } else { launch.disable() }.map_err(|e| e.to_string())
 }
 
 fn entry() -> Result<keyring::Entry, String> {
@@ -141,6 +193,11 @@ pub fn run() {
             show_main(app);
         }))
         .plugin(tauri_plugin_deep_link::init())
+        // Started at login, the app begins hidden in the tray (see setup).
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            Some(vec!["--hidden"]),
+        ))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
@@ -148,6 +205,10 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             capture_shortcut,
             set_capture_shortcut,
+            desktop_settings,
+            set_capture_on_top,
+            set_keep_in_tray,
+            set_launch_at_login,
             token_get,
             token_set,
             token_clear
@@ -161,6 +222,12 @@ pub fn run() {
             {
                 use tauri_plugin_deep_link::DeepLinkExt;
                 let _ = app.deep_link().register_all();
+            }
+
+            if std::env::args().any(|a| a == "--hidden") {
+                if let Some(w) = app.get_webview_window("main") {
+                    let _ = w.hide();
+                }
             }
 
             let accelerator = capture_shortcut(handle.clone());
@@ -199,11 +266,17 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            // Closing the main window keeps the app (and the capture hotkey) alive in the tray.
+            // Closing the main window keeps the app (and the capture hotkey) alive in the tray,
+            // unless "Keep running in the tray" is off: then closing quits.
             if window.label() == "main" {
                 if let WindowEvent::CloseRequested { api, .. } = event {
-                    api.prevent_close();
-                    let _ = window.hide();
+                    let app = window.app_handle();
+                    if read_config(app).keep_in_tray.unwrap_or(true) {
+                        api.prevent_close();
+                        let _ = window.hide();
+                    } else {
+                        app.exit(0);
+                    }
                 }
             }
         })

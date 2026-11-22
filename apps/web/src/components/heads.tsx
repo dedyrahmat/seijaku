@@ -211,7 +211,7 @@ export function PageHead({ note }: { note: NoteMeta }) {
 							aria-label={t("heads.pageIcon")}
 							aria-expanded={iconOpen}
 							onClick={() => setIconOpen((v) => !v)}
-							className="size-14 rounded-2xl border border-line bg-raised text-center text-3xl text-mute"
+							className="size-14 rounded-full border border-line bg-raised text-center text-3xl text-mute"
 						>
 							{note.icon || "+"}
 						</button>
@@ -230,7 +230,7 @@ export function PageHead({ note }: { note: NoteMeta }) {
 														type="button"
 														aria-label={t("heads.icon", { icon: e })}
 														onClick={() => setIcon(e)}
-														className="size-9 rounded-xl text-xl hover:bg-hover"
+														className="size-9 rounded-full text-xl hover:bg-hover"
 													>
 														{e}
 													</button>
@@ -245,13 +245,13 @@ export function PageHead({ note }: { note: NoteMeta }) {
 										placeholder={t("heads.typeAny")}
 										maxLength={2}
 										onChange={(e) => e.target.value && setIcon(e.target.value)}
-										className="w-20 rounded-xl border border-line bg-transparent px-2 py-1 text-ink outline-none"
+										className="w-20 rounded-full border border-line bg-transparent px-2 py-1 text-ink outline-none"
 									/>
 									{note.icon ? (
 										<button
 											type="button"
 											onClick={() => setIcon(null)}
-											className="rounded-2xl px-2 py-1 hover:bg-hover"
+											className="rounded-full px-2 py-1 hover:bg-hover"
 										>
 											{t("common.remove")}
 										</button>
@@ -267,7 +267,7 @@ export function PageHead({ note }: { note: NoteMeta }) {
 						<button
 							type="button"
 							onClick={() => setIconOpen(true)}
-							className="flex items-center gap-1 rounded-2xl px-2 py-1 hover:bg-hover"
+							className="flex items-center gap-1 rounded-full px-2 py-1 hover:bg-hover"
 						>
 							<Icon name="page" size={13} /> {t("heads.addIcon")}
 						</button>
@@ -276,7 +276,7 @@ export function PageHead({ note }: { note: NoteMeta }) {
 						type="button"
 						onClick={() => setPicking((v) => !v)}
 						aria-expanded={picking}
-						className="flex items-center gap-1 rounded-2xl px-2 py-1 hover:bg-hover"
+						className="flex items-center gap-1 rounded-full px-2 py-1 hover:bg-hover"
 					>
 						<Icon name="palette" size={13} />
 						{cover ? t("heads.changeCover") : t("heads.addCover")}
@@ -310,12 +310,12 @@ export function PageHead({ note }: { note: NoteMeta }) {
 											applyLink();
 										}
 									}}
-									className="min-w-0 flex-1 rounded-xl border border-line bg-transparent px-2.5 py-1 text-ink outline-none placeholder:text-mute"
+									className="min-w-0 flex-1 rounded-full border border-line bg-transparent px-2.5 py-1 text-ink outline-none placeholder:text-mute"
 								/>
 								<button
 									type="button"
 									onClick={applyLink}
-									className="rounded-xl border border-line px-2.5 py-1 text-ink hover:bg-hover"
+									className="rounded-full border border-line px-2.5 py-1 text-ink hover:bg-hover"
 								>
 									{t("heads.use")}
 								</button>
@@ -330,7 +330,7 @@ export function PageHead({ note }: { note: NoteMeta }) {
 							<button
 								type="button"
 								onClick={() => file.current?.click()}
-								className="rounded-2xl px-2 py-1 hover:bg-hover"
+								className="rounded-full px-2 py-1 hover:bg-hover"
 							>
 								{t("heads.upload")}
 							</button>
@@ -341,7 +341,7 @@ export function PageHead({ note }: { note: NoteMeta }) {
 										put(note, "page", "cover", null);
 										setPicking(false);
 									}}
-									className="rounded-2xl px-2 py-1 hover:bg-hover"
+									className="rounded-full px-2 py-1 hover:bg-hover"
 								>
 									{t("common.remove")}
 								</button>
@@ -445,7 +445,7 @@ function HideDone({ id }: { id: string }) {
 				writeLocal(hideKey(id), on ? "0" : "1");
 				setOn(!on);
 			}}
-			className="rounded-2xl px-2 py-0.5 hover:bg-hover"
+			className="rounded-full px-2 py-0.5 hover:bg-hover"
 		>
 			{on ? t("heads.showDone") : t("heads.hideDone")}
 		</button>
@@ -481,7 +481,7 @@ export function JournalHead({ note }: { note: NoteMeta }) {
 	const nav = (id: string | undefined, label: string, glyph: IconName) => {
 		const n = id ? getNote(workspace.index, id) : undefined;
 		const cls =
-			"flex items-center gap-1 rounded-2xl px-2 py-1 text-[13px] text-ink2 hover:bg-hover";
+			"flex items-center gap-1 rounded-full px-2 py-1 text-[13px] text-ink2 hover:bg-hover";
 		return n ? (
 			<Link {...pageLink(n.id, n.title)} className={cls} aria-label={label}>
 				{glyph === "back" ? <Icon name="back" size={13} /> : null}
@@ -620,7 +620,7 @@ export function JournalMonth() {
 					type="button"
 					aria-label={t("datePicker.prev")}
 					onClick={() => shift(-1)}
-					className="rounded-2xl p-1.5 hover:bg-hover"
+					className="rounded-full p-1.5 hover:bg-hover"
 				>
 					<Icon name="back" />
 				</button>
@@ -634,7 +634,7 @@ export function JournalMonth() {
 					type="button"
 					aria-label={t("datePicker.next")}
 					onClick={() => shift(1)}
-					className="rounded-2xl p-1.5 hover:bg-hover"
+					className="rounded-full p-1.5 hover:bg-hover"
 				>
 					<Icon name="forward" />
 				</button>
@@ -647,7 +647,7 @@ export function JournalMonth() {
 					return (
 						<span
 							key={iso}
-							className={`h-6 flex-1 rounded-sm ${n ? "" : "border border-dashed border-line"} ${iso === today ? "ring-2 ring-accent" : ""}`}
+							className={`h-6 flex-1 rounded-full ${n ? "" : "border border-dashed border-line"} ${iso === today ? "ring-2 ring-accent" : ""}`}
 							style={
 								n
 									? {
@@ -1026,7 +1026,7 @@ export function StudyRail({ note }: { note: NoteMeta }) {
 						type="button"
 						aria-expanded={open}
 						onClick={() => setOpen((v) => !v)}
-						className="rounded-2xl border border-line px-3 py-1 text-[13px] text-ink2 hover:bg-hover"
+						className="rounded-full border border-line px-3 py-1 text-[13px] text-ink2 hover:bg-hover"
 					>
 						{t("heads.onThisPage")}
 					</button>

@@ -64,7 +64,7 @@ export function DatePicker({
 					setMonth(fromIso(value || today));
 					setOpen((v) => !v);
 				}}
-				className={`flex min-h-7 items-center gap-1.5 rounded-xl px-2 hover:bg-hover ${value ? "" : "text-mute"} ${className}`}
+				className={`flex min-h-7 items-center gap-1.5 rounded-full px-2 hover:bg-hover ${value ? "" : "text-mute"} ${className}`}
 			>
 				{value
 					? fromIso(value).toLocaleDateString(dateLocale(), {
@@ -139,7 +139,7 @@ export function DatePicker({
 						<button
 							type="button"
 							onClick={() => pick(today)}
-							className="rounded-xl px-2 py-1 hover:bg-hover"
+							className="rounded-full px-2 py-1 hover:bg-hover"
 						>
 							{t("sidebar.today")}
 						</button>
@@ -147,7 +147,7 @@ export function DatePicker({
 							<button
 								type="button"
 								onClick={() => pick("")}
-								className="rounded-xl px-2 py-1 hover:bg-hover"
+								className="rounded-full px-2 py-1 hover:bg-hover"
 							>
 								{t("datePicker.clear")}
 							</button>

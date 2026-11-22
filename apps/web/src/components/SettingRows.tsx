@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Listbox } from "./Listbox";
 
 /** Rows and controls for the Settings dialog, following the mockup's "Settings" boards. */
 
@@ -95,35 +96,14 @@ export function Select<T extends string>({
 	disabled?: boolean;
 }) {
 	return (
-		<span className="relative inline-flex">
-			<select
-				aria-label={label}
-				value={value}
-				disabled={disabled}
-				onChange={(e) => onChange(e.target.value as T)}
-				className={`h-9 cursor-pointer appearance-none rounded-2xl border border-line bg-raised pr-9 pl-3.5 text-[13px] text-ink ${DISABLED}`}
-			>
-				{options.map((o) => (
-					<option key={o} value={o}>
-						{labels?.[o] ?? o}
-					</option>
-				))}
-			</select>
-			<svg
-				width="12"
-				height="12"
-				viewBox="0 0 12 12"
-				fill="none"
-				stroke="currentColor"
-				strokeWidth="1.5"
-				strokeLinecap="round"
-				strokeLinejoin="round"
-				aria-hidden="true"
-				className="pointer-events-none absolute top-3 right-3 text-mute"
-			>
-				<path d="M2.5 4.5L6 8l3.5-3.5" />
-			</svg>
-		</span>
+		<Listbox
+			label={label}
+			value={value}
+			disabled={disabled}
+			onChange={(v) => onChange(v as T)}
+			options={options.map((o) => ({ value: o, label: labels?.[o] ?? o }))}
+			className="h-9 border border-line bg-raised px-3.5 text-[13px] text-ink"
+		/>
 	);
 }
 
@@ -156,7 +136,7 @@ export function Segmented<T extends string>({
 						role="radio"
 						aria-checked={on}
 						onClick={() => onChange(o)}
-						className={`h-[30px] rounded-2xl px-3.5 text-[13px] ${on ? "bg-raised font-semibold text-ink shadow-[0_0_0_1px_var(--line)]" : "font-medium text-ink2 hover:text-ink"}`}
+						className={`h-[30px] rounded-full px-3.5 text-[13px] ${on ? "bg-raised font-semibold text-ink shadow-[0_0_0_1px_var(--line)]" : "font-medium text-ink2 hover:text-ink"}`}
 					>
 						{labels?.[o] ?? o}
 					</button>
@@ -226,7 +206,12 @@ export function Range({
 				step={1}
 				value={value}
 				onChange={(e) => onChange(Number(e.target.value))}
-				className="w-[170px] accent-accent"
+				style={
+					{
+						"--fill": `${((value - min) / (max - min)) * 100}%`,
+					} as React.CSSProperties
+				}
+				className="w-[170px]"
 			/>
 			<span aria-hidden className="text-base text-mute">
 				A
@@ -255,7 +240,7 @@ export function Btn({
 			onClick={onClick}
 			disabled={disabled}
 			title={title}
-			className={`h-9 rounded-2xl border bg-raised px-4 text-[13px] font-medium hover:bg-hover ${DISABLED} ${danger ? "border-accent text-accent" : "border-line text-ink"}`}
+			className={`h-9 rounded-full border bg-raised px-4 text-[13px] font-medium hover:bg-hover ${DISABLED} ${danger ? "border-accent text-accent" : "border-line text-ink"}`}
 		>
 			{children}
 		</button>
@@ -294,7 +279,7 @@ export function TextField({
 			onKeyDown={(e) => {
 				if (e.key === "Enter") onCommit?.();
 			}}
-			className={`h-9 max-w-full min-w-0 ${width} rounded-2xl border border-line bg-raised px-3.5 text-[13px] text-ink outline-none placeholder:text-mute focus:border-mute ${DISABLED}`}
+			className={`h-9 max-w-full min-w-0 ${width} rounded-full border border-line bg-raised px-3.5 text-[13px] text-ink outline-none placeholder:text-mute focus:border-mute ${DISABLED}`}
 		/>
 	);
 }
@@ -305,7 +290,7 @@ export function Keys({ keys }: { keys: string[] }) {
 			{keys.map((k) => (
 				<kbd
 					key={k}
-					className="flex h-7 min-w-7 items-center justify-center rounded-2xl border border-b-2 border-line bg-raised px-2 font-mono text-xs text-ink2"
+					className="flex h-7 min-w-7 items-center justify-center rounded-full border border-b-2 border-line bg-raised px-2 font-mono text-xs text-ink2"
 				>
 					{k}
 				</kbd>

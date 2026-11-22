@@ -2,6 +2,16 @@ import { useSyncExternalStore } from "react";
 
 /** Per-device preferences from the Settings board. Stored in localStorage, applied to <html>. */
 
+/** "seijaku" is the hand-drawn default; the rest come from Iconify packs (see components/Icon.tsx). */
+export const ICON_PACKS = [
+	"seijaku",
+	"lucide",
+	"iconoir",
+	"remix",
+	"solar",
+] as const;
+export type IconPack = (typeof ICON_PACKS)[number];
+
 export interface Prefs {
 	theme: "light" | "dark" | "system";
 	accent: "vermilion" | "matcha" | "indigo" | "gold" | "ink";
@@ -20,6 +30,7 @@ export interface Prefs {
 	renderMath: boolean;
 	/** A language code from `i18n/index.ts`; anything unknown (like the old "English") falls back to English there. */
 	language: string;
+	iconPack: IconPack;
 	openOnStart: "Today" | "Last page" | "Home";
 	collisions: "Keep as a copy" | "Keep the newer one";
 	trashAfter: "After 7 days" | "After 30 days" | "Never";
@@ -47,6 +58,7 @@ export const DEFAULTS: Prefs = {
 	blockHandles: true,
 	renderMath: true,
 	language: "en",
+	iconPack: "seijaku",
 	openOnStart: "Today",
 	collisions: "Keep as a copy",
 	trashAfter: "After 30 days",

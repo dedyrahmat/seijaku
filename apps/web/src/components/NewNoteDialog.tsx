@@ -109,20 +109,9 @@ export function NewNoteDialog({
 						type="button"
 						aria-label={t("common.close")}
 						onClick={onClose}
-						className="flex size-11 shrink-0 items-center justify-center rounded-2xl text-ink2 hover:bg-hover md:size-10"
+						className="flex size-11 shrink-0 items-center justify-center rounded-full text-ink2 hover:bg-hover md:size-10"
 					>
-						<svg
-							width="18"
-							height="18"
-							viewBox="0 0 18 18"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth="1.6"
-							strokeLinecap="round"
-							aria-hidden="true"
-						>
-							<path d="M4.5 4.5l9 9M13.5 4.5l-9 9" />
-						</svg>
+						<Icon name="close" size={18} />
 					</button>
 				</header>
 
@@ -137,7 +126,7 @@ export function NewNoteDialog({
 							<label
 								key={type.id}
 								onDoubleClick={create}
-								className={`relative flex min-h-[148px] cursor-pointer flex-col items-start gap-3 rounded-2xl border-[1.5px] p-[18px] text-left has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent ${on ? "border-accent bg-raised" : "border-line2 hover:bg-hover/60"}`}
+								className={`relative flex min-h-[148px] cursor-pointer flex-col items-start gap-3 rounded-2xl border-[1.5px] p-[18px] text-left has-[:focus-visible]:outline-[1.5px] has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink/40 ${on ? "border-accent bg-raised" : "border-line2 hover:bg-hover/60"}`}
 							>
 								<input
 									ref={(el) => {
@@ -151,7 +140,7 @@ export function NewNoteDialog({
 									className="sr-only"
 								/>
 								<span
-									className={`flex size-11 items-center justify-center rounded-2xl ${on ? "bg-accent-soft text-accent" : "bg-tag text-ink2"}`}
+									className={`flex size-11 items-center justify-center rounded-full ${on ? "bg-accent-soft text-accent" : "bg-tag text-ink2"}`}
 								>
 									<svg
 										width="22"
@@ -175,7 +164,7 @@ export function NewNoteDialog({
 										{t(`kinds.${type.id}.desc`)}
 									</span>
 								</span>
-								<kbd className="absolute top-4 right-4 hidden size-6 items-center justify-center rounded-lg border border-line bg-raised font-mono text-[11px] text-mute md:flex">
+								<kbd className="absolute top-4 right-4 hidden size-6 items-center justify-center rounded-full border border-line bg-raised font-mono text-[11px] text-mute md:flex">
 									{i + 1}
 								</kbd>
 							</label>
@@ -193,24 +182,11 @@ export function NewNoteDialog({
 							aria-label={t("newNote.saveInWhere", { where })}
 							disabled={isJournal}
 							onClick={() => setListOpen((v) => !v)}
-							className="flex h-11 max-w-[220px] items-center gap-2 rounded-2xl border border-line bg-raised px-3 text-[13px] hover:bg-hover disabled:opacity-60 md:h-9"
+							className="flex h-11 max-w-[220px] items-center gap-2 rounded-full border border-line bg-raised px-3 text-[13px] hover:bg-hover disabled:opacity-60 md:h-9"
 						>
 							<Icon name="folder" size={16} className="shrink-0 text-mute" />
 							<span className="truncate">{where}</span>
-							<svg
-								width="12"
-								height="12"
-								viewBox="0 0 12 12"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="1.5"
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								className="shrink-0 text-mute"
-								aria-hidden="true"
-							>
-								<path d="M2.5 4.5L6 8l3.5-3.5" />
-							</svg>
+							<Icon name="down" size={12} className="shrink-0 text-mute" />
 						</button>
 						{listOpen ? (
 							<div className="absolute bottom-full left-0 z-10 mb-1 max-h-64 w-72 max-w-[80vw] overflow-y-auto rounded-2xl border border-line bg-raised p-1 shadow-lg">
@@ -227,7 +203,7 @@ export function NewNoteDialog({
 											setListOpen(false);
 										}}
 										style={{ paddingLeft: 12 + c.depth * 16 }}
-										className={`block min-h-11 w-full truncate rounded-2xl pr-3 text-left text-sm hover:bg-hover md:min-h-8 ${c.id === parentId ? "bg-hover font-medium" : ""}`}
+										className={`block min-h-11 w-full truncate rounded-full pr-3 text-left text-sm hover:bg-hover md:min-h-8 ${c.id === parentId ? "bg-hover font-medium" : ""}`}
 									>
 										{c.title}
 									</button>
@@ -242,14 +218,14 @@ export function NewNoteDialog({
 					<button
 						type="button"
 						onClick={onClose}
-						className="h-11 rounded-2xl border border-line px-4 text-[13px] font-medium hover:bg-hover md:h-[38px]"
+						className="h-11 rounded-full border border-line px-4 text-[13px] font-medium hover:bg-hover md:h-[38px]"
 					>
 						{t("common.cancel")}
 					</button>
 					<button
 						type="button"
 						onClick={create}
-						className="h-11 rounded-2xl bg-ink px-5 text-[13px] font-semibold text-paper md:h-[38px]"
+						className="h-11 rounded-full bg-ink px-5 text-[13px] font-semibold text-paper md:h-[38px]"
 					>
 						{t("newNote.create", { kind: t(`kinds.${kind}.short`) })}
 					</button>

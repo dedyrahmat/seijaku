@@ -204,7 +204,13 @@
 			"tight": "Tight",
 			"dark": "Dark",
 			"wide": "Wide",
-			"airy": "Airy"
+			"airy": "Airy",
+			"icons": {
+				"title": "Icons",
+				"label": "Icon pack",
+				"desc": "The line style of every icon in the app.",
+				"seijaku": "Seijaku"
+			}
 		},
 		"about": {
 			"platforms": {

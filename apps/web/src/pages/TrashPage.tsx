@@ -135,7 +135,7 @@ export function TrashPage() {
 						<button
 							type="button"
 							onClick={() => sel.setAll(order)}
-							className="flex h-11 items-center gap-1.5 shrink-0 rounded-2xl border border-line px-4 text-[13px] font-medium text-ink hover:bg-hover md:h-9"
+							className="flex h-11 items-center gap-1.5 shrink-0 rounded-full border border-line px-4 text-[13px] font-medium text-ink hover:bg-hover md:h-9"
 						>
 							<Icon name="check" size={14} /> {t("sidebar.selectAll")}
 						</button>
@@ -144,14 +144,14 @@ export function TrashPage() {
 							<button
 								type="button"
 								onClick={() => sel.start()}
-								className="flex h-11 items-center gap-1.5 rounded-2xl border border-line px-4 text-[13px] font-medium text-ink hover:bg-hover md:h-9"
+								className="flex h-11 items-center gap-1.5 rounded-full border border-line px-4 text-[13px] font-medium text-ink hover:bg-hover md:h-9"
 							>
 								<Icon name="check" size={14} /> {t("trash.select")}
 							</button>
 							<button
 								type="button"
 								onClick={empty}
-								className="flex h-11 items-center gap-1.5 rounded-2xl border border-line px-4 text-[13px] font-medium text-accent hover:bg-hover md:h-9"
+								className="flex h-11 items-center gap-1.5 rounded-full border border-line px-4 text-[13px] font-medium text-accent hover:bg-hover md:h-9"
 							>
 								<Icon name="trash" size={14} /> {t("trash.emptyTrash")}
 							</button>
@@ -208,14 +208,14 @@ export function TrashPage() {
 										<button
 											type="button"
 											onClick={() => restoreNote(workspace.index, n.id)}
-											className="flex h-11 items-center gap-1.5 rounded-2xl border border-line px-3.5 text-[13px] text-ink hover:bg-hover md:h-[34px]"
+											className="flex h-11 items-center gap-1.5 rounded-full border border-line px-3.5 text-[13px] text-ink hover:bg-hover md:h-[34px]"
 										>
 											<Icon name="history" size={14} /> {t("trash.restore")}
 										</button>
 										<button
 											type="button"
 											onClick={() => forever(n, subs)}
-											className="flex h-11 items-center gap-1.5 rounded-2xl px-2.5 text-[13px] text-accent hover:bg-hover md:h-[34px]"
+											className="flex h-11 items-center gap-1.5 rounded-full px-2.5 text-[13px] text-accent hover:bg-hover md:h-[34px]"
 										>
 											<Icon name="trash" size={14} />{" "}
 											{t("trash.deleteForeverButton")}
@@ -241,7 +241,7 @@ export function TrashPage() {
 						type="button"
 						disabled={count === 0}
 						onClick={restoreSelected}
-						className="h-11 rounded-2xl border border-line px-[18px] text-[13px] font-medium text-ink hover:bg-hover disabled:opacity-40 md:h-10"
+						className="h-11 rounded-full border border-line px-[18px] text-[13px] font-medium text-ink hover:bg-hover disabled:opacity-40 md:h-10"
 					>
 						{t("trash.restoreN", { count })}
 					</button>
@@ -249,14 +249,14 @@ export function TrashPage() {
 						type="button"
 						disabled={count === 0}
 						onClick={() => setConfirming(true)}
-						className="h-11 rounded-2xl border border-accent px-[18px] text-[13px] font-semibold text-accent hover:bg-hover disabled:opacity-40 md:h-10"
+						className="h-11 rounded-full border border-accent px-[18px] text-[13px] font-semibold text-accent hover:bg-hover disabled:opacity-40 md:h-10"
 					>
 						{t("trash.deleteN", { count })}
 					</button>
 					<button
 						type="button"
 						onClick={sel.stop}
-						className="h-11 rounded-2xl px-3.5 text-[13px] text-ink2 hover:bg-hover md:h-10"
+						className="h-11 rounded-full px-3.5 text-[13px] text-ink2 hover:bg-hover md:h-10"
 					>
 						{t("common.cancel")}
 					</button>
@@ -319,14 +319,14 @@ function ConfirmDelete({
 					<button
 						type="button"
 						onClick={onKeep}
-						className="h-11 rounded-2xl border border-line px-[18px] text-[13px] font-medium text-ink hover:bg-hover md:h-10"
+						className="h-11 rounded-full border border-line px-[18px] text-[13px] font-medium text-ink hover:bg-hover md:h-10"
 					>
 						{t("trash.keep")}
 					</button>
 					<button
 						type="button"
 						onClick={onDelete}
-						className="h-11 rounded-2xl bg-accent px-5 text-[13px] font-semibold text-paper md:h-10"
+						className="h-11 rounded-full bg-accent px-5 text-[13px] font-semibold text-paper md:h-10"
 					>
 						{t("trash.deleteN", { count })}
 					</button>

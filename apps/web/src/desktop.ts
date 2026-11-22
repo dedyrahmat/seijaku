@@ -120,6 +120,23 @@ export const captureShortcut = () => invoke<string>("capture_shortcut");
 export const setCaptureShortcut = (accelerator: string) =>
 	invoke<void>("set_capture_shortcut", { accelerator });
 
+export interface DesktopSettings {
+	captureOnTop: boolean;
+	keepInTray: boolean;
+	launchAtLogin: boolean;
+}
+export const desktopSettings = () =>
+	invoke<DesktopSettings>("desktop_settings");
+export const setDesktopSetting = (key: keyof DesktopSettings, on: boolean) =>
+	invoke<void>(
+		{
+			captureOnTop: "set_capture_on_top",
+			keepInTray: "set_keep_in_tray",
+			launchAtLogin: "set_launch_at_login",
+		}[key],
+		{ on },
+	);
+
 /** The title bar's own minimise / maximise / close, for the frameless main window. */
 export async function windowAction(
 	action: "minimize" | "toggleMaximize" | "close",

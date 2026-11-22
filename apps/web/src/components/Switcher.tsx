@@ -191,7 +191,7 @@ function SwitcherDialog({
 						spellCheck={false}
 						className="min-w-0 flex-1 bg-transparent text-lg text-ink outline-none placeholder:text-mute"
 					/>
-					<kbd className="rounded-2xl border border-line px-1.5 py-0.5 font-mono text-[11px] text-mute">
+					<kbd className="rounded-full border border-line px-1.5 py-0.5 font-mono text-[11px] text-mute">
 						Esc
 					</kbd>
 				</div>
@@ -267,7 +267,7 @@ function SwitcherDialog({
 								{hit.snippet ? (
 									<span className="line-clamp-2 text-[13px] leading-normal text-ink2">
 										{hit.snippet.before}
-										<mark className="rounded-2xl bg-mark px-0.5 text-inherit">
+										<mark className="rounded-full bg-mark px-0.5 text-inherit">
 											{hit.snippet.match}
 										</mark>
 										{hit.snippet.after}
@@ -288,7 +288,7 @@ function SwitcherDialog({
 								aria-selected={cursor === hits.length}
 								onMouseMove={() => setCursor(hits.length)}
 								onClick={create}
-								className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm ${cursor === hits.length ? "bg-hover" : ""}`}
+								className={`flex w-full items-center gap-3 rounded-full px-3 py-2.5 text-left text-sm ${cursor === hits.length ? "bg-hover" : ""}`}
 							>
 								<Icon name="plus" size={16} className="text-ink2" />
 								<span className="truncate">

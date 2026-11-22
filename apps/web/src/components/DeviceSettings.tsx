@@ -125,7 +125,7 @@ function LinksDialog({ onClose }: { onClose: () => void }) {
 				<button
 					type="button"
 					onClick={onClose}
-					className="h-9 rounded-2xl bg-ink px-4 text-[13px] font-medium text-paper"
+					className="h-9 rounded-full bg-ink px-4 text-[13px] font-medium text-paper"
 				>
 					{t("common.done")}
 				</button>
@@ -265,7 +265,7 @@ export function ClearCache() {
 							<button
 								type="button"
 								onClick={clear}
-								className="h-9 rounded-2xl bg-ink px-4 text-[13px] font-medium text-paper"
+								className="h-9 rounded-full bg-ink px-4 text-[13px] font-medium text-paper"
 							>
 								{t("cache.confirm")}
 							</button>
@@ -292,7 +292,7 @@ export function ClearCache() {
 						<button
 							type="button"
 							onClick={close}
-							className="h-9 rounded-2xl bg-ink px-4 text-[13px] font-medium text-paper"
+							className="h-9 rounded-full bg-ink px-4 text-[13px] font-medium text-paper"
 						>
 							{t("common.ok")}
 						</button>

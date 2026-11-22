@@ -2,6 +2,7 @@ import { isDailyNoteId } from "@seijaku/sync";
 import { useTranslation } from "react-i18next";
 import { setPref, usePrefs } from "../preferences";
 import { useNotes } from "../workspace/hooks";
+import { Listbox } from "./Listbox";
 
 /** Where a quick capture lands: Today, a new quick note, or the end of one chosen page. */
 export function CaptureTarget({
@@ -22,23 +23,20 @@ export function CaptureTarget({
 		? pages.some((n) => `page:${n.id}` === captureTo)
 		: true;
 	return (
-		<select
-			aria-label={label ?? t("settings.general.captureTo.label")}
+		<Listbox
+			label={label ?? t("settings.general.captureTo.label")}
 			value={known ? captureTo : "today"}
-			onChange={(e) => setPref("captureTo", e.target.value)}
-			className={`cursor-pointer appearance-none rounded-2xl border border-line bg-raised text-ink ${className}`}
-		>
-			<option value="today">{t("sidebar.today")}</option>
-			<option value="new">{t("capture.newQuick")}</option>
-			{pages.length > 0 ? (
-				<optgroup label={t("capture.page")}>
-					{pages.map((n) => (
-						<option key={n.id} value={`page:${n.id}`}>
-							{n.title || t("common.untitled")}
-						</option>
-					))}
-				</optgroup>
-			) : null}
-		</select>
+			onChange={(v) => setPref("captureTo", v)}
+			options={[
+				{ value: "today", label: t("sidebar.today") },
+				{ value: "new", label: t("capture.newQuick") },
+				...pages.map((n) => ({
+					value: `page:${n.id}`,
+					label: n.title || t("common.untitled"),
+					group: t("capture.page"),
+				})),
+			]}
+			className={`border border-line bg-raised text-ink ${className}`}
+		/>
 	);
 }

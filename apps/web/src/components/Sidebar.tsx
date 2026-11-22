@@ -209,7 +209,7 @@ export function Sidebar({
 								type="button"
 								onClick={onNewNote}
 								aria-label={t("sidebar.newPage")}
-								className="flex size-11 items-center justify-center rounded-2xl text-ink2 hover:bg-hover md:size-8"
+								className="flex size-11 items-center justify-center rounded-full text-ink2 hover:bg-hover md:size-8"
 							>
 								<Icon name="plus" size={16} />
 							</button>
@@ -219,7 +219,7 @@ export function Sidebar({
 							<button
 								type="button"
 								onClick={() => onSearch()}
-								className="flex h-11 w-full items-center gap-2.5 rounded-2xl border border-line bg-raised px-2.5 text-left text-[13px] text-ink2 hover:border-mute md:h-9"
+								className="flex h-11 w-full items-center gap-2.5 rounded-full border border-line bg-raised px-2.5 text-left text-[13px] text-ink2 hover:border-mute md:h-9"
 							>
 								<Icon name="search" />
 								<span className="flex-1">{t("sidebar.search")}</span>
@@ -234,7 +234,7 @@ export function Sidebar({
 								type="button"
 								onClick={openToday}
 								aria-current={noteId === todayId ? "page" : undefined}
-								className={`flex h-11 w-full items-center gap-2.5 rounded-2xl px-2.5 text-left text-sm text-ink hover:bg-hover md:h-[34px] ${noteId === todayId ? "bg-hover" : ""}`}
+								className={`flex h-11 w-full items-center gap-2.5 rounded-full px-2.5 text-left text-sm text-ink hover:bg-hover md:h-[34px] ${noteId === todayId ? "bg-hover" : ""}`}
 							>
 								<Icon name="today" className="text-ink2" />
 								<span className="flex-1">{t("sidebar.today")}</span>
@@ -247,7 +247,7 @@ export function Sidebar({
 								aria-current={
 									path.startsWith("/quick-notes") ? "page" : undefined
 								}
-								className={`flex h-11 w-full items-center gap-2.5 rounded-2xl px-2.5 text-left text-sm text-ink hover:bg-hover md:h-[34px] ${path.startsWith("/quick-notes") ? "bg-hover" : ""}`}
+								className={`flex h-11 w-full items-center gap-2.5 rounded-full px-2.5 text-left text-sm text-ink hover:bg-hover md:h-[34px] ${path.startsWith("/quick-notes") ? "bg-hover" : ""}`}
 							>
 								<Icon name="wall" className="text-ink2" />
 								<span className="flex-1">{t("sidebar.quickNotes")}</span>
@@ -341,7 +341,7 @@ function SelectHeader({ onAll, hint }: { onAll: () => void; hint: string }) {
 				<button
 					type="button"
 					onClick={onAll}
-					className="h-11 rounded-2xl px-3 text-[13px] font-medium text-ink underline underline-offset-[3px] hover:bg-hover md:h-8"
+					className="h-11 rounded-full px-3 text-[13px] font-medium text-ink underline underline-offset-[3px] hover:bg-hover md:h-8"
 				>
 					{t("sidebar.selectAll")}
 				</button>
@@ -380,14 +380,14 @@ function SelectBar({
 						type="button"
 						onClick={onTrash}
 						disabled={count === 0}
-						className="h-11 flex-1 rounded-2xl border border-accent px-2.5 text-[13px] font-semibold text-accent hover:bg-hover disabled:opacity-40 md:h-[38px]"
+						className="h-11 flex-1 rounded-full border border-accent px-2.5 text-[13px] font-semibold text-accent hover:bg-hover disabled:opacity-40 md:h-[38px]"
 					>
 						{t("sidebar.moveToTrash")}
 					</button>
 					<button
 						type="button"
 						onClick={onCancel}
-						className="h-11 rounded-2xl border border-line px-4 text-[13px] font-medium text-ink hover:bg-hover md:h-[38px]"
+						className="h-11 rounded-full border border-line px-4 text-[13px] font-medium text-ink hover:bg-hover md:h-[38px]"
 					>
 						{t("common.cancel")}
 					</button>
@@ -504,20 +504,7 @@ function TreeRow({
 						aria-expanded={isOpen}
 						className="flex h-8 w-6 shrink-0 items-center justify-center text-mute hover:text-ink"
 					>
-						<svg
-							width="14"
-							height="14"
-							viewBox="0 0 16 16"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth="1.5"
-							strokeLinecap="round"
-							strokeLinejoin="round"
-							aria-hidden="true"
-							className={`transition-transform ${isOpen ? "rotate-90" : ""}`}
-						>
-							<path d="M6 3.5l4.5 4.5L6 12.5" />
-						</svg>
+						<Icon name="forward" size={14} />
 					</button>
 				) : (
 					<span className="w-6 shrink-0" />
@@ -679,7 +666,7 @@ function RowMenu({
 				aria-expanded={open}
 				onClick={() => setOpen(!open)}
 				data-open={open}
-				className="row-actions flex h-8 w-8 items-center justify-center rounded-2xl text-mute hover:text-ink"
+				className="row-actions flex h-8 w-8 items-center justify-center rounded-full text-mute hover:text-ink"
 			>
 				<span aria-hidden>⋯</span>
 			</button>
@@ -711,7 +698,7 @@ function RowMenu({
 									item.run();
 									setOpen(false);
 								}}
-								className={`block w-full truncate rounded-2xl px-3 py-2.5 text-left text-sm hover:bg-hover md:py-1.5 ${item.danger ? "text-accent" : "text-ink"}`}
+								className={`block w-full truncate rounded-full px-3 py-2.5 text-left text-sm hover:bg-hover md:py-1.5 ${item.danger ? "text-accent" : "text-ink"}`}
 							>
 								{item.label}
 							</button>

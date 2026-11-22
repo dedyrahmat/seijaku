@@ -258,7 +258,7 @@ export function Shell() {
 					<button
 						type="button"
 						onClick={() => setDrawerOpen(true)}
-						className="flex size-11 items-center justify-center rounded-2xl text-ink2 hover:bg-hover"
+						className="flex size-11 items-center justify-center rounded-full text-ink2 hover:bg-hover"
 						aria-label={t("shell.openPages")}
 					>
 						<svg
@@ -310,7 +310,7 @@ export function Shell() {
 							sidebarHidden ? t("shell.showSidebar") : t("shell.hideSidebar")
 						}
 						aria-pressed={!sidebarHidden}
-						className="flex h-7 w-8 items-center justify-center rounded-2xl text-ink2 hover:bg-hover"
+						className="flex h-7 w-8 items-center justify-center rounded-full text-ink2 hover:bg-hover"
 					>
 						<Icon>
 							<rect x="2" y="3" width="12" height="10" rx="2" />
@@ -321,7 +321,7 @@ export function Shell() {
 						type="button"
 						onClick={() => router.history.back()}
 						aria-label={t("shell.back")}
-						className="flex size-7 items-center justify-center rounded-2xl text-ink2 hover:bg-hover"
+						className="flex size-7 items-center justify-center rounded-full text-ink2 hover:bg-hover"
 					>
 						<Icon>
 							<path d="M10 3L5 8l5 5" />
@@ -331,7 +331,7 @@ export function Shell() {
 						type="button"
 						onClick={() => router.history.forward()}
 						aria-label={t("shell.forward")}
-						className="flex size-7 items-center justify-center rounded-2xl text-ink2 hover:bg-hover"
+						className="flex size-7 items-center justify-center rounded-full text-ink2 hover:bg-hover"
 					>
 						<Icon>
 							<path d="M6 3l5 5-5 5" />
@@ -390,7 +390,7 @@ export function Shell() {
 								onClick={() =>
 									setPanel(panel === "history" ? "none" : "history")
 								}
-								className={`flex h-7 w-8 items-center justify-center rounded-2xl text-ink2 hover:bg-hover ${panel === "history" ? "bg-hover" : ""}`}
+								className={`flex h-7 w-8 items-center justify-center rounded-full text-ink2 hover:bg-hover ${panel === "history" ? "bg-hover" : ""}`}
 							>
 								<Icon>
 									<circle cx="8" cy="8" r="5.5" />
@@ -402,7 +402,7 @@ export function Shell() {
 								data-share-trigger
 								aria-expanded={panel === "share"}
 								onClick={() => setPanel(panel === "share" ? "none" : "share")}
-								className={`mx-0.5 flex h-7 items-center gap-1.5 rounded-2xl border border-line px-3 text-[13px] text-ink hover:bg-hover ${panel === "share" ? "bg-hover" : ""}`}
+								className={`mx-0.5 flex h-7 items-center gap-1.5 rounded-full border border-line px-3 text-[13px] text-ink hover:bg-hover ${panel === "share" ? "bg-hover" : ""}`}
 							>
 								<Icon>
 									<path d="M6.5 9.5l3-3M5 7.5L3.8 8.7a2.5 2.5 0 003.5 3.5L8.5 11M11 8.5l1.2-1.2a2.5 2.5 0 00-3.5-3.5L7.5 5" />
@@ -431,7 +431,7 @@ export function Shell() {
 									<button
 										type="button"
 										onClick={() => setPreview(null)}
-										className="h-[34px] rounded-2xl border border-line px-3.5 text-[13px] text-ink hover:bg-hover"
+										className="h-[34px] rounded-full border border-line px-3.5 text-[13px] text-ink hover:bg-hover"
 									>
 										{t("shell.backToCurrent")}
 									</button>
@@ -444,7 +444,7 @@ export function Shell() {
 												.restore()
 												.finally(() => setRestoring(false));
 										}}
-										className="h-[34px] rounded-2xl bg-ink px-4 text-[13px] font-medium text-paper disabled:opacity-40"
+										className="h-[34px] rounded-full bg-ink px-4 text-[13px] font-medium text-paper disabled:opacity-40"
 									>
 										{t("shell.restore")}
 									</button>
@@ -521,7 +521,7 @@ function MoreMenu({
 				aria-haspopup="menu"
 				aria-expanded={open}
 				onClick={() => setOpen(!open)}
-				className={`flex items-center justify-center text-ink2 hover:bg-hover ${touch ? "size-11 rounded-2xl" : "h-7 w-8 rounded-2xl"}`}
+				className={`flex items-center justify-center text-ink2 hover:bg-hover ${touch ? "size-11 rounded-full" : "h-7 w-8 rounded-full"}`}
 			>
 				<svg
 					width={touch ? 22 : 16}

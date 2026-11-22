@@ -24,7 +24,7 @@ export function PhraseGrid({ phrase }: { phrase: string }) {
 }
 
 const GHOST =
-	"h-10 rounded-2xl border border-line px-[18px] text-sm text-ink hover:bg-hover disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent";
+	"h-10 rounded-full border border-line px-[18px] text-sm text-ink hover:bg-hover disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent";
 
 export function PhraseActions({ phrase }: { phrase: string }) {
 	const { t } = useTranslation();

@@ -131,7 +131,7 @@ export function ContextMenu() {
 							setMenu(null);
 							item.run();
 						}}
-						className="block w-full truncate rounded-2xl px-3 py-1.5 text-left text-sm text-ink hover:bg-hover"
+						className="block w-full truncate rounded-full px-3 py-1.5 text-left text-sm text-ink hover:bg-hover"
 					>
 						{item.label}
 					</button>

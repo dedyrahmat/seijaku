@@ -127,7 +127,7 @@ export function SharePopover({
 					value={link}
 					onFocus={(e) => e.currentTarget.select()}
 					placeholder={t("share.placeholder")}
-					className="h-[38px] min-w-0 flex-1 rounded-2xl border border-line bg-paper px-3 font-mono text-[12.5px] text-ink placeholder:text-mute"
+					className="h-[38px] min-w-0 flex-1 rounded-full border border-line bg-paper px-3 font-mono text-[12.5px] text-ink placeholder:text-mute"
 				/>
 				<button
 					type="button"
@@ -138,7 +138,7 @@ export function SharePopover({
 							setTimeout(() => setCopied(false), 1800);
 						});
 					}}
-					className="h-[38px] rounded-2xl bg-ink px-4 text-[13px] font-medium text-paper disabled:cursor-default disabled:opacity-40"
+					className="h-[38px] rounded-full bg-ink px-4 text-[13px] font-medium text-paper disabled:cursor-default disabled:opacity-40"
 				>
 					{copied ? t("common.copied") : t("common.copyLink")}
 				</button>

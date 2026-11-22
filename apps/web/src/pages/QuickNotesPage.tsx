@@ -104,7 +104,7 @@ export function QuickNotesPage() {
 			<button
 				type="button"
 				onClick={take}
-				className="mb-8 flex h-12 w-full max-w-xl items-center gap-2.5 rounded-2xl border border-line bg-raised px-4 text-left text-[15px] text-mute shadow-sm hover:border-mute"
+				className="mb-8 flex h-12 w-full max-w-xl items-center gap-2.5 rounded-full border border-line bg-raised px-4 text-left text-[15px] text-mute shadow-sm hover:border-mute"
 			>
 				<Icon name="plus" size={16} />
 				{t("quick.take")}
@@ -368,14 +368,14 @@ function Card({ id }: { id: string }) {
 						type="button"
 						aria-pressed={ticks}
 						onClick={toggleTicks}
-						className="h-9 rounded-2xl px-3 text-[13px] text-ink2 hover:bg-hover"
+						className="h-9 rounded-full px-3 text-[13px] text-ink2 hover:bg-hover"
 					>
 						{ticks ? t("quick.hideTicks") : t("quick.showTicks")}
 					</button>
 					<button
 						type="button"
 						onClick={close}
-						className="h-9 rounded-2xl px-4 text-[13px] font-medium hover:bg-hover"
+						className="h-9 rounded-full px-4 text-[13px] font-medium hover:bg-hover"
 					>
 						{t("common.close")}
 					</button>

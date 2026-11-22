@@ -1,4 +1,7 @@
-/** One stroke-icon set for the whole app (16-unit grid, 1.4 stroke), so every icon reads as one hand. */
+import { type IconPack, usePrefs } from "../preferences";
+import { ICON_PACKS } from "./iconPacks.generated";
+
+/** The default icon set (16-unit grid, 1.4 stroke), drawn by hand so every icon reads as one. The other packs are in iconPacks.generated.ts. */
 const PATHS = {
 	plus: "M8 3v10M3 8h10",
 	search: "M7 2.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zM10.5 10.5L14 14",
@@ -64,15 +67,40 @@ const PATHS = {
 
 export type IconName = keyof typeof PATHS;
 
+const PACK_KEY = {
+	lucide: "lucide",
+	iconoir: "iconoir",
+	remix: "ri",
+	solar: "solar",
+} as const;
+
 export function Icon({
 	name,
 	size = 15,
 	className,
+	pack,
 }: {
 	name: IconName;
 	size?: number;
 	className?: string;
+	/** Draw with this pack instead of the chosen one (the picker's previews). */
+	pack?: IconPack;
 }) {
+	const chosen = usePrefs().iconPack;
+	const use = pack ?? chosen;
+	if (use !== "seijaku")
+		return (
+			<svg
+				width={size}
+				height={size}
+				viewBox="0 0 24 24"
+				aria-hidden="true"
+				className={className}
+				// The markup is our own generated file, never user input.
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: generated icon bodies
+				dangerouslySetInnerHTML={{ __html: ICON_PACKS[PACK_KEY[use]][name] }}
+			/>
+		);
 	return (
 		<svg
 			width={size}

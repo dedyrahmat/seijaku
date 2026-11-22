@@ -18,6 +18,7 @@ import {
 	WorkspaceNameField,
 } from "../components/DeviceSettings";
 import { Icon, type IconName } from "../components/Icon";
+import { IconPackPicker } from "../components/IconPackPicker";
 import { Logo } from "../components/Logo";
 import { usePrefLabels } from "../components/prefLabels";
 import {
@@ -34,8 +35,11 @@ import {
 } from "../components/SettingRows";
 import {
 	captureShortcut,
+	type DesktopSettings,
+	desktopSettings,
 	isDesktop,
 	setCaptureShortcut,
+	setDesktopSetting,
 	updateApp,
 } from "../desktop";
 import { exportWorkspace } from "../export";
@@ -147,7 +151,7 @@ export function SettingsPage() {
 											replace: true,
 										})
 									}
-									className={`flex h-11 flex-none items-center gap-2.5 rounded-2xl px-3 text-left text-sm whitespace-nowrap md:h-10 md:w-full ${on ? "bg-hover font-semibold text-ink" : "font-medium text-ink2 hover:bg-hover/60"}`}
+									className={`flex h-11 flex-none items-center gap-2.5 rounded-full px-3 text-left text-sm whitespace-nowrap md:h-10 md:w-full ${on ? "bg-hover font-semibold text-ink" : "font-medium text-ink2 hover:bg-hover/60"}`}
 								>
 									<Icon
 										name={SECTION_ICONS[id] ?? "info"}
@@ -180,18 +184,7 @@ export function SettingsPage() {
 							onClick={close}
 							className="flex size-11 flex-none items-center justify-center rounded-full text-ink2 hover:bg-hover md:size-10"
 						>
-							<svg
-								width="18"
-								height="18"
-								viewBox="0 0 18 18"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="1.6"
-								strokeLinecap="round"
-								aria-hidden="true"
-							>
-								<path d="M4.5 4.5l9 9M13.5 4.5l-9 9" />
-							</svg>
+							<Icon name="close" size={18} />
 						</button>
 					</header>
 					<div
@@ -234,6 +227,16 @@ function General() {
 	const { p, set } = useSet();
 	const labels = usePrefLabels();
 	const { t } = useTranslation();
+	const [desktop, setDesktop] = useState<DesktopSettings | null>(null);
+	useEffect(() => {
+		if (isDesktop) void desktopSettings().then(setDesktop);
+	}, []);
+	const changeDesktop = (key: keyof DesktopSettings, on: boolean) => {
+		if (!desktop) return;
+		setDesktop({ ...desktop, [key]: on });
+		// Put the switch back if the shell refused (for example the OS blocked autostart).
+		setDesktopSetting(key, on).catch(() => setDesktop(desktop));
+	};
 	return (
 		<>
 			<Group name={t("settings.general.workspace")}>
@@ -290,13 +293,13 @@ function General() {
 				<Row
 					label={t("settings.general.onTop.label")}
 					desc={t("settings.general.onTop.desc")}
-					note={t("common.desktopApp")}
+					note={isDesktop ? undefined : t("common.desktopApp")}
 				>
 					<Toggle
 						label={t("settings.general.onTop.label")}
-						on={false}
-						onChange={() => {}}
-						disabled
+						on={desktop?.captureOnTop ?? false}
+						onChange={(v) => changeDesktop("captureOnTop", v)}
+						disabled={!desktop}
 					/>
 				</Row>
 			</Group>
@@ -304,25 +307,25 @@ function General() {
 				<Row
 					label={t("settings.general.launch.label")}
 					desc={t("settings.general.launch.desc")}
-					note={t("common.desktopApp")}
+					note={isDesktop ? undefined : t("common.desktopApp")}
 				>
 					<Toggle
 						label={t("settings.general.launch.label")}
-						on={false}
-						onChange={() => {}}
-						disabled
+						on={desktop?.launchAtLogin ?? false}
+						onChange={(v) => changeDesktop("launchAtLogin", v)}
+						disabled={!desktop}
 					/>
 				</Row>
 				<Row
 					label={t("settings.general.tray.label")}
 					desc={t("settings.general.tray.desc")}
-					note={t("common.desktopApp")}
+					note={isDesktop ? undefined : t("common.desktopApp")}
 				>
 					<Toggle
 						label={t("settings.general.tray.label")}
-						on={false}
-						onChange={() => {}}
-						disabled
+						on={desktop?.keepInTray ?? false}
+						onChange={(v) => changeDesktop("keepInTray", v)}
+						disabled={!desktop}
 					/>
 				</Row>
 			</Group>
@@ -367,6 +370,9 @@ function Appearance() {
 						}))}
 					/>
 				</Row>
+			</Group>
+			<Group name={t("settings.appearance.icons.title")}>
+				<IconPackPicker />
 			</Group>
 			<Group name={t("settings.appearance.reading")}>
 				<Row
@@ -580,7 +586,7 @@ function SyncSettings({ syncedLine }: { syncedLine: string }) {
 							// The connection is made once at start-up; reload to use the new address.
 							setTimeout(() => location.reload(), 400);
 						}}
-						className="h-9 rounded-2xl bg-ink px-[18px] text-[13px] font-semibold text-paper hover:opacity-90"
+						className="h-9 rounded-full bg-ink px-[18px] text-[13px] font-semibold text-paper hover:opacity-90"
 					>
 						{saved ? t("common.saved") : t("common.save")}
 					</button>
@@ -980,7 +986,7 @@ function About() {
 						href="https://github.com/dedyrahmat/seijaku/issues"
 						target="_blank"
 						rel="noreferrer"
-						className="flex h-9 items-center rounded-2xl border border-line bg-raised px-4 text-[13px] font-medium text-ink hover:bg-hover"
+						className="flex h-9 items-center rounded-full border border-line bg-raised px-4 text-[13px] font-medium text-ink hover:bg-hover"
 					>
 						{t("settings.about.feedback.button")}
 					</a>

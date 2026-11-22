@@ -276,7 +276,7 @@ export function ImportPage() {
 					<button
 						type="button"
 						onClick={() => abort.current?.abort()}
-						className="h-11 rounded-2xl border border-line px-[18px] text-sm text-accent hover:bg-hover md:h-10"
+						className="h-11 rounded-full border border-line px-[18px] text-sm text-accent hover:bg-hover md:h-10"
 					>
 						{t("import.cancel")}
 					</button>
@@ -286,7 +286,7 @@ export function ImportPage() {
 							background.current = true;
 							void navigate({ to: "/" });
 						}}
-						className="h-11 rounded-2xl bg-ink px-[22px] text-sm font-medium text-paper hover:opacity-90 md:h-10"
+						className="h-11 rounded-full bg-ink px-[22px] text-sm font-medium text-paper hover:opacity-90 md:h-10"
 					>
 						{t("import.background")}
 					</button>
@@ -317,11 +317,11 @@ export function ImportPage() {
 								setSourceId(on ? null : s.id);
 								setError(null);
 							}}
-							className={`flex h-20 items-center gap-3.5 rounded-2xl border px-4 text-left text-ink ${on ? "border-ink bg-callout" : "border-line bg-raised hover:border-mute"}`}
+							className={`flex h-20 items-center gap-3.5 rounded-full border px-4 text-left text-ink ${on ? "border-ink bg-callout" : "border-line bg-raised hover:border-mute"}`}
 						>
 							<span
 								aria-hidden
-								className="flex size-[38px] flex-none items-center justify-center rounded-2xl border border-line bg-paper font-serif text-lg text-ink2"
+								className="flex size-[38px] flex-none items-center justify-center rounded-full border border-line bg-paper font-serif text-lg text-ink2"
 							>
 								{s.mono}
 							</span>
@@ -415,7 +415,7 @@ export function ImportPage() {
 				<button
 					type="button"
 					onClick={() => void navigate({ to: "/" })}
-					className="h-11 rounded-2xl border border-line px-[18px] text-sm text-ink hover:bg-hover md:h-10"
+					className="h-11 rounded-full border border-line px-[18px] text-sm text-ink hover:bg-hover md:h-10"
 				>
 					{t("common.cancel")}
 				</button>
@@ -423,7 +423,7 @@ export function ImportPage() {
 					type="button"
 					onClick={() => void run()}
 					disabled={picked.length === 0}
-					className="h-11 rounded-2xl bg-ink px-[22px] text-sm font-medium text-paper hover:opacity-90 disabled:opacity-40 md:h-10"
+					className="h-11 rounded-full bg-ink px-[22px] text-sm font-medium text-paper hover:opacity-90 disabled:opacity-40 md:h-10"
 				>
 					{t("common.continue")}
 				</button>

@@ -11,6 +11,7 @@ import {
 } from "../workspace/history";
 import { useNoteSession, useNotes, useWordCount } from "../workspace/hooks";
 import { ago } from "./ago";
+import { Icon } from "./Icon";
 
 /** What the title bar needs to draw the "Previewing…" bar and the old version under it. */
 export interface Preview {
@@ -164,20 +165,9 @@ export function HistoryPanel({
 					type="button"
 					onClick={onClose}
 					aria-label={t("history.close")}
-					className="flex size-11 items-center justify-center rounded-2xl text-ink2 hover:bg-hover md:size-[30px]"
+					className="flex size-11 items-center justify-center rounded-full text-ink2 hover:bg-hover md:size-[30px]"
 				>
-					<svg
-						width="14"
-						height="14"
-						viewBox="0 0 16 16"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="1.4"
-						strokeLinecap="round"
-						aria-hidden="true"
-					>
-						<path d="M3 3l10 10M13 3L3 13" />
-					</svg>
+					<Icon name="close" size={14} />
 				</button>
 			</div>
 			<div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2.5 py-2">

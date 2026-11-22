@@ -74,26 +74,10 @@ export function CapturePage() {
 			>
 				<div className="flex h-12 flex-none items-center gap-2.5 border-b border-line2 px-4">
 					<Logo size={18} />
-					<span className="relative inline-flex items-center">
-						<CaptureTarget
-							label={t("capture.addTo")}
-							className="h-[30px] max-w-[180px] border-0 bg-tag pr-7 pl-2.5 text-[13px]"
-						/>
-						<svg
-							width="12"
-							height="12"
-							viewBox="0 0 16 16"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth="1.6"
-							strokeLinecap="round"
-							strokeLinejoin="round"
-							aria-hidden="true"
-							className="pointer-events-none absolute right-2.5"
-						>
-							<path d="M4 6l4 4 4-4" />
-						</svg>
-					</span>
+					<CaptureTarget
+						label={t("capture.addTo")}
+						className="h-[30px] max-w-[180px] border-0 bg-tag px-2.5 text-[13px]"
+					/>
 					<span className="flex-1" />
 					<span className="text-xs text-mute">{date}</span>
 				</div>

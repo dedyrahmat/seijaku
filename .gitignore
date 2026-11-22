@@ -15,3 +15,18 @@ data/
 apps/desktop/src-tauri/gen/
 test-results/
 playwright-report/
+
+# Editor and OS
+.vscode/
+.idea/
+Thumbs.db
+*.log
+*.tsbuildinfo
+
+# Local Claude Code state and installed agent skills (third-party copies, restored by the skills tool)
+.claude/*
+!.claude/launch.json
+.agents/
+**/.claude/skills/
+**/.agents/
+skills-lock.json

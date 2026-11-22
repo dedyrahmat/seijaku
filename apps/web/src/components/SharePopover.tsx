@@ -89,7 +89,7 @@ export function SharePopover({
 			ref={root}
 			role="dialog"
 			aria-label={t("share.title")}
-			className="fixed top-[calc(env(safe-area-inset-top)+56px)] right-3 md:top-[46px] z-50 flex w-[400px] max-w-[calc(100vw-24px)] flex-col gap-4 rounded-2xl border border-line bg-raised p-5 shadow-[0_18px_50px_rgba(40,30,15,0.16),0_2px_6px_rgba(40,30,15,0.08)]"
+			className="fixed top-[calc(env(safe-area-inset-top)+56px)] right-3 md:top-[46px] z-50 flex max-h-[calc(100dvh-64px)] w-[400px] max-w-[calc(100vw-24px)] flex-col gap-4 overflow-y-auto rounded-2xl border border-line bg-raised p-5 shadow-[0_18px_50px_rgba(40,30,15,0.16),0_2px_6px_rgba(40,30,15,0.08)]"
 		>
 			<div className="flex items-start gap-4">
 				<div className="flex flex-1 flex-col gap-1">

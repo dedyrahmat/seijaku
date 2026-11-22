@@ -131,12 +131,12 @@ export function SettingsPage() {
 			>
 				<nav
 					aria-label={t("settings.sectionsLabel")}
-					className="flex flex-none flex-col border-b border-line bg-panel pt-[env(safe-area-inset-top)] md:w-60 md:border-r md:border-b-0 md:px-3.5 md:pt-6 md:pb-[18px]"
+					className="flex flex-none flex-col border-b border-line bg-panel pt-[env(safe-area-inset-top)] md:min-h-0 md:w-60 md:border-r md:border-b-0 md:px-3.5 md:pt-6 md:pb-[18px]"
 				>
 					<h2 className="hidden px-3 pb-4 font-serif text-[26px] font-medium tracking-[-0.01em] md:block">
 						{t("settings.name")}
 					</h2>
-					<div className="flex gap-0.5 overflow-x-auto px-2 py-2 md:flex-col md:overflow-visible md:p-0">
+					<div className="flex gap-0.5 overflow-x-auto px-2 py-2 md:min-h-0 md:flex-1 md:flex-col md:overflow-x-hidden md:overflow-y-auto md:p-0">
 						{SECTIONS.map((id) => {
 							const on = id === active;
 							return (
@@ -162,7 +162,7 @@ export function SettingsPage() {
 							);
 						})}
 					</div>
-					<div className="hidden flex-1 md:block" />
+					<div className="hidden h-3 flex-none md:block" />
 					<p className="hidden px-3 text-xs leading-normal text-mute md:block">
 						{t("settings.navFooter", { where: t("settings.about.where.web") })}
 						<br />

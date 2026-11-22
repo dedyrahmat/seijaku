@@ -730,15 +730,51 @@ input::selection {
 	align-self: center;
 }
 
-/* Scrollbars: thin, and invisible until the box is scrolled (scrollbars.ts sets data-scrolling), then they fade. */
-* {
-	scrollbar-width: thin;
-	scrollbar-color: transparent transparent;
-	transition: scrollbar-color 0.5s ease;
+/*
+ * Scrollbars, macOS style: no arrow buttons, a transparent track and a slim rounded thumb that is
+ * invisible until the box is scrolled (scrollbars.ts sets data-scrolling) or the thumb is hovered.
+ * Chromium and Safari use the ::-webkit-scrollbar parts; Firefox gets the standard properties.
+ */
+::-webkit-scrollbar {
+	width: 12px;
+	height: 12px;
+	background: transparent;
 }
-[data-scrolling] {
-	scrollbar-color: color-mix(in srgb, var(--mute) 60%, transparent) transparent;
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+	background: transparent;
+}
+::-webkit-scrollbar-button {
+	display: none;
+	width: 0;
+	height: 0;
+}
+::-webkit-scrollbar-thumb {
+	min-height: 40px;
+	min-width: 40px;
+	border: 3px solid transparent;
+	border-radius: 999px;
+	background-color: transparent;
+	background-clip: content-box;
+	transition: background-color 0.5s ease;
+}
+[data-scrolling]::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-thumb:hover {
+	background-color: color-mix(in srgb, var(--mute) 65%, transparent);
 	transition-duration: 0.12s;
+}
+::-webkit-scrollbar-thumb:active {
+	background-color: var(--mute);
+}
+@supports not selector(::-webkit-scrollbar) {
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: transparent transparent;
+	}
+	[data-scrolling] {
+		scrollbar-color: color-mix(in srgb, var(--mute) 60%, transparent)
+			transparent;
+	}
 }
 
 /* Sliders: a slim rounded track that fills with the accent, and a round thumb. --fill is set by Range. */

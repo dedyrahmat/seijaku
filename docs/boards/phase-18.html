@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seijaku · Phase 18 boards</title>
+<style>
+:root{--paper:#f8f4eb;--panel:#f0eadd;--raised:#fcfaf4;--hover:#e6decb;--ink:#201d19;--ink2:#5b5448;--mute:#6e675a;--line:#ded6c5;--accent:#ae3b28;--off:#cfc6b3}
+.dark{--paper:#171512;--panel:#1d1b17;--raised:#23201b;--hover:#2b2822;--ink:#e9e3d6;--ink2:#b5ad9d;--mute:#968e7e;--line:#37332b;--accent:#e27a63;--off:#4a453b}
+*{box-sizing:border-box}
+body{margin:0;padding:32px;background:#d9d2c2;font:14px/1.5 "Hanken Grotesk",system-ui,sans-serif;color:#201d19}
+h1{font:500 28px "Newsreader",Georgia,serif;margin:0 0 4px}
+.lead{color:#5b5448;margin:0 0 28px}
+.row{display:flex;flex-wrap:wrap;gap:28px;margin-bottom:36px;align-items:flex-start}
+.cap{font:12px "JetBrains Mono",monospace;color:#5b5448;margin:0 0 8px}
+.board{background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.dlg{width:560px}.phone{width:375px;min-height:560px}
+.head{padding:18px 22px;border-bottom:1px solid var(--line);font:500 20px "Newsreader",Georgia,serif}
+.grp{padding:14px 22px 4px;font:600 11px "Hanken Grotesk",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.r{display:flex;align-items:center;gap:14px;padding:12px 22px;border-top:1px solid var(--line)}
+.r .t{flex:1;min-width:0}.r .t b{font-weight:500;display:block}.r .t span{color:var(--mute);font-size:13px}
+.r .t b.ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn{height:36px;padding:0 16px;border-radius:16px;border:1px solid var(--line);background:transparent;color:var(--ink);font:inherit;font-size:13px}
+.btn.pri{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.btn.dng{color:var(--accent);border-color:var(--accent)}
+.sel{height:36px;padding:0 14px;border-radius:16px;border:1px solid var(--line);background:var(--raised);display:flex;align-items:center;gap:8px;font-size:13px}
+.tog{width:44px;height:26px;border-radius:13px;background:var(--off);position:relative;flex:none}
+.tog.on{background:var(--ink)}.tog i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--paper)}.tog.on i{left:21px}
+.chip{font:12px "JetBrains Mono",monospace;color:var(--mute);border:1px solid var(--line);border-radius:10px;padding:1px 8px}
+.lock{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:48px 32px;min-height:460px}
+.lock .mark{width:72px;height:72px;border-radius:50%;border:2px solid var(--ink);position:relative}
+.lock .mark:after{content:"";position:absolute;inset:26px;border-radius:50%;background:var(--accent)}
+.lock h2{font:500 28px "Newsreader",Georgia,serif;margin:0}
+.lock p{margin:0;color:var(--ink2);max-width:300px}
+.lock .btn{width:100%;max-width:300px;height:48px;font-size:15px}
+.lock a{color:var(--mute);font-size:13px}
+.empty{padding:36px 22px;text-align:center;color:var(--mute)}
+.bar{height:6px;border-radius:3px;background:var(--hover);overflow:hidden}.bar i{display:block;height:100%;width:42%;background:var(--ink2)}
+.warn{margin:8px 22px 16px;padding:12px 14px;border-radius:12px;background:var(--panel);color:var(--ink2);font-size:13px}
+.doc{padding:26px 34px;width:560px}
+.doc h2{font:500 30px "Newsreader",Georgia,serif;margin:0 0 14px}
+.doc p{margin:0 0 10px;font:17px/1.65 "Newsreader",Georgia,serif}
+.wl{color:var(--ink);border-bottom:1px solid var(--accent);text-decoration:none}
+.wl.gone{color:var(--mute);border-bottom:1px dashed var(--mute)}
+.pick{position:absolute;margin:6px 0 0 0;width:340px;background:var(--raised);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px rgba(40,30,15,.18);overflow:hidden}
+.pick .i{padding:9px 14px;display:flex;gap:10px;align-items:baseline}.pick .i.on{background:var(--hover)}
+.pick .i span{color:var(--mute);font-size:12px;margin-left:auto}
+.pick .n{padding:9px 14px;color:var(--mute);font-size:13px;border-top:1px solid var(--line)}
+.back{border-top:1px solid var(--line);margin-top:26px;padding-top:14px}
+.back .g{font:600 11px "Hanken Grotesk",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin-bottom:8px}
+.back .b{padding:8px 0;border-bottom:1px solid var(--line)}.back .b b{font-weight:500}.back .b span{display:block;color:var(--mute);font-size:13px}
+</style>
+</head>
+<body>
+<h1>Phase 18 · boards for approval</h1>
+<p class="lead">[[Wiki links]] and backlinks. Links point at a page's id, so renaming a page never breaks them. Backlinks are worked out on this device; the server never sees a link. Light, dark and phone.</p>
+
+<p class="cap">1 · Typing [[ opens the page picker (filters as you type; the last row makes a new page)</p>
+<div class="row">
+  <div class="board doc" style="position:relative;min-height:300px">
+    <h2>Trip to Kyoto</h2>
+    <p>Book the ryokan before the maple weeks. See also [[Pack</p>
+    <div class="pick">
+      <div class="i on"><b>Packing list</b><span>Travel</span></div>
+      <div class="i"><b>Packing for the cold</b><span>Journal · 3 Nov</span></div>
+      <div class="i"><b>Package tracking</b><span>Inbox</span></div>
+      <div class="n">Enter to link · Esc to leave it as text · ↵ on the last row makes “Pack…” a new page</div>
+    </div>
+  </div>
+  <div class="board doc dark" style="position:relative;min-height:300px">
+    <h2>Trip to Kyoto</h2>
+    <p>Book the ryokan before the maple weeks. See also [[xyz</p>
+    <div class="pick"><div class="n" style="border:0">No page called “xyz”.</div><div class="i on"><b>Create “xyz”</b><span>New page</span></div></div>
+  </div>
+</div>
+
+<p class="cap">2 · How a link looks: ink with a thin vermilion underline; a link to a page in Trash or deleted is muted and dashed. Hover shows the page's first line.</p>
+<div class="row">
+  <div class="board doc">
+    <p>Book the ryokan before the maple weeks. See also <a class="wl">Packing list</a> and <a class="wl">Kyoto food</a>.</p>
+    <p>Old plan: <a class="wl gone">Osaka detour</a> <span class="chip">in Trash</span></p>
+  </div>
+  <div class="board doc dark">
+    <p>Book the ryokan before the maple weeks. See also <a class="wl">Packing list</a> and <a class="wl">Kyoto food</a>.</p>
+    <p>Old plan: <a class="wl gone">Page deleted</a></p>
+  </div>
+</div>
+
+<p class="cap">3 · “Linked from” under the note (above the footer; hidden when nothing links here)</p>
+<div class="row">
+  <div class="board doc">
+    <h2>Packing list</h2>
+    <p>Merino layers, rain shell, a spare charger.</p>
+    <div class="back">
+      <div class="g">Linked from · 2</div>
+      <div class="b"><b>Trip to Kyoto</b><span>…before the maple weeks. See also <u>Packing list</u> and…</span></div>
+      <div class="b"><b>Journal · 3 Nov</b><span>…should start the <u>Packing list</u> tonight…</span></div>
+    </div>
+  </div>
+  <div class="board phone dark" style="padding:22px">
+    <h2 style="font:500 26px Newsreader,serif;margin:0 0 10px">Packing list</h2>
+    <p style="font:16px/1.6 Newsreader,serif">Merino layers, rain shell, a spare charger.</p>
+    <div class="back">
+      <div class="g">Linked from · 2</div>
+      <div class="b"><b>Trip to Kyoto</b><span>…See also <u>Packing list</u>…</span></div>
+      <div class="b"><b>Journal · 3 Nov</b><span>…start the <u>Packing list</u>…</span></div>
+    </div>
+  </div>
+</div>
+
+<p class="cap">4 · Import and export: Obsidian [[links]] and Notion page links become real links; export writes them as relative Markdown links ([Packing list](Travel/Packing-list.md)). A link whose target is not in the import stays as plain text, and the import report counts them.</p>
+<p class="cap">Not in this phase (say if you want any): link aliases like [[page|text]], heading links [[page#heading]], a graph view, backlink counts in the sidebar.</p>
+</body>
+</html>

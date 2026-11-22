@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seijaku · Phase 17 boards</title>
+<style>
+:root{--paper:#f8f4eb;--panel:#f0eadd;--raised:#fcfaf4;--hover:#e6decb;--ink:#201d19;--ink2:#5b5448;--mute:#6e675a;--line:#ded6c5;--accent:#ae3b28;--off:#cfc6b3}
+.dark{--paper:#171512;--panel:#1d1b17;--raised:#23201b;--hover:#2b2822;--ink:#e9e3d6;--ink2:#b5ad9d;--mute:#968e7e;--line:#37332b;--accent:#e27a63;--off:#4a453b}
+*{box-sizing:border-box}
+body{margin:0;padding:32px;background:#d9d2c2;font:14px/1.5 "Hanken Grotesk",system-ui,sans-serif;color:#201d19}
+h1{font:500 28px "Newsreader",Georgia,serif;margin:0 0 4px}
+.lead{color:#5b5448;margin:0 0 28px}
+.row{display:flex;flex-wrap:wrap;gap:28px;margin-bottom:36px;align-items:flex-start}
+.cap{font:12px "JetBrains Mono",monospace;color:#5b5448;margin:0 0 8px}
+.board{background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.dlg{width:560px}.phone{width:375px;min-height:560px}
+.head{padding:18px 22px;border-bottom:1px solid var(--line);font:500 20px "Newsreader",Georgia,serif}
+.grp{padding:14px 22px 4px;font:600 11px "Hanken Grotesk",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.r{display:flex;align-items:center;gap:14px;padding:12px 22px;border-top:1px solid var(--line)}
+.r .t{flex:1;min-width:0}.r .t b{font-weight:500;display:block}.r .t span{color:var(--mute);font-size:13px}
+.r .t b.ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn{height:36px;padding:0 16px;border-radius:16px;border:1px solid var(--line);background:transparent;color:var(--ink);font:inherit;font-size:13px}
+.btn.pri{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.btn.dng{color:var(--accent);border-color:var(--accent)}
+.sel{height:36px;padding:0 14px;border-radius:16px;border:1px solid var(--line);background:var(--raised);display:flex;align-items:center;gap:8px;font-size:13px}
+.tog{width:44px;height:26px;border-radius:13px;background:var(--off);position:relative;flex:none}
+.tog.on{background:var(--ink)}.tog i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--paper)}.tog.on i{left:21px}
+.chip{font:12px "JetBrains Mono",monospace;color:var(--mute);border:1px solid var(--line);border-radius:10px;padding:1px 8px}
+.lock{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:48px 32px;min-height:460px}
+.lock .mark{width:72px;height:72px;border-radius:50%;border:2px solid var(--ink);position:relative}
+.lock .mark:after{content:"";position:absolute;inset:26px;border-radius:50%;background:var(--accent)}
+.lock h2{font:500 28px "Newsreader",Georgia,serif;margin:0}
+.lock p{margin:0;color:var(--ink2);max-width:300px}
+.lock .btn{width:100%;max-width:300px;height:48px;font-size:15px}
+.lock a{color:var(--mute);font-size:13px}
+.empty{padding:36px 22px;text-align:center;color:var(--mute)}
+.bar{height:6px;border-radius:3px;background:var(--hover);overflow:hidden}.bar i{display:block;height:100%;width:42%;background:var(--ink2)}
+.warn{margin:8px 22px 16px;padding:12px 14px;border-radius:12px;background:var(--panel);color:var(--ink2);font-size:13px}
+</style>
+</head>
+<body>
+<h1>Phase 17 · boards for approval</h1>
+<p class="lead">Delete account. Same Settings dialog, rows and buttons as before. Light, dark and phone. Nothing is built until you say these are right.</p>
+
+<p class="cap">1 · Settings · Security → Delete account (row opens the dialog)</p>
+<div class="row">
+  <div class="board dlg">
+    <div class="grp">Danger zone</div>
+    <div class="r"><div class="t"><b>Delete account</b><span>Removes your notes, files, shared links and history from the server, and signs you out everywhere. Export first.</span></div><button class="btn dng">Delete…</button></div>
+  </div>
+</div>
+
+<p class="cap">2 · Step one: what will happen, with Export first</p>
+<div class="row">
+  <div class="board dlg">
+    <div class="head">Delete your account?</div>
+    <div class="r"><div class="t"><b>This removes, for good:</b><span>every note and page, attached files, version history, share links (they stop working at once) and your passkeys and recovery phrase.</span></div></div>
+    <div class="r"><div class="t"><b>It cannot be undone.</b><span>Seijaku cannot read your notes, so it cannot bring them back either. Export a copy now if you want one.</span></div><button class="btn">Export first</button></div>
+    <div class="r" style="justify-content:flex-end"><button class="btn">Cancel</button><button class="btn dng">Continue</button></div>
+  </div>
+  <div class="board dlg dark">
+    <div class="head">Delete your account?</div>
+    <div class="r"><div class="t"><b>This removes, for good:</b><span>every note and page, attached files, version history, share links (they stop working at once) and your passkeys and recovery phrase.</span></div></div>
+    <div class="r"><div class="t"><b>It cannot be undone.</b><span>Seijaku cannot read your notes, so it cannot bring them back either. Export a copy now if you want one.</span></div><button class="btn">Export first</button></div>
+    <div class="r" style="justify-content:flex-end"><button class="btn">Cancel</button><button class="btn dng">Continue</button></div>
+  </div>
+</div>
+
+<p class="cap">3 · Step two: prove it is you (passkey button, or the 12-word phrase), then type the word</p>
+<div class="row">
+  <div class="board dlg">
+    <div class="head">Confirm it is you</div>
+    <div class="r"><div class="t"><b>Use your passkey</b><span>Or type your recovery phrase below.</span></div><button class="btn">Use passkey</button></div>
+    <div class="r"><div class="t"><b>Recovery phrase</b><span>12 words, separated by spaces.</span></div><div class="sel" style="width:240px;color:var(--mute)">word word word…</div></div>
+    <div class="r"><div class="t"><b>Type DELETE to continue</b></div><div class="sel" style="width:140px;color:var(--mute)">DELETE</div></div>
+    <div class="r" style="justify-content:flex-end"><button class="btn">Back</button><button class="btn dng">Delete my account</button></div>
+  </div>
+  <div class="board dlg dark">
+    <div class="head">Confirm it is you</div>
+    <div class="r"><div class="t"><b>That phrase is not right</b><span>Check the words and their order, then try again. Nothing was deleted.</span></div></div>
+    <div class="r"><div class="t"><b>Recovery phrase</b></div><div class="sel" style="width:240px;border-color:var(--accent)">six three nine…</div></div>
+    <div class="r" style="justify-content:flex-end"><button class="btn">Back</button><button class="btn dng" style="opacity:.5">Delete my account</button></div>
+  </div>
+</div>
+
+<p class="cap">4 · Working, then the end: wipe this device (the same page on desktop)</p>
+<div class="row">
+  <div class="board dlg">
+    <div class="head">Deleting…</div>
+    <div class="r"><div class="t"><b>Removing notes, files and links from the server</b><span>Keep this window open.</span></div></div>
+    <div class="r"><div class="bar" style="flex:1"><i></i></div></div>
+  </div>
+  <div class="board phone dark">
+    <div class="lock">
+      <div class="mark"></div>
+      <h2>Account deleted</h2>
+      <p>Everything is gone from the server. The notes still on this device are the only copy left.</p>
+      <button class="btn pri">Remove them from this device</button>
+      <a>Keep them on this device</a>
+    </div>
+  </div>
+</div>
+
+<p class="cap">5 · Failure: server unreachable (offline) or partial</p>
+<div class="row">
+  <div class="board dlg">
+    <div class="head">Could not delete</div>
+    <div class="r"><div class="t"><b>Seijaku cannot reach your server</b><span>Nothing was deleted. Connect and try again. If it stops halfway, trying again finishes the job.</span></div></div>
+    <div class="r" style="justify-content:flex-end"><button class="btn pri">OK</button></div>
+  </div>
+</div>
+
+<p class="cap">Also in this phase (no screen): “Delete forever” in Trash removes that page's encrypted log and versions on the server too, not only on this device.</p>
+</body>
+</html>

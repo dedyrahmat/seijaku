@@ -131,7 +131,7 @@
 				"label": "Lock after inactivity"
 			},
 			"delete": {
-				"desc": "Removes your notes from every device. Export first.",
+				"desc": "Removes your notes, files, shared links and history from the server, and signs you out everywhere. Export first.",
 				"label": "Delete account",
 				"button": "Delete…"
 			},
@@ -1127,5 +1127,41 @@
 				"l3": "the moon waits for sync."
 			}
 		}
+	},
+	"deleteAccount": {
+		"title": "Delete your account?",
+		"removesLead": "This removes, for good:",
+		"removes": "every note and page, attached files, version history, share links (they stop working at once) and your passkeys and recovery phrase.",
+		"noUndoLead": "It cannot be undone.",
+		"noUndo": "Seijaku cannot read your notes, so it cannot bring them back either. Export a copy now if you want one.",
+		"exportFirst": "Export first",
+		"exporting": "Exporting…",
+		"exportFailed": "The export did not finish. Try again.",
+		"continue": "Continue",
+		"confirmTitle": "Confirm it is you",
+		"passkey": "Use your passkey",
+		"passkeyDesc": "Or type your recovery phrase below.",
+		"passkeyButton": "Use passkey",
+		"phrase": "Recovery phrase",
+		"phraseDesc": "12 words, separated by spaces.",
+		"phrasePlaceholder": "word word word…",
+		"typeWord": "Type {{word}} to continue",
+		"word": "DELETE",
+		"back": "Back",
+		"delete": "Delete my account",
+		"workingTitle": "Deleting…",
+		"working": "Removing notes, files and links from the server",
+		"keepOpen": "Keep this window open.",
+		"doneTitle": "Account deleted",
+		"done": "Everything is gone from the server. The notes still on this device are the only copy left.",
+		"wipeDevice": "Remove them from this device",
+		"keepOnDevice": "Keep them on this device",
+		"failTitle": "Could not delete",
+		"offline": "Seijaku cannot reach your server",
+		"offlineDesc": "Nothing was deleted. Connect and try again. If it stops halfway, trying again finishes the job.",
+		"wrongPhrase": "That phrase is not right",
+		"wrongPhraseDesc": "Check the words and their order, then try again. Nothing was deleted.",
+		"notConfirmed": "That did not confirm it is you",
+		"notConfirmedDesc": "Nothing was deleted. Try again."
 	}
 }

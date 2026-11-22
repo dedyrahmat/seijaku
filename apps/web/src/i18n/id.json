@@ -131,7 +131,7 @@
 				"label": "Kunci setelah tidak aktif"
 			},
 			"delete": {
-				"desc": "Menghapus catatan Anda dari semua perangkat. Ekspor dulu.",
+				"desc": "Menghapus catatan, berkas, tautan bagikan, dan riwayat Anda dari server, lalu mengeluarkan Anda dari semua perangkat. Ekspor dulu.",
 				"label": "Hapus akun",
 				"button": "Hapus…"
 			},
@@ -1108,5 +1108,41 @@
 				"l3": "bulan menunggu sinkron."
 			}
 		}
+	},
+	"deleteAccount": {
+		"title": "Hapus akun Anda?",
+		"removesLead": "Ini menghapus selamanya:",
+		"removes": "semua catatan dan halaman, berkas terlampir, riwayat versi, tautan bagikan (langsung tidak berfungsi), serta kunci sandi dan frasa pemulihan Anda.",
+		"noUndoLead": "Tidak bisa dibatalkan.",
+		"noUndo": "Seijaku tidak bisa membaca catatan Anda, jadi tidak bisa memulihkannya juga. Ekspor salinan sekarang jika Anda mau.",
+		"exportFirst": "Ekspor dulu",
+		"exporting": "Mengekspor…",
+		"exportFailed": "Ekspor tidak selesai. Coba lagi.",
+		"continue": "Lanjut",
+		"confirmTitle": "Pastikan ini Anda",
+		"passkey": "Gunakan kunci sandi Anda",
+		"passkeyDesc": "Atau ketik frasa pemulihan di bawah.",
+		"passkeyButton": "Pakai kunci sandi",
+		"phrase": "Frasa pemulihan",
+		"phraseDesc": "12 kata, dipisah spasi.",
+		"phrasePlaceholder": "kata kata kata…",
+		"typeWord": "Ketik {{word}} untuk melanjutkan",
+		"word": "HAPUS",
+		"back": "Kembali",
+		"delete": "Hapus akun saya",
+		"workingTitle": "Menghapus…",
+		"working": "Menghapus catatan, berkas, dan tautan dari server",
+		"keepOpen": "Biarkan jendela ini tetap terbuka.",
+		"doneTitle": "Akun dihapus",
+		"done": "Semuanya sudah hilang dari server. Catatan yang masih ada di perangkat ini adalah satu-satunya salinan.",
+		"wipeDevice": "Hapus dari perangkat ini",
+		"keepOnDevice": "Simpan di perangkat ini",
+		"failTitle": "Tidak bisa menghapus",
+		"offline": "Seijaku tidak bisa menjangkau server Anda",
+		"offlineDesc": "Tidak ada yang dihapus. Sambungkan lalu coba lagi. Jika terhenti di tengah jalan, mencoba lagi akan menyelesaikannya.",
+		"wrongPhrase": "Frasa itu tidak benar",
+		"wrongPhraseDesc": "Periksa kata-kata dan urutannya, lalu coba lagi. Tidak ada yang dihapus.",
+		"notConfirmed": "Itu tidak memastikan bahwa ini Anda",
+		"notConfirmedDesc": "Tidak ada yang dihapus. Coba lagi."
 	}
 }

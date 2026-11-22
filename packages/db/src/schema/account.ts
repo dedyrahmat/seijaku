@@ -63,3 +63,13 @@ export const shareLink = sqliteTable(
 	},
 	(t) => [uniqueIndex("share_link_by_token").on(t.token)],
 );
+
+/** Who uploaded an attachment, so deleting an account can remove its files. The bytes live in the blob store. */
+export const blobOwner = sqliteTable(
+	"blob_owner",
+	{
+		blobId: text("blob_id").primaryKey(),
+		userId: text("user_id").notNull(),
+	},
+	(t) => [index("blob_owner_by_user").on(t.userId)],
+);

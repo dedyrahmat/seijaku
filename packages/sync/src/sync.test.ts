@@ -215,6 +215,8 @@ describe("room and client", () => {
 			loadAfter: (id, after) => inner.loadAfter(id, after),
 			stat: (id) => inner.stat(id),
 			replaceUpTo: (id, upto, snap) => inner.replaceUpTo(id, upto, snap),
+			deleteDoc: (id) => inner.deleteDoc(id),
+			deleteAll: () => inner.deleteAll(),
 		};
 		const room = new Room(slow);
 		const a = device(room);
@@ -445,6 +447,26 @@ describe("end-to-end encryption", () => {
 		b.client.attach(noteDocId("s"), theirs);
 		await tick(60);
 		expect(text(theirs)).toBe("");
+	});
+
+	test("a deleted note's log is dropped on the server, now or after reconnecting", async () => {
+		const store = new MemoryUpdateStore();
+		const room = new Room(store);
+		const a = device(room);
+		const doc = new Y.Doc();
+		const att = a.client.attach(noteDocId("gone"), doc);
+		await att.whenSynced();
+		doc.getText("t").insert(0, "bye");
+		await until(() => a.client.getState().status === "synced");
+		const remote = cipher.remoteId(noteDocId("gone"));
+		expect(store.logs.get(remote)?.length).toBeGreaterThan(0);
+
+		att.detach(); // a purged note is no longer open, or it would upload itself again
+		a.link.cut(); // offline: the drop waits for the next connection
+		await until(() => a.client.getState().status === "offline");
+		a.client.drop(noteDocId("gone"));
+		a.link.restore();
+		await until(() => !store.logs.has(remote));
 	});
 
 	test("an altered entry is refused", async () => {

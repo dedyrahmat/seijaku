@@ -12,6 +12,7 @@ import {
 } from "../components/AccountSettings";
 import { ago } from "../components/ago";
 import { CaptureTarget } from "../components/CaptureTarget";
+import { DeleteAccount } from "../components/DeleteAccount";
 import {
 	ClearCache,
 	ManageLinks,
@@ -705,15 +706,7 @@ function Security() {
 			</Group>
 			<Group name={t("settings.security.danger")}>
 				{signedOut ? null : <SignOutEverywhere />}
-				<Row
-					label={t("settings.security.delete.label")}
-					desc={t("settings.security.delete.desc")}
-					note={t("common.notAvailable")}
-				>
-					<Btn danger disabled>
-						{t("settings.security.delete.button")}
-					</Btn>
-				</Row>
+				<DeleteAccount disabled={signedOut} />
 			</Group>
 		</>
 	);

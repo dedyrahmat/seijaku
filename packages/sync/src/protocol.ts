@@ -38,6 +38,8 @@ export const FrameKind = {
 	Entry: 7,
 	Ready: 8,
 	Snapshot: 9,
+	/** Device deleted the note for good: the server drops its log. */
+	Drop: 10,
 } as const;
 export type FrameKind = (typeof FrameKind)[keyof typeof FrameKind];
 
@@ -135,6 +137,10 @@ export function encodeUnsubscribe(docId: string): Uint8Array {
 	return encoding.toUint8Array(begin(docId, FrameKind.Unsubscribe));
 }
 
+export function encodeDrop(docId: string): Uint8Array {
+	return encoding.toUint8Array(begin(docId, FrameKind.Drop));
+}
+
 export function encodeResync(): Uint8Array {
 	return encoding.toUint8Array(begin(RESYNC_DOC_ID, FrameKind.Resync));
 }
@@ -163,6 +169,7 @@ export type DecodedFrame =
 	| { kind: typeof FrameKind.Ack; docId: string; seq: number }
 	| { kind: typeof FrameKind.Notify; docId: string }
 	| { kind: typeof FrameKind.Unsubscribe; docId: string }
+	| { kind: typeof FrameKind.Drop; docId: string }
 	| { kind: typeof FrameKind.Resync; docId: string };
 
 /** Returns null for anything malformed or unknown instead of throwing. */
@@ -193,6 +200,7 @@ export function decodeFrame(data: Uint8Array): DecodedFrame | null {
 				return { kind, docId, seq: decoding.readVarUint(dec) };
 			case FrameKind.Notify:
 			case FrameKind.Unsubscribe:
+			case FrameKind.Drop:
 			case FrameKind.Resync:
 				return { kind, docId };
 			default:

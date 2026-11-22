@@ -49,6 +49,11 @@ export class Room {
 		await Promise.all([...this.docs.values()].map((e) => e.chain));
 	}
 
+	/** Disconnects every device (the account is being deleted). */
+	closeAll(code: number, reason: string): void {
+		for (const peer of [...this.peers]) peer.close(code, reason);
+	}
+
 	/** Number of docs with a subscriber or work in flight. */
 	get loadedDocs(): number {
 		return this.docs.size;
@@ -150,6 +155,16 @@ export class Peer {
 		return this.queue;
 	}
 
+	/** Hangs up on the device. */
+	close(code: number, reason: string): void {
+		try {
+			this.conn.close?.(code, reason);
+		} catch {
+			// Socket already gone.
+		}
+		this.leave();
+	}
+
 	/** Call when the socket closes. */
 	leave(): void {
 		if (this.closed) return;
@@ -197,6 +212,12 @@ export class Peer {
 					// Ack only once it is on disk, so "Synced" in the UI is honest.
 					this.send(encodeAck(docId, seq));
 					this.room.relay(docId, this, seq, frame.blob);
+				});
+				return;
+
+			case FrameKind.Drop:
+				await this.room.run(docId, async () => {
+					await this.store.deleteDoc(docId);
 				});
 				return;
 

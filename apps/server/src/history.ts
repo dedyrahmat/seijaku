@@ -169,6 +169,23 @@ export function mountHistory(
 		);
 	});
 
+	// A note was deleted for good: remove its snapshots too.
+	app.delete("/api/versions", async (c) => {
+		const userId = await auth.userId(c.req.raw.headers);
+		if (!userId) return c.json({ error: "sign in first" }, 401);
+		const doc = c.req.query("doc") ?? "";
+		if (!DOC.test(doc)) return c.json({ error: "bad request" }, 400);
+		const d = await db();
+		const where = and(eq(docVersion.userId, userId), eq(docVersion.doc, doc));
+		const rows = await d
+			.select({ blobId: docVersion.blobId })
+			.from(docVersion)
+			.where(where);
+		for (const v of rows) await blobs.delete(v.blobId);
+		await d.delete(docVersion).where(where);
+		return c.json({ ok: true });
+	});
+
 	app.get("/api/versions/:id", async (c) => {
 		const userId = await auth.userId(c.req.raw.headers);
 		if (!userId) return c.json({ error: "sign in first" }, 401);

@@ -104,6 +104,15 @@ export function startServer(options: {
 		new DiskBlobStore(options.blobDir ?? "data/blobs"),
 		options.auth,
 		{ allowHost: publicHost },
+		async (userId) => {
+			const room = rooms.get(userId);
+			if (room) {
+				room.closeAll(4001, "account deleted");
+				await room.flush();
+				rooms.delete(userId);
+			}
+			await options.store(userId).deleteAll();
+		},
 	);
 
 	const server = Bun.serve<SocketData>({

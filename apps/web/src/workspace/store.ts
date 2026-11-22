@@ -7,6 +7,7 @@ import {
 	listNotes,
 	NOTE_FRAGMENT,
 	type NoteMeta,
+	NOTES_KEY,
 	noteDocId,
 	purgeExpired,
 	SyncClient,
@@ -15,7 +16,7 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import { authStore } from "../auth/session";
 import { getPrefs } from "../preferences";
-import { currentSyncUrl } from "./syncUrl";
+import { apiUrl, currentSyncUrl } from "./syncUrl";
 
 export interface NoteSession {
 	id: string;
@@ -83,6 +84,13 @@ class Workspace {
 					this.applyAuth();
 				},
 			);
+		});
+
+		// A note removed from the index (deleted for good here or on another device): the server
+		// drops its log and snapshots too. Repeating it is harmless.
+		this.index.getMap(NOTES_KEY).observe((event) => {
+			for (const [id, change] of event.changes.keys)
+				if (change.action === "delete") this.forgetOnServer(id);
 		});
 
 		authStore.subscribe(() => this.applyAuth());
@@ -169,6 +177,16 @@ class Workspace {
 
 	/** Stable reference between index changes, as useSyncExternalStore requires. */
 	getNotes = (): NoteMeta[] => this.snapshot;
+
+	private forgetOnServer(noteId: string): void {
+		const remote = authStore.getCipher()?.remoteId(noteDocId(noteId));
+		if (!remote) return;
+		this.sync.drop(noteDocId(noteId));
+		void fetch(apiUrl(`/api/versions?doc=${remote}`), {
+			method: "DELETE",
+			credentials: "include",
+		}).catch(() => undefined); // shortcut: offline, the snapshots stay until the account is deleted
+	}
 
 	/** Deletes trash entries older than the "Empty trash automatically" setting. */
 	sweepTrash(): void {

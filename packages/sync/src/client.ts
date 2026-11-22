@@ -5,6 +5,7 @@ import {
 	encodePush,
 	encodeSnapshot,
 	encodeSubscribe,
+	encodeDrop,
 	encodeUnsubscribe,
 	FrameKind,
 	PING,
@@ -116,6 +117,8 @@ function mergeSV(into: Map<number, number>, update: Uint8Array): void {
  */
 export class SyncClient {
 	private socket: SocketLike | null = null;
+	/** Server names of deleted notes whose log the server has not been told to drop yet. */
+	private drops = new Set<string>();
 	private docs = new Map<string, Attached>();
 	private byRemote = new Map<string, Attached>();
 	/** Server names of docs we know about but may not have attached, for change notices. */
@@ -188,6 +191,23 @@ export class SyncClient {
 		this.reconnectTimer = null;
 		this.socket?.close(1000, "stopped");
 		this.dropSocket();
+	}
+
+	/**
+	 * A note was deleted for good: ask the server to drop its log, now or on the next connection.
+	 * shortcut: the wait is kept in memory only, so closing the app first leaves the sealed log behind.
+	 */
+	drop(localId: string): void {
+		const cipher = this.opts.cipher();
+		if (!cipher) return;
+		this.drops.add(cipher.remoteId(localId));
+		this.sendDrops();
+	}
+
+	private sendDrops(): void {
+		if (!this.isOpen()) return;
+		for (const id of this.drops) this.send(encodeDrop(id));
+		this.drops.clear();
 	}
 
 	/** Skip the backoff wait, e.g. when the browser reports it is back online. */
@@ -387,6 +407,7 @@ export class SyncClient {
 	/** Start over with every attached doc: ask the server for what we have not read yet. */
 	private handshakeAll(): void {
 		for (const e of this.docs.values()) this.subscribeDoc(e);
+		this.sendDrops();
 		this.recompute();
 	}
 

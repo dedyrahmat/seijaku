@@ -73,7 +73,10 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 /** What the server keeps of a phrase's login key: enough to recognise it, not to use it elsewhere. */
-async function hashLogin(secret: string, loginKey: string): Promise<string> {
+export async function hashLogin(
+	secret: string,
+	loginKey: string,
+): Promise<string> {
 	const key = await crypto.subtle.importKey(
 		"raw",
 		new TextEncoder().encode(secret),
@@ -391,6 +394,8 @@ export interface AuthService {
 	auth: Auth;
 	/** The account tables, for routes that keep their own data. */
 	db: AccountDb;
+	/** The server secret, for hashing what must match what is stored. */
+	secret: string;
 	/** Resolves once the auth tables exist. Await before the first request is served. */
 	ready: Promise<void>;
 	/** The signed-in account's id, or null when the request carries no valid session. */
@@ -403,6 +408,7 @@ export function createAuthService(config: AuthConfig): AuthService {
 	return {
 		auth,
 		db: config.db,
+		secret: config.secret,
 		ready,
 		userId: async (headers) => {
 			await ready;

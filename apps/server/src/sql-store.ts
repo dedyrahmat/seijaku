@@ -57,6 +57,25 @@ export class SqlUpdateStore implements UpdateStore {
 		return { head: Number(row?.head ?? 0), count: Number(row?.count ?? 0) };
 	}
 
+	deleteDoc(docId: string): void {
+		this.db
+			.delete(docLog)
+			.where(eq(docLog.docId, this.scope + docId))
+			.run();
+	}
+
+	/** Removes this scope's logs; with no scope (a Durable Object, one account) that is the whole table. */
+	deleteAll(): void {
+		this.db
+			.delete(docLog)
+			.where(
+				this.scope
+					? sql`substr(${docLog.docId}, 1, ${this.scope.length}) = ${this.scope}`
+					: undefined,
+			)
+			.run();
+	}
+
 	replaceUpTo(docId: string, upto: number, snapshot: Uint8Array): void {
 		const id = this.scope + docId;
 		this.db.transaction((tx) => {

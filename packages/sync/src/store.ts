@@ -28,6 +28,10 @@ export interface UpdateStore {
 		upto: number,
 		snapshot: Uint8Array,
 	): MaybePromise<void>;
+	/** Removes one doc's log (the note was deleted for good). */
+	deleteDoc(docId: string): MaybePromise<void>;
+	/** Removes every log of this store (an account being deleted). */
+	deleteAll(): MaybePromise<void>;
 }
 
 export class MemoryUpdateStore implements UpdateStore {
@@ -49,6 +53,14 @@ export class MemoryUpdateStore implements UpdateStore {
 	stat(docId: string): { head: number; count: number } {
 		const log = this.logs.get(docId) ?? [];
 		return { head: log.at(-1)?.seq ?? 0, count: log.length };
+	}
+
+	deleteDoc(docId: string): void {
+		this.logs.delete(docId);
+	}
+
+	deleteAll(): void {
+		this.logs.clear();
 	}
 
 	replaceUpTo(docId: string, upto: number, snapshot: Uint8Array): void {

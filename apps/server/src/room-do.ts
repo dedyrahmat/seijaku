@@ -40,6 +40,13 @@ export class WorkspaceRoom extends DurableObject {
 	}
 
 	override async fetch(request: Request): Promise<Response> {
+		// Account deleted: hang up on every device and drop the whole log.
+		if (request.method === "DELETE") {
+			this.room.closeAll(4001, "account deleted");
+			await this.room.flush();
+			await this.ctx.storage.deleteAll();
+			return new Response(null, { status: 204 });
+		}
 		if (request.headers.get("Upgrade") !== "websocket") {
 			return new Response("Expected a WebSocket upgrade", { status: 426 });
 		}

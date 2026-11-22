@@ -1,3 +1,4 @@
+import { blobOwner } from "@seijaku/db";
 import { Hono, type MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
 import { type AuthService, DESKTOP_ORIGINS } from "./auth";
@@ -10,6 +11,7 @@ import {
 	MAX_UPLOAD_BYTES,
 	newBlobId,
 } from "./blobs";
+import { mountAccount } from "./account";
 import { mountHistory } from "./history";
 import { UnfurlError, type UnfurlOptions, unfurl } from "./unfurl";
 
@@ -23,6 +25,8 @@ export function createApp(
 	blobs: BlobStore,
 	auth?: AuthService,
 	links: UnfurlOptions = {},
+	/** Removes an account's sync log (runtime specific), for account deletion. */
+	wipeLog: (userId: string) => Promise<void> = async () => undefined,
 ) {
 	const app = new Hono();
 
@@ -51,7 +55,18 @@ export function createApp(
 		app.use("/api/files/*", needSession);
 		app.use("/api/unfurl", needSession);
 		mountHistory(app, auth, blobs);
+		mountAccount(app, auth, blobs, wipeLog);
 	}
+
+	// Remember who uploaded a file, so deleting the account can remove it.
+	const own = async (headers: Headers, blobId: string) => {
+		const userId = await auth?.userId(headers);
+		if (auth && userId)
+			await auth.db
+				.insert(blobOwner)
+				.values({ blobId, userId })
+				.onConflictDoNothing();
+	};
 
 	app.get("/api/health", (c) => c.json({ ok: true }));
 
@@ -66,6 +81,7 @@ export function createApp(
 		const id = newBlobId();
 		const type = cleanType(c.req.header("content-type"));
 		await blobs.put(id, data, { type, size: data.byteLength });
+		await own(c.req.raw.headers, id);
 		return c.json({ id, url: `/api/files/${id}`, type, size: data.byteLength });
 	});
 
@@ -84,6 +100,7 @@ export function createApp(
 			return c.json({ error: "address does not match the bytes" }, 400);
 		const type = cleanType(c.req.header("content-type"));
 		await blobs.put(id, data, { type, size: data.byteLength });
+		await own(c.req.raw.headers, id);
 		return c.json({ id, url: `/api/files/${id}`, type, size: data.byteLength });
 	});
 

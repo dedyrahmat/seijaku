@@ -12,6 +12,7 @@ import {
 } from "../workspace/shares";
 import { ago } from "./ago";
 import { askConfirm } from "./Dialogs";
+import { PeopleSection } from "./PeopleSection";
 import { Select } from "./SettingRows";
 
 const DAY = 86_400_000;
@@ -241,6 +242,7 @@ export function SharePopover({
 					)}
 				</p>
 			)}
+			<PeopleSection noteId={noteId} />
 		</div>
 	);
 }

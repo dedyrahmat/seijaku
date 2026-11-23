@@ -31,6 +31,7 @@ import { Logo } from "./Logo";
 import { KindGlyph } from "./noteKinds";
 import { pageLink } from "./pageLink";
 import { SelectBox } from "./SelectBox";
+import { SharedList } from "./SharedList";
 import { useNewPage } from "./useNewPage";
 import { useSelection } from "./useSelection";
 
@@ -271,6 +272,8 @@ export function Sidebar({
 							))}
 						</ul>
 					)}
+
+					{sel.on ? null : <SharedList />}
 
 					{tags.length > 0 && !sel.on ? (
 						<div className="hidden md:block">

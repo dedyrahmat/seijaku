@@ -55,6 +55,7 @@ const STANDALONE = [
 	"/unlock",
 	"/capture",
 	"/share/",
+	"/invite/",
 ];
 
 const SIDEBAR_HIDDEN_KEY = "seijaku:sidebar-hidden";

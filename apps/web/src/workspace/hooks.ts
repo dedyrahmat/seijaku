@@ -10,6 +10,7 @@ import {
 } from "@seijaku/sync";
 import { useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { type CollabEntry, collab } from "./collab";
 import { needsHomeScreenNotice, readStorageEnv } from "./storage";
 import { type NoteSession, workspace } from "./store";
 
@@ -114,4 +115,9 @@ export function useWordCount(session: NoteSession | null): number {
 		};
 	}, [session]);
 	return count;
+}
+
+/** Pages shared with other accounts (owned or joined), oldest first. */
+export function useCollab(): [string, CollabEntry][] {
+	return useSyncExternalStore(collab.subscribe, collab.getEntries);
 }

@@ -13,8 +13,10 @@ import {
 } from "./pages/AuthPages";
 import { CapturePage } from "./pages/CapturePage";
 import { Home } from "./pages/Home";
+import { InvitePage } from "./pages/InvitePage";
 import { NotePage } from "./pages/NotePage";
 import { QuickNotesPage } from "./pages/QuickNotesPage";
+import { SharedPage } from "./pages/SharedPage";
 import { Shell } from "./pages/Shell";
 import { TrashPage } from "./pages/TrashPage";
 
@@ -113,6 +115,18 @@ const captureRoute = createRoute({
 	component: CapturePage,
 });
 
+const sharedRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/shared/$id",
+	component: SharedPage,
+});
+
+const inviteRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/invite/$id",
+	component: InvitePage,
+});
+
 const publicRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/share/$token",
@@ -129,6 +143,8 @@ export const router = createRouter({
 		quickRoute,
 		quickCardRoute,
 		trashRoute,
+		sharedRoute,
+		inviteRoute,
 		importRoute,
 		settingsRoute,
 		settingsSectionRoute,

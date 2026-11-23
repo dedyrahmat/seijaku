@@ -92,6 +92,8 @@ interface Props {
 	sortDone?: boolean;
 	/** Names the to-do owner box suggests first (a meeting's attendees). */
 	owners?: string[];
+	/** A page this account may read but not change. */
+	readOnly?: boolean;
 	/** Gives the parent the editor, for things like "Show tick boxes". */
 	editorRef?: MutableRefObject<BlockNoteEditor<
 		AnyBlock,
@@ -107,6 +109,7 @@ export function Editor({
 	sortDone,
 	owners,
 	editorRef,
+	readOnly,
 }: Props) {
 	const { t } = useTranslation();
 	const scheme = useColorScheme();
@@ -183,6 +186,7 @@ export function Editor({
 		<BlockNoteView
 			editor={editor}
 			theme={scheme}
+			editable={!readOnly}
 			slashMenu={false}
 			onChange={(_, { getChanges }) => {
 				if (sortDone) {

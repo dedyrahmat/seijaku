@@ -4,3 +4,10 @@ node_modules
 data
 .git
 .wrangler
+
+# Local data and secrets must never end up in an image.
+**/data
+**/.wrangler
+**/.env
+**/.env.*
+**/.dev.vars

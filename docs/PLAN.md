@@ -337,7 +337,7 @@ With every phase: update this file and the "Built so far" line in `CLAUDE.md`; b
 
 These need your accounts or devices and cannot be done from this machine:
 
-- A real Cloudflare deploy (`wrangler login`, create D1 and R2, `bun run --cwd apps/server deploy`), then repeat the two-device test against it.
+- The live deploy on Cloudflare, R2 and Neon: follow and tick off [DEPLOY-PLAN.md](DEPLOY-PLAN.md) (approved 2026-11-23; replaces the D1 deploy).
 - `docker compose up` on a Docker host (Docker is not installed here; the same server and web build run in the Playwright test).
 - Install the PWA on an iPhone from Safari; test offline editing, the formatting bar above the keyboard, and passkey sign-in.
 - Push a `v*` tag with the `TAURI_SIGNING_PRIVATE_KEY` secret set, so GitHub Actions builds the macOS and Linux apps and the first signed update.

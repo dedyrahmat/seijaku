@@ -81,48 +81,16 @@ Quick capture (desktop): press Ctrl/Cmd+Alt+Space anywhere to jot a line into to
 
 ## Deploy
 
-Both targets run the same code. Static-only hosts such as Vercel cannot run the server: it needs a long-lived WebSocket and a database.
+Seijaku needs a server with a long-lived WebSocket and a database, so static-only hosts such as Vercel cannot run it. Passkeys need HTTPS and a stable address: choose the public address before you start.
 
-Passkeys need HTTPS and a stable address, so set the public address before you start.
+- **[Self-host](docs/DEPLOY-SELF-HOST.md):** one container with Docker, Podman or a panel such as Coolify, or Bun without containers. Everything is kept in one folder. Includes HTTPS, settings, backup and updates.
+- **[Cloudflare and Neon](docs/DEPLOY-CLOUDFLARE.md):** Workers, R2 and Neon Postgres on free accounts, no domain needed. Neon support is planned and not built yet; the guide also covers the current D1 version. Progress is in the [deploy plan](docs/DEPLOY-PLAN.md).
 
-### Option 1: self-host with Docker (one container)
-
-Bun serves the API, the sync socket and the web app. Notes, files and the database live in a volume at `/data`.
-
-```bash
-SEIJAKU_ORIGIN=https://notes.example.com docker compose up -d
-```
-
-Put a reverse proxy with HTTPS (Caddy, nginx, Traefik) in front of port 8791. The same Dockerfile works on a VPS, Railway, Fly and Render; give it a volume at `/data`.
-
-Without Docker: `bun install`, `bun run --cwd apps/web build`, then `bun apps/server/src/bun.ts`.
-
-| Variable                                            | Purpose                                                                                                       | Default                            |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `SEIJAKU_ORIGIN`                                    | Public address(es) people open the app at, comma-separated. Required for passkeys.                            | `http://localhost:8791` in compose |
-| `SETUP_TOKEN`                                       | Sign-up code every new account must enter. Unset means anyone who can reach the server can create an account. | unset                              |
-| `PORT`                                              | Port to listen on                                                                                             | `8791`                             |
-| `SEIJAKU_DB`                                        | SQLite file                                                                                                   | `/data/seijaku.sqlite` in Docker   |
-| `SEIJAKU_BLOBS`                                     | Folder for attached files                                                                                     | `/data/blobs` in Docker            |
-| `SEIJAKU_WEB`                                       | Folder with the web build                                                                                     | `apps/web/dist`                    |
-| `SEIJAKU_RP_ID`                                     | WebAuthn relying-party id, if it must differ from the origin's host                                           | derived from the origin            |
-| `AUTH_SECRET`                                       | Session signing secret                                                                                        | generated and kept in the database |
-| `QUOTA_FILES_MB`, `QUOTA_SNAPSHOTS`, `QUOTA_SHARES` | Per-account limits on files, history snapshots and share links                                                | built-in defaults                  |
-
-Back up the `/data` volume. Because notes are encrypted on the device, a backup of it cannot be read without the account keys.
-
-### Option 2: Cloudflare (Workers, Durable Objects, D1, R2)
+Quick start on your own computer, at http://localhost:8791:
 
 ```bash
-bunx wrangler login
-cd apps/server
-bunx wrangler d1 create seijaku           # put the printed database_id into wrangler.jsonc
-bunx wrangler r2 bucket create seijaku-files
-cd ../.. && bun run --cwd apps/web build
-bun run --cwd apps/server deploy
+docker compose up -d --build
 ```
-
-The Worker serves the web app too, and keeps one Durable Object per account. Account tables are created in D1 by the Worker on its first request, so there is no separate migration step. The Worker uses the address it is opened at for passkeys; set `SEIJAKU_ORIGIN` under `vars` in `apps/server/wrangler.jsonc` (comma-separated) if you serve it from several. For a sign-up code run `bunx wrangler secret put SETUP_TOKEN`.
 
 ### Desktop app
 
@@ -139,7 +107,7 @@ apps/server     Hono server with two entry points: bun.ts (self-host) and worker
 packages/sync   Yjs workspace model, sync protocol and encryption
 packages/db     Drizzle schema and migrations
 e2e/            Playwright end-to-end tests
-docs/           PLAN.md (scope and architecture), TRANSLATING.md, COLLABORATIVE-SHARING.md
+docs/           PLAN.md (scope and architecture), DEPLOY-*.md, TRANSLATING.md, COLLABORATIVE-SHARING.md
 ```
 
 ## Status

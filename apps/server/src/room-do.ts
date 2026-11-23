@@ -25,6 +25,8 @@ function toBuffer(u: Uint8Array): ArrayBuffer {
 export class WorkspaceRoom extends DurableObject {
 	private room: Room;
 	private peers = new Map<WebSocket, Peer>();
+	/** A shared page's room remembers each socket's member and role across hibernation. */
+	private who = new Map<WebSocket, { userId: string; role: string }>();
 
 	constructor(ctx: DurableObjectState, env: unknown) {
 		super(ctx, env as never);
@@ -40,7 +42,15 @@ export class WorkspaceRoom extends DurableObject {
 	}
 
 	override async fetch(request: Request): Promise<Response> {
-		// Account deleted: hang up on every device and drop the whole log.
+		// A member was removed or changed role: hang up on their devices only.
+		const kick = new URL(request.url).searchParams.get("kick");
+		if (request.method === "DELETE" && kick) {
+			for (const ws of this.ctx.getWebSockets())
+				if (this.attachment(ws)?.userId === kick)
+					ws.close(4003, "access changed");
+			return new Response(null, { status: 204 });
+		}
+		// Account deleted, or a shared page's key changed: hang up on every device and drop the whole log.
 		if (request.method === "DELETE") {
 			this.room.closeAll(4001, "account deleted");
 			await this.room.flush();
@@ -53,15 +63,34 @@ export class WorkspaceRoom extends DurableObject {
 		const pair = new WebSocketPair();
 		const [client, server] = [pair[0], pair[1]];
 		this.ctx.acceptWebSocket(server);
+		// Set by the worker after it checked membership: only a shared page's room gets them.
+		const userId = request.headers.get("x-share-user");
+		const role = request.headers.get("x-share-role");
+		if (userId && role) server.serializeAttachment({ userId, role });
 		this.adopt(server, false);
 		return new Response(null, { status: 101, webSocket: client });
 	}
 
+	private attachment(ws: WebSocket): { userId: string; role: string } | null {
+		const cached = this.who.get(ws);
+		if (cached) return cached;
+		const found = ws.deserializeAttachment() as {
+			userId: string;
+			role: string;
+		} | null;
+		if (found) this.who.set(ws, found);
+		return found;
+	}
+
 	private adopt(ws: WebSocket, resync: boolean): Peer {
-		const peer = this.room.join({
-			send: (data) => ws.send(toBuffer(data)),
-			close: (code, reason) => ws.close(code, reason),
-		});
+		const who = this.attachment(ws);
+		const peer = this.room.join(
+			{
+				send: (data) => ws.send(toBuffer(data)),
+				close: (code, reason) => ws.close(code, reason),
+			},
+			who ? { canWrite: () => who.role !== "reader", tag: who.userId } : {},
+		);
 		this.peers.set(ws, peer);
 		if (resync) ws.send(toBuffer(encodeResync()));
 		return peer;

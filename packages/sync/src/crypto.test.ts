@@ -129,3 +129,30 @@ test("a shared page opens with its link key and with nothing else", () => {
 	// The workspace's own sealing cannot be passed off as a share, or the reverse.
 	expect(() => unwrapWorkspaceKey(key, sealed)).toThrow();
 });
+
+test("a page key wrapped for a member opens only with their private key", async () => {
+	const { newKeyPair, openInvite, sealInvite, unwrapKeyWith, wrapKeyFor } =
+		await import("./crypto");
+	const dina = newKeyPair();
+	const eve = newKeyPair();
+	const pageKey = newWorkspaceKey();
+	const wrapped = wrapKeyFor(dina.publicKey, pageKey);
+	expect(unwrapKeyWith(dina.secret, wrapped)).toEqual(pageKey);
+	expect(() => unwrapKeyWith(eve.secret, wrapped)).toThrow();
+	const tampered = wrapped.slice();
+	tampered[tampered.length - 1] = (tampered[tampered.length - 1] ?? 0) ^ 1;
+	expect(() => unwrapKeyWith(dina.secret, tampered)).toThrow();
+	// Two wraps of the same key differ (a fresh ephemeral key each time).
+	expect(wrapKeyFor(dina.publicKey, pageKey)).not.toEqual(wrapped);
+
+	// The shared page's docs are sealed with a cipher made from the page key.
+	const a = createCipher(pageKey);
+	const b = createCipher(unwrapKeyWith(dina.secret, wrapped));
+	const text = new TextEncoder().encode("hello");
+	expect(b.open("doc", a.seal("doc", text))).toEqual(text);
+
+	const secret = newWorkspaceKey();
+	const invite = sealInvite(secret, pageKey);
+	expect(openInvite(secret, invite)).toEqual(pageKey);
+	expect(() => openInvite(newWorkspaceKey(), invite)).toThrow();
+});

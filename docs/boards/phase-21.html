@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seijaku · Phase 21 boards</title>
+<style>
+:root{--paper:#f8f4eb;--panel:#f0eadd;--raised:#fcfaf4;--hover:#e6decb;--ink:#201d19;--ink2:#5b5448;--mute:#6e675a;--line:#ded6c5;--accent:#ae3b28;--off:#cfc6b3}
+.dark{--paper:#171512;--panel:#1d1b17;--raised:#23201b;--hover:#2b2822;--ink:#e9e3d6;--ink2:#b5ad9d;--mute:#968e7e;--line:#37332b;--accent:#e27a63;--off:#4a453b}
+*{box-sizing:border-box}
+body{margin:0;padding:32px;background:#d9d2c2;font:14px/1.5 "Hanken Grotesk",system-ui,sans-serif;color:#201d19}
+h1{font:500 28px "Newsreader",Georgia,serif;margin:0 0 4px}
+.lead{color:#5b5448;margin:0 0 28px;max-width:760px}
+.row{display:flex;flex-wrap:wrap;gap:28px;margin-bottom:36px;align-items:flex-start}
+.cap{font:12px "JetBrains Mono",monospace;color:#5b5448;margin:0 0 8px}
+.board{background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.pop{width:420px;padding:20px}.dlg{width:520px;padding:24px}.phone{width:375px;padding:18px 16px;min-height:480px}.side{width:260px;padding:14px}
+h2{font:500 22px "Newsreader",Georgia,serif;margin:0 0 4px}
+.sub{color:var(--ink2);font-size:13px;margin:0 0 14px}
+.sec{font:600 11px "Hanken Grotesk",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:16px 0 6px;padding-top:12px;border-top:1px solid var(--line)}
+.p{display:flex;align-items:center;gap:12px;padding:8px 0}
+.av{width:30px;height:30px;border-radius:50%;background:var(--hover);display:flex;align-items:center;justify-content:center;font:500 13px "Newsreader",serif;flex:none}
+.p .t{flex:1;min-width:0}.p .t b{font-weight:500;display:block}.p .t span{color:var(--mute);font-size:12.5px}
+.sel{height:30px;padding:0 12px;border-radius:15px;border:1px solid var(--line);background:var(--raised);display:inline-flex;align-items:center;gap:6px;font-size:13px}
+.btn{height:36px;padding:0 16px;border-radius:18px;border:1px solid var(--line);background:transparent;color:var(--ink);font:inherit;font-size:13px}
+.btn.pri{background:var(--ink);color:var(--paper);border-color:var(--ink)}.btn.dng{color:var(--accent);border-color:var(--accent)}
+.link{height:38px;border:1px solid var(--line);border-radius:19px;background:var(--paper);padding:0 14px;display:flex;align-items:center;font:12.5px "JetBrains Mono",monospace;color:var(--ink2);overflow:hidden;white-space:nowrap}
+.note{margin:12px 0 0;padding:10px 12px;border-radius:10px;background:var(--panel);color:var(--ink2);font-size:13px}
+.warn{color:var(--accent)}
+.row2{display:flex;gap:8px;align-items:center}
+.nav{padding:6px 8px;border-radius:8px;display:flex;gap:8px;align-items:center;font-size:13.5px}.nav.on{background:var(--hover)}.nav small{margin-left:auto;color:var(--mute)}
+.hd{font:600 11px "Hanken Grotesk",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:12px 8px 4px}
+.banner{margin:10px 0;padding:8px 12px;border-radius:10px;background:var(--panel);font-size:13px;color:var(--ink2);display:flex;gap:8px;align-items:center}
+.ttl{font:500 34px "Newsreader",Georgia,serif;margin:6px 0}
+</style>
+</head>
+<body>
+<h1>Phase 21 · Collaborative sharing</h1>
+<p class="lead">Share one page with other accounts, as an editor or a reader. Invites are one-use links that expire in 7 days; only the owner invites and removes people; the owner sees history; one extra connection per shared page you have open. The design is in <code>docs/COLLABORATIVE-SHARING.md</code>. The Share panel keeps its public link; "Share with people" is a second, separate section.</p>
+
+<p class="cap">1 · Share panel: public link above, people below (owner)</p>
+<div class="row">
+<div class="board pop">
+<h2>Share to the web</h2><p class="sub">Anyone with the link can read this page. (as today)</p>
+<div class="link">seijaku.example/share/kMj76…#key</div>
+<div class="sec">Share with people</div>
+<div class="p"><div class="av">D</div><div class="t"><b>Dina</b><span>Editor · joined 22 Nov</span></div><span class="sel">Editor ▾</span></div>
+<div class="p"><div class="av">R</div><div class="t"><b>Rob</b><span>Reader · joined 23 Nov</span></div><span class="sel">Reader ▾</span></div>
+<div class="p"><div class="av">…</div><div class="t"><b>For Sam</b><span>Invite waiting · expires 29 Nov</span></div><span class="sel">Cancel</span></div>
+<div class="row2" style="margin-top:8px"><button type="button" class="btn pri">Invite someone</button></div>
+<div class="note">People can open this page only. Sub-pages stay private. Everything is encrypted on your devices; the server cannot read the page, but it can see who has access.</div>
+</div>
+<div class="board pop">
+<h2>Share to the web</h2><p class="sub">Off.</p>
+<div class="sec">Share with people</div>
+<p class="sub">Nobody yet. Invite people by link; they need a Seijaku account (they can make one when they open it).</p>
+<div class="row2"><button type="button" class="btn pri">Invite someone</button></div>
+<div class="note warn">Signed out? Sharing with people needs an account, because the server hosts the shared page.</div>
+</div>
+</div>
+
+<p class="cap">2 · Invite dialog, then the link</p>
+<div class="row">
+<div class="board dlg">
+<h2>Invite someone to “Getting started”</h2><p class="sub">You get a link to send them. It works once and expires in 7 days.</p>
+<div class="p"><div class="t"><b>Name for your list</b><span>Only you see this</span></div><span class="sel" style="width:200px">Dina</span></div>
+<div class="p"><div class="t"><b>They can</b></div><span class="sel">Edit ▾</span><span class="sel" style="opacity:.6">Read only</span></div>
+<div class="row2" style="justify-content:flex-end;margin-top:12px"><button type="button" class="btn">Cancel</button><button type="button" class="btn pri">Make invite link</button></div>
+</div>
+<div class="board dlg">
+<h2>Invite link ready</h2><p class="sub">Send it to Dina in any private way. Whoever opens it first becomes the member, so don't post it in public.</p>
+<div class="link">seijaku.example/invite/9f2c…#secret</div>
+<div class="row2" style="margin-top:12px"><button type="button" class="btn pri">Copy link</button><button type="button" class="btn">Done</button></div>
+<div class="note">The key to the page is inside the link's last part, which never reaches the server.</div>
+</div>
+</div>
+
+<p class="cap">3 · Opening an invite (the recipient)</p>
+<div class="row">
+<div class="board dlg" style="text-align:center">
+<h2>Join “Getting started”?</h2><p class="sub">Shared with you as an editor. You will see it under “Shared with me”, and the owner will see you in their people list.</p>
+<div class="row2" style="justify-content:center"><button type="button" class="btn pri">Join this page</button><button type="button" class="btn">Not now</button></div>
+<div class="note">Not signed in: this screen first offers “Create account” or “Sign in”, then comes back here.</div>
+</div>
+<div class="board dlg" style="text-align:center">
+<h2>This invite is no longer valid</h2><p class="sub">It was already used, it expired, or the owner took it back. Ask them for a new link.</p>
+</div>
+</div>
+
+<p class="cap">4 · Sidebar, “Shared with me”, and a reader's banner</p>
+<div class="row">
+<div class="board side">
+<div class="nav on">Today<small>Mon 23 Nov</small></div><div class="nav">Quick notes<small>2</small></div>
+<div class="hd">Pages</div><div class="nav">Reading list</div><div class="nav">Studies</div>
+<div class="hd">Shared with me</div><div class="nav">Getting started <small>Editor</small></div><div class="nav">Trip plan <small>Reader</small></div>
+<div class="hd">Shared by me</div><div class="nav">Dinner ideas <small>2 people</small></div>
+</div>
+<div class="board" style="width:560px;padding:22px 30px">
+<div class="ttl">Trip plan</div>
+<div class="banner">You can read this page, not change it. Shared by an account you accepted an invite from. <span class="sel" style="margin-left:auto">Leave</span></div>
+<p style="font:17px/1.65 'Newsreader',Georgia,serif;color:var(--ink2);margin:0">The page text, read only. Other people's edits appear as they are made.</p>
+</div>
+</div>
+
+<p class="cap">5 · Removing someone, with the limit said plainly; and stopping</p>
+<div class="row">
+<div class="board dlg">
+<h2>Remove Rob?</h2><p class="sub">Rob can no longer open this page or see new changes. You will get a new key for the page and everyone else switches to it.</p>
+<div class="note warn">Rob keeps anything he already saw or copied. Removing someone cannot take that back.</div>
+<div class="row2" style="justify-content:flex-end;margin-top:12px"><button type="button" class="btn">Cancel</button><button type="button" class="btn dng">Remove Rob</button></div>
+</div>
+<div class="board dlg">
+<h2>Finishing…</h2><p class="sub">Rob is removed. New edits stay sealed under the old key until this device switches everyone to the new one. Keep Seijaku open for a moment.</p>
+<div class="note">If this device goes offline, it finishes next time it connects; the panel says “Finishing…” until then.</div>
+<h2 style="margin-top:20px">Stop sharing with people?</h2><p class="sub">The shared page goes away for everyone. Each person keeps a read-only copy of what they last had, marked “No longer shared”.</p>
+<div class="row2" style="justify-content:flex-end"><button type="button" class="btn">Cancel</button><button type="button" class="btn dng">Stop sharing</button></div>
+</div>
+</div>
+
+<p class="cap">6 · Phone, dark theme: people list in the Share sheet</p>
+<div class="row"><div class="board phone dark">
+<h2>Share</h2>
+<div class="sec">Share with people</div>
+<div class="p"><div class="av">D</div><div class="t"><b>Dina</b><span>Editor</span></div><span class="sel">Editor ▾</span></div>
+<div class="p"><div class="av">R</div><div class="t"><b>Rob</b><span>Reader</span></div><span class="sel">Reader ▾</span></div>
+<div class="row2" style="margin-top:10px"><button type="button" class="btn pri" style="flex:1">Invite someone</button></div>
+<div class="note">Everything is encrypted on your devices; the server can see who has access, not what is in the page.</div>
+</div></div>
+
+<h1 style="margin-top:20px">Decisions taken (from the design doc)</h1>
+<p class="lead">Invite by link only, one use, 7 days. Only the owner invites and removes. History of a shared page: owner only. One extra WebSocket per shared page that is open. Server-enforced read-only (a reader holds the page key, so this is the server's rule, not cryptography). Removal rotates the key and cannot undo what someone already saw. Left out: comments, live cursors, sub-pages, editors inviting others, groups.</p>
+</body>
+</html>

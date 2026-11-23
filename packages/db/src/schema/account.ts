@@ -77,3 +77,58 @@ export const blobOwner = sqliteTable(
 	},
 	(t) => [index("blob_owner_by_user").on(t.userId)],
 );
+
+/** An account's X25519 public key, so page keys can be sealed to it. The private half never leaves its devices. */
+export const accountKey = sqliteTable("account_key", {
+	userId: text("user_id").primaryKey(),
+	publicKey: text("public_key").notNull(),
+});
+
+/** A page shared with other accounts. Its content lives in a room of its own, named by this id. */
+export const sharedPage = sqliteTable(
+	"shared_page",
+	{
+		id: text("id").primaryKey(),
+		ownerId: text("owner_id").notNull(),
+		/** Bumped when someone is removed and the page key changes. */
+		epoch: integer("epoch").notNull().default(0),
+		createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+	},
+	(t) => [index("shared_page_by_owner").on(t.ownerId)],
+);
+
+/** Who may open a shared page. role is owner, editor or reader; the server enforces it on every push. */
+export const shareMember = sqliteTable(
+	"share_member",
+	{
+		id: text("id").primaryKey(),
+		shareId: text("share_id").notNull(),
+		userId: text("user_id").notNull(),
+		role: text("role").notNull(),
+		epoch: integer("epoch").notNull().default(0),
+		/** The page key sealed to this member's public key, set when the key rotates. Opaque to the server. */
+		wrappedKey: text("wrapped_key"),
+		/** What the owner called the invite, shown in the people list. */
+		label: text("label").notNull().default(""),
+		createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+	},
+	(t) => [
+		uniqueIndex("share_member_by_page_user").on(t.shareId, t.userId),
+		index("share_member_by_user").on(t.userId),
+	],
+);
+
+/** A one-use link to join a shared page. The page key inside is sealed under a secret only the link holds. */
+export const shareInvite = sqliteTable(
+	"share_invite",
+	{
+		id: text("id").primaryKey(),
+		shareId: text("share_id").notNull(),
+		role: text("role").notNull(),
+		label: text("label").notNull().default(""),
+		wrapped: text("wrapped").notNull(),
+		createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+		expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+	},
+	(t) => [index("share_invite_by_page").on(t.shareId)],
+);

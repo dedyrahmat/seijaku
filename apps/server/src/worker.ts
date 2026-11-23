@@ -10,6 +10,7 @@ import {
 } from "./auth";
 import { limitsFromEnv } from "./quota";
 import { R2BlobStore } from "./r2-blobs";
+import { type SharedHooks, sharedRole } from "./shared";
 
 export { WorkspaceRoom } from "./room-do";
 
@@ -111,6 +112,11 @@ export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext) {
 		const url = new URL(request.url);
 		const auth = await authFor(env, url.origin);
+		// A shared page's room is one Durable Object named by the page's id.
+		const sharedRoom = (shareId: string) =>
+			env.WORKSPACE_ROOM.get(
+				env.WORKSPACE_ROOM.idFromName(`shared:${shareId}`),
+			);
 		if (url.pathname === "/sync") {
 			if (request.headers.get("Upgrade") !== "websocket") {
 				return new Response("Expected a WebSocket upgrade", { status: 426 });
@@ -120,6 +126,34 @@ export default {
 			const id = env.WORKSPACE_ROOM.idFromName(userId);
 			return env.WORKSPACE_ROOM.get(id).fetch(request);
 		}
+		const shared = url.pathname.match(/^\/sync\/shared\/([a-f0-9]{20})$/);
+		if (shared) {
+			if (request.headers.get("Upgrade") !== "websocket") {
+				return new Response("Expected a WebSocket upgrade", { status: 426 });
+			}
+			const userId = await auth.userId(socketHeaders(request));
+			if (!userId) return new Response("Sign in first", { status: 401 });
+			const shareId = shared[1] as string;
+			const role = await sharedRole(auth, shareId, userId);
+			if (!role) return new Response("Not found", { status: 404 });
+			const headers = new Headers(request.headers);
+			headers.set("x-share-user", userId);
+			headers.set("x-share-role", role);
+			return sharedRoom(shareId).fetch(new Request(request, { headers }));
+		}
+		const sharedHooks: SharedHooks = {
+			async reset(shareId) {
+				await sharedRoom(shareId).fetch("https://room/wipe", {
+					method: "DELETE",
+				});
+			},
+			async kick(shareId, userId) {
+				await sharedRoom(shareId).fetch(
+					`https://room/kick?kick=${encodeURIComponent(userId)}`,
+					{ method: "DELETE" },
+				);
+			},
+		};
 		return createApp(
 			new R2BlobStore(env.BLOBS),
 			auth,

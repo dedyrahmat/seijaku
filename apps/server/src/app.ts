@@ -15,6 +15,7 @@ import {
 } from "./blobs";
 import { mountHistory } from "./history";
 import { DEFAULT_LIMITS, type Limits, over } from "./quota";
+import { mountShared, noSharedHooks, type SharedHooks } from "./shared";
 import {
 	type Preview,
 	UnfurlError,
@@ -37,6 +38,8 @@ export function createApp(
 	/** Removes an account's sync log (runtime specific), for account deletion. */
 	wipeLog: (userId: string) => Promise<void> = async () => undefined,
 	limits: Limits = DEFAULT_LIMITS,
+	/** What the runtime does to shared pages' rooms. */
+	shared: SharedHooks = noSharedHooks,
 ) {
 	const app = new Hono();
 
@@ -65,7 +68,8 @@ export function createApp(
 		app.use("/api/files/*", needSession);
 		app.use("/api/unfurl", needSession);
 		mountHistory(app, auth, blobs, limits);
-		mountAccount(app, auth, blobs, wipeLog);
+		mountAccount(app, auth, blobs, wipeLog, shared);
+		mountShared(app, auth, shared);
 	}
 
 	/**

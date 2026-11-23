@@ -1,4 +1,5 @@
 import { gcm } from "@noble/ciphers/aes.js";
+import { x25519 } from "@noble/curves/ed25519.js";
 import { hkdf } from "@noble/hashes/hkdf.js";
 import { hmac } from "@noble/hashes/hmac.js";
 import { sha256 } from "@noble/hashes/sha2.js";
@@ -141,6 +142,61 @@ export function unwrapWorkspaceKey(
 	wrapped: Uint8Array,
 ): Uint8Array {
 	return open(wrapKey, "workspace-key", wrapped);
+}
+
+/*
+ * Sharing a page with other accounts (see docs/COLLABORATIVE-SHARING.md). A shared page has a
+ * random page key; `createCipher(pageKey)` seals its docs just as the workspace key does for
+ * your own notes. The page key reaches a member sealed to their X25519 public key, so only they
+ * (and the devices that hold their private key, which lives sealed in their own workspace) can
+ * open it.
+ */
+
+/** A member's key pair. The public half goes to the server; the private half stays in the workspace. */
+export function newKeyPair(): { secret: Uint8Array; publicKey: Uint8Array } {
+	const { secretKey, publicKey } = x25519.keygen();
+	return { secret: secretKey, publicKey };
+}
+
+/** Seals a key (the page key) so only the holder of `recipientPublic`'s private half can open it. */
+export function wrapKeyFor(
+	recipientPublic: Uint8Array,
+	key: Uint8Array,
+): Uint8Array {
+	const eph = x25519.keygen();
+	const shared = x25519.getSharedSecret(eph.secretKey, recipientPublic);
+	const wrapKey = derive(shared, "seijaku/share-wrap/v1", "wrap");
+	const sealed = seal(wrapKey, "page-key", key);
+	const out = new Uint8Array(32 + sealed.length);
+	out.set(eph.publicKey, 0);
+	out.set(sealed, 32);
+	return out;
+}
+
+/** Throws if the blob was not made for this key pair, or was altered. */
+export function unwrapKeyWith(
+	secret: Uint8Array,
+	wrapped: Uint8Array,
+): Uint8Array {
+	if (wrapped.length < 32) throw new Error("wrapped key too short");
+	const shared = x25519.getSharedSecret(secret, wrapped.subarray(0, 32));
+	return open(
+		derive(shared, "seijaku/share-wrap/v1", "wrap"),
+		"page-key",
+		wrapped.subarray(32),
+	);
+}
+
+/** An invite carries the page key sealed under a secret that lives only in the invite link's #fragment. */
+export function sealInvite(
+	secret: Uint8Array,
+	pageKey: Uint8Array,
+): Uint8Array {
+	return seal(derive(secret, "seijaku/invite/v1", "wrap"), "invite", pageKey);
+}
+
+export function openInvite(secret: Uint8Array, blob: Uint8Array): Uint8Array {
+	return open(derive(secret, "seijaku/invite/v1", "wrap"), "invite", blob);
 }
 
 export function toBase64(bytes: Uint8Array): string {

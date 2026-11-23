@@ -23,6 +23,7 @@ import {
 } from "./auth";
 import { DiskBlobStore } from "./disk-blobs";
 import { limitsFromEnv } from "./quota";
+import { type Role, type SharedHooks, sharedRole } from "./shared";
 import { SqlUpdateStore } from "./sql-store";
 import { isPrivateHost } from "./unfurl";
 
@@ -80,6 +81,9 @@ async function publicHost(host: string): Promise<string | null> {
 
 interface SocketData {
 	userId: string;
+	/** Set on a shared page's socket: which page, and the role it joined with. */
+	shareId?: string;
+	role?: Role;
 	peer?: Peer;
 }
 
@@ -103,6 +107,29 @@ export function startServer(options: {
 		rooms.set(userId, room);
 		return room;
 	};
+	// A shared page has a room of its own, with its log under "shared:<id>".
+	const sharedRooms = new Map<string, Room>();
+	const sharedRoom = (shareId: string) => {
+		const found = sharedRooms.get(shareId);
+		if (found) return found;
+		const room = new Room(options.store(`shared:${shareId}`));
+		sharedRooms.set(shareId, room);
+		return room;
+	};
+	const sharedHooks: SharedHooks = {
+		async reset(shareId) {
+			const room = sharedRooms.get(shareId);
+			if (room) {
+				room.closeAll(4002, "key changed");
+				await room.flush();
+				sharedRooms.delete(shareId);
+			}
+			await options.store(`shared:${shareId}`).deleteAll();
+		},
+		async kick(shareId, userId) {
+			sharedRooms.get(shareId)?.closeTagged(userId, 4003, "access changed");
+		},
+	};
 	const app = createApp(
 		new DiskBlobStore(options.blobDir ?? "data/blobs"),
 		options.auth,
@@ -117,6 +144,7 @@ export function startServer(options: {
 			await options.store(userId).deleteAll();
 		},
 		limitsFromEnv(process.env),
+		sharedHooks,
 	);
 
 	const server = Bun.serve<SocketData>({
@@ -133,6 +161,17 @@ export function startServer(options: {
 				if (srv.upgrade(req, { data: { userId } })) return undefined;
 				return new Response("Expected a WebSocket upgrade", { status: 426 });
 			}
+			const shared = url.pathname.match(/^\/sync\/shared\/([a-f0-9]{20})$/);
+			if (shared && options.auth) {
+				const userId = await options.auth.userId(socketHeaders(req));
+				if (!userId) return new Response("Sign in first", { status: 401 });
+				const shareId = shared[1] as string;
+				const role = await sharedRole(options.auth, shareId, userId);
+				if (!role) return new Response("Not found", { status: 404 });
+				if (srv.upgrade(req, { data: { userId, shareId, role } }))
+					return undefined;
+				return new Response("Expected a WebSocket upgrade", { status: 426 });
+			}
 			const res = await app.fetch(req);
 			if (res.status !== 404 || !options.webDir) return res;
 			if (req.method !== "GET" && req.method !== "HEAD") return res;
@@ -142,10 +181,17 @@ export function startServer(options: {
 		websocket: {
 			maxPayloadLength: MAX_FRAME_BYTES,
 			open(ws) {
-				ws.data.peer = roomFor(ws.data.userId).join({
-					send: (data) => ws.sendBinary(data),
-					close: (code, reason) => ws.close(code, reason),
-				});
+				const conn = {
+					send: (data: Uint8Array) => ws.sendBinary(data),
+					close: (code: number, reason: string) => ws.close(code, reason),
+				};
+				const { shareId, role, userId } = ws.data;
+				ws.data.peer = shareId
+					? sharedRoom(shareId).join(conn, {
+							canWrite: () => role !== "reader",
+							tag: userId,
+						})
+					: roomFor(userId).join(conn);
 			},
 			message(ws, message) {
 				if (typeof message === "string") {
@@ -163,7 +209,10 @@ export function startServer(options: {
 
 	return {
 		server,
-		flush: () => Promise.all([...rooms.values()].map((r) => r.flush())),
+		flush: () =>
+			Promise.all(
+				[...rooms.values(), ...sharedRooms.values()].map((r) => r.flush()),
+			),
 	};
 }
 

@@ -37,9 +37,13 @@ export class Room {
 
 	constructor(private store: UpdateStore) {}
 
-	/** Registers a new device connection. */
-	join(conn: RoomConnection): Peer {
-		const peer = new Peer(this, conn, this.store);
+	/**
+	 * Registers a new device connection. In a shared page's room, `canWrite` says whether this
+	 * member may change it (readers may not: their pushes, drops and snapshots are ignored) and
+	 * `tag` names the member, so they can be disconnected when removed.
+	 */
+	join(conn: RoomConnection, access: Access = {}): Peer {
+		const peer = new Peer(this, conn, this.store, access);
 		this.peers.add(peer);
 		return peer;
 	}
@@ -52,6 +56,12 @@ export class Room {
 	/** Disconnects every device (the account is being deleted). */
 	closeAll(code: number, reason: string): void {
 		for (const peer of [...this.peers]) peer.close(code, reason);
+	}
+
+	/** Disconnects one member's devices (they were removed or their role changed). */
+	closeTagged(tag: string, code: number, reason: string): void {
+		for (const peer of [...this.peers])
+			if (peer.tag === tag) peer.close(code, reason);
 	}
 
 	/** Number of docs with a subscriber or work in flight. */
@@ -110,7 +120,13 @@ export class Room {
 	}
 }
 
+export interface Access {
+	canWrite?: () => boolean | Promise<boolean>;
+	tag?: string;
+}
+
 export class Peer {
+	readonly tag: string | undefined;
 	/** Docs this device receives live entries for. */
 	readonly subscriptions = new Set<string>();
 	/** Docs we already sent a change notice for since the device last looked at them. */
@@ -122,7 +138,10 @@ export class Peer {
 		private room: Room,
 		private conn: RoomConnection,
 		private store: UpdateStore,
-	) {}
+		private access: Access = {},
+	) {
+		this.tag = access.tag;
+	}
 
 	/** @internal */
 	send(data: Uint8Array): void {
@@ -185,6 +204,13 @@ export class Peer {
 		const frame = decodeFrame(data);
 		if (!frame || this.closed) return;
 		const { docId } = frame;
+
+		const writes =
+			frame.kind === FrameKind.Push ||
+			frame.kind === FrameKind.Drop ||
+			frame.kind === FrameKind.Snapshot;
+		if (writes && this.access.canWrite && !(await this.access.canWrite()))
+			return; // a reader: nothing is stored, nothing is acked
 
 		switch (frame.kind) {
 			case FrameKind.Unsubscribe:

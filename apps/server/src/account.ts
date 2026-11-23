@@ -4,6 +4,11 @@ import type { Hono } from "hono";
 import * as z from "zod";
 import { type AuthService, hashLogin } from "./auth";
 import { BLOB_ID, type BlobStore } from "./blobs";
+import {
+	noSharedHooks,
+	removeAccountFromShares,
+	type SharedHooks,
+} from "./shared";
 
 /** A passkey sign-in counts as proof for this long. */
 const FRESH_SECONDS = 120;
@@ -23,6 +28,7 @@ export function mountAccount(
 	auth: AuthService,
 	blobs: BlobStore,
 	wipeLog: (userId: string) => Promise<void>,
+	shared: SharedHooks = noSharedHooks,
 ): void {
 	app.delete("/api/account", async (c) => {
 		const headers = c.req.raw.headers;
@@ -56,6 +62,7 @@ export function mountAccount(
 		if (!proven) return c.json({ error: "not confirmed" }, 403);
 
 		await wipeLog(userId);
+		await removeAccountFromShares(auth, shared, userId);
 		const owned = await Promise.all([
 			d
 				.select({ id: docVersion.blobId })

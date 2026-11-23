@@ -50,6 +50,7 @@ const PATHS = {
 	pen: "M3 13l.7-3L10.8 2.9a1.4 1.4 0 0 1 2 0l.3.3a1.4 1.4 0 0 1 0 2L6 12.3z",
 	database:
 		"M8 2.5c3 0 5 .9 5 2s-2 2-5 2-5-.9-5-2 2-2 5-2zM3 4.5v7c0 1.1 2 2 5 2s5-.9 5-2v-7M3 8c0 1.1 2 2 5 2s5-.9 5-2",
+	table: "M2.5 3.5h11v9h-11zM2.5 7h11M6.2 3.5v9",
 	info: "M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zM8 7.3V11M8 5h.01",
 	wall: "M2.5 2.5h4.5v5.5H2.5zM9 2.5h4.5v3H9zM9 7.5h4.5v6H9zM2.5 9.5h4.5v4H2.5z",
 	// Note kinds, drawn on the same 16 grid (the dialog scales them up).

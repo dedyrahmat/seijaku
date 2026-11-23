@@ -1,4 +1,5 @@
 import * as Y from "yjs";
+import { type Cell, type DbSchema, readCells, readSchema } from "./database";
 
 /**
  * The workspace "index doc": one Y.Doc holding the note tree.
@@ -19,6 +20,7 @@ export const NOTE_KINDS = [
 	"journal",
 	"meeting",
 	"study",
+	"database",
 ] as const;
 export type NoteKind = (typeof NOTE_KINDS)[number];
 
@@ -36,6 +38,10 @@ export interface NoteMeta {
 	trashedAt: number | null;
 	/** Set while the page is shared to the web: the link's token and the key in its #fragment. */
 	share: ShareInfo | null;
+	/** For a row of a database: its property values by property id. Empty elsewhere. */
+	cells: Record<string, Cell>;
+	/** For a database: its properties and view; null for every other kind. */
+	schema: DbSchema | null;
 	/** Per-type details (mood, due date, attendees...). Kept per kind, so switching type loses nothing. */
 	fields: NoteFields;
 	createdAt: number;
@@ -87,6 +93,8 @@ function readNote(id: string, m: NoteMap): NoteMeta {
 		trashedAt: (m.get("trashedAt") as number | undefined) ?? null,
 		share: (m.get("share") as ShareInfo | undefined) ?? null,
 		fields: readFields(m),
+		cells: readCells(m),
+		schema: kind === "database" ? readSchema(m) : null,
 		createdAt: (m.get("createdAt") as number | undefined) ?? 0,
 		updatedAt: (m.get("updatedAt") as number | undefined) ?? 0,
 	};
@@ -190,7 +198,13 @@ export function changeKind(
 	const m = notesMap(doc).get(id);
 	if (!m) return false;
 	const current = readNote(id, m);
-	if (isDailyNoteId(id) || current.kind === "journal" || kind === "journal")
+	if (
+		isDailyNoteId(id) ||
+		current.kind === "journal" ||
+		kind === "journal" ||
+		current.kind === "database" ||
+		kind === "database"
+	)
 		return false;
 	if (
 		kind === "quick" &&

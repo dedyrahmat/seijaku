@@ -225,6 +225,12 @@ const WANT: Record<string, Record<Pack, string[]>> = {
 		ri: ["database-2-line"],
 		solar: ["database-linear"],
 	},
+	table: {
+		lucide: ["table"],
+		iconoir: ["table-2-columns"],
+		ri: ["table-line"],
+		solar: ["server-square-linear", "widget-4-linear"],
+	},
 	info: {
 		lucide: ["info"],
 		iconoir: ["info-circle"],

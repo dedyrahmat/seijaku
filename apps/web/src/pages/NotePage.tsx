@@ -16,6 +16,11 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import {
+	DatabaseKicker,
+	DatabaseView,
+	RowProps,
+} from "../components/DatabaseView";
+import {
 	ChecklistHead,
 	JournalHead,
 	JournalMonth,
@@ -139,8 +144,13 @@ export function NotePage() {
 					<StudyRail note={note} />
 				</>
 			) : null}
+			{headed ? null : <DatabaseKicker note={note} notes={notes} />}
 			{headed ? null : titleField}
+			{note.kind === "database" ? null : <RowProps note={note} notes={notes} />}
 			<NoteMetaRow key={`meta-${noteId}`} note={note} />
+			{note.kind === "database" ? (
+				<DatabaseView db={note} notes={notes} />
+			) : null}
 			{noteId === JOURNAL_ID ? <JournalMonth /> : null}
 			{daily ? <TodayFeeds /> : null}
 			{session?.id === noteId ? (

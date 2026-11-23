@@ -1,5 +1,6 @@
 export * from "./client";
 export * from "./crypto";
+export * from "./database";
 export * from "./phrase";
 export * from "./protocol";
 export * from "./room";

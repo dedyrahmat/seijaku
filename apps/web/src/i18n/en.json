@@ -430,11 +430,16 @@
 			"name": "Study note",
 			"short": "study note",
 			"desc": "A summary callout up top, then room for maths, code and questions to revisit."
+		},
+		"database": {
+			"name": "Database",
+			"short": "database",
+			"desc": "A table of pages with their own properties: status, dates, tags."
 		}
 	},
 	"newNote": {
 		"sub": "Pick a shape for the note. You can change it later.",
-		"keys": "Press 1 to 6, or Enter",
+		"keys": "Press 1 to 7, or Enter",
 		"heading": "What are you writing?",
 		"type": "Note type",
 		"topLevel": "Top level",
@@ -1194,5 +1199,62 @@
 		"createHint": "New page",
 		"linkedFrom": "Linked from",
 		"linkedFrom_count": "Linked from · {{count}}"
+	},
+	"db": {
+		"kicker_one": "Database · {{count}} row",
+		"kicker_other": "Database · {{count}} rows",
+		"newRow": "New row",
+		"noRows": "No rows to show.",
+		"empty": "Empty",
+		"sort": "Sort",
+		"sortBy": "Sort by",
+		"sortNone": "No sort (page order)",
+		"reverse": "Reverse order",
+		"az": "A → Z",
+		"za": "Z → A",
+		"filter": "Filter",
+		"filterN": "Filter · {{count}}",
+		"addFilter": "Add a filter",
+		"clearFilters": "Clear filters",
+		"filterProp": "Property",
+		"filterOp": "Condition",
+		"value": "Value",
+		"properties": "Properties",
+		"hidden": "hidden",
+		"hideCol": "Hide in this table",
+		"deleteBtn": "Delete",
+		"delete": "Delete “{{name}}”…",
+		"deleteConfirm": "Delete the property “{{name}}”? Its values stay on each page but are no longer shown.",
+		"newProp": "New property",
+		"name": "Name",
+		"addProperty": "Add a property",
+		"typeSelectHint": "one of a list",
+		"type": {
+			"text": "Text",
+			"number": "Number",
+			"select": "Select",
+			"date": "Date",
+			"checkbox": "Checkbox"
+		},
+		"op": {
+			"contains": "contains",
+			"is": "is",
+			"isNot": "is not",
+			"eq": "=",
+			"gt": ">",
+			"lt": "<",
+			"before": "before",
+			"after": "after",
+			"checked": "is checked",
+			"unchecked": "is not checked"
+		},
+		"findOption": "Find or add an option…",
+		"createOption": "Create “{{label}}”",
+		"hiddenRows_one": "{{count}} row hidden by the filter",
+		"hiddenRows_other": "{{count}} rows hidden by the filter",
+		"status": "Status",
+		"todo": "To do",
+		"doing": "In progress",
+		"done": "Done"
 	}
 }

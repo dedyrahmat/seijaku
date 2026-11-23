@@ -74,7 +74,7 @@ export function NewNoteDialog({
 		}
 		if (e.metaKey || e.ctrlKey || e.altKey || listOpen) return;
 		const onCard = (e.target as HTMLElement).dataset.card !== undefined;
-		if (/^[1-6]$/.test(e.key)) {
+		if (/^[1-7]$/.test(e.key)) {
 			const i = Number(e.key) - 1;
 			e.preventDefault();
 			setKind(TYPES[i]?.id ?? kind);

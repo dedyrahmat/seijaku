@@ -429,11 +429,16 @@
 			"name": "Catatan belajar",
 			"short": "catatan belajar",
 			"desc": "Ringkasan di atas, lalu ruang untuk matematika, kode, dan pertanyaan untuk ditinjau lagi."
+		},
+		"database": {
+			"name": "Basis data",
+			"short": "basis data",
+			"desc": "Tabel halaman dengan properti sendiri: status, tanggal, label."
 		}
 	},
 	"newNote": {
 		"sub": "Pilih bentuk catatan. Anda bisa mengubahnya nanti.",
-		"keys": "Tekan 1 sampai 6, atau Enter",
+		"keys": "Tekan 1 sampai 7, atau Enter",
 		"heading": "Apa yang Anda tulis?",
 		"type": "Jenis catatan",
 		"topLevel": "Tingkat atas",
@@ -1175,5 +1180,62 @@
 		"createHint": "Halaman baru",
 		"linkedFrom": "Ditautkan dari",
 		"linkedFrom_count": "Ditautkan dari · {{count}}"
+	},
+	"db": {
+		"kicker_one": "Basis data · {{count}} baris",
+		"kicker_other": "Basis data · {{count}} baris",
+		"newRow": "Baris baru",
+		"noRows": "Tidak ada baris untuk ditampilkan.",
+		"empty": "Kosong",
+		"sort": "Urutkan",
+		"sortBy": "Urutkan menurut",
+		"sortNone": "Tanpa urutan (urutan halaman)",
+		"reverse": "Balik urutan",
+		"az": "A → Z",
+		"za": "Z → A",
+		"filter": "Saring",
+		"filterN": "Saring · {{count}}",
+		"addFilter": "Tambah saringan",
+		"clearFilters": "Hapus saringan",
+		"filterProp": "Properti",
+		"filterOp": "Kondisi",
+		"value": "Nilai",
+		"properties": "Properti",
+		"hidden": "tersembunyi",
+		"hideCol": "Sembunyikan di tabel ini",
+		"deleteBtn": "Hapus",
+		"delete": "Hapus “{{name}}”…",
+		"deleteConfirm": "Hapus properti “{{name}}”? Nilainya tetap ada di setiap halaman tetapi tidak ditampilkan lagi.",
+		"newProp": "Properti baru",
+		"name": "Nama",
+		"addProperty": "Tambah properti",
+		"typeSelectHint": "satu dari daftar",
+		"type": {
+			"text": "Teks",
+			"number": "Angka",
+			"select": "Pilihan",
+			"date": "Tanggal",
+			"checkbox": "Kotak centang"
+		},
+		"op": {
+			"contains": "mengandung",
+			"is": "adalah",
+			"isNot": "bukan",
+			"eq": "=",
+			"gt": ">",
+			"lt": "<",
+			"before": "sebelum",
+			"after": "sesudah",
+			"checked": "dicentang",
+			"unchecked": "tidak dicentang"
+		},
+		"findOption": "Cari atau tambah pilihan…",
+		"createOption": "Buat “{{label}}”",
+		"hiddenRows_one": "{{count}} baris disembunyikan oleh saringan",
+		"hiddenRows_other": "{{count}} baris disembunyikan oleh saringan",
+		"status": "Status",
+		"todo": "Akan dikerjakan",
+		"doing": "Sedang dikerjakan",
+		"done": "Selesai"
 	}
 }

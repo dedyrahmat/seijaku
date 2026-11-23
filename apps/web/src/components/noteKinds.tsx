@@ -30,6 +30,10 @@ export const NOTE_TYPES: {
 		id: "study",
 		icon: "M3 7.5L11 4l8 3.5-8 3.5zM6.5 9.4V14c1.2 1.3 2.8 2 4.5 2s3.3-.7 4.5-2V9.4M19 7.5V12",
 	},
+	{
+		id: "database",
+		icon: "M3.5 5h15v12h-15zM3.5 9.5h15M8.5 5v12",
+	},
 ];
 
 export function kindOf(kind: NoteKind) {
@@ -46,5 +50,11 @@ export function KindGlyph({
 	size?: number;
 	className?: string;
 }) {
-	return <Icon name={kind} size={size} className={className} />;
+	return (
+		<Icon
+			name={kind === "database" ? "table" : kind}
+			size={size}
+			className={className}
+		/>
+	);
 }

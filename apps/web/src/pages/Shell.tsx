@@ -566,12 +566,12 @@ function MoreMenu({
 							<Glyph name="share" size={15} /> {t("shell.share")}
 						</button>
 					) : null}
-					{note && !isDailyNoteId(note.id) ? (
+					{note && !isDailyNoteId(note.id) && note.kind !== "database" ? (
 						<div className="mb-1 border-b border-line2 pb-1">
 							<div className="px-3 pt-2 pb-1 text-[11px] font-medium tracking-[0.09em] text-mute uppercase">
 								{t("shell.changeType")}
 							</div>
-							{NOTE_TYPES.map((kind) => {
+							{NOTE_TYPES.filter((k) => k.id !== "database").map((kind) => {
 								const current = note.kind === kind.id;
 								const blocked =
 									kind.id === "journal" || note.kind === "journal";

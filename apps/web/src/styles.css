@@ -483,6 +483,9 @@ article[data-kind="today"] .bn-editor {
 article[data-kind="study"] {
 	max-width: min(100%, 860px);
 }
+article[data-kind="database"] {
+	max-width: min(100%, 1040px);
+}
 article[data-hide-done]
 	[data-content-type="checkListItem"][data-checked="true"] {
 	display: none;

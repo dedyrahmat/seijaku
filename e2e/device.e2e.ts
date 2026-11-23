@@ -1,27 +1,5 @@
-import { expect, type Page, test } from "@playwright/test";
-
-async function newAccount(page: Page): Promise<string> {
-	await page.goto("/setup");
-	await page.getByRole("button", { name: "Generate a phrase instead" }).click();
-	await page.getByRole("list", { name: "Recovery phrase" }).waitFor();
-	const words = await page
-		.locator('ol[aria-label="Recovery phrase"] li span:last-child')
-		.allTextContents();
-	await page.getByLabel("I saved these words somewhere safe").check();
-	await page.getByRole("button", { name: "Open my notes" }).click();
-	return words.join(" ");
-}
-
-async function signIn(page: Page, phrase: string) {
-	await page.goto("/sign-in");
-	await page.getByRole("button", { name: "Sign in with phrase" }).click();
-	await page.locator("#sign-in-phrase").fill(phrase);
-	await page
-		.getByRole("button", { name: "Sign in with phrase" })
-		.last()
-		.click();
-	await page.waitForURL((u) => u.pathname === "/");
-}
+import { expect, test } from "@playwright/test";
+import { choose, newAccount, signIn } from "./helpers";
 
 test("workspace name syncs, typing rules apply, clear cache keeps notes, idle lock asks for the phrase", async ({
 	browser,
@@ -74,7 +52,7 @@ test("workspace name syncs, typing rules apply, clear cache keeps notes, idle lo
 
 	// Lock after inactivity: the key is forgotten; the phrase opens the notes again.
 	await a.goto("/settings/security");
-	await a.getByLabel("Lock after inactivity").selectOption("5 minutes");
+	await choose(a, "Lock after inactivity", "5 minutes");
 	await a.clock.fastForward("06:00");
 	await expect(a.getByRole("heading", { name: "Locked" })).toBeVisible({
 		timeout: 20_000,
@@ -92,7 +70,7 @@ test("workspace name syncs, typing rules apply, clear cache keeps notes, idle lo
 test("Open on start lands on Today, or on the last page", async ({ page }) => {
 	await newAccount(page);
 	await page.goto("/settings/general");
-	await page.getByLabel("Open on start").selectOption("Today");
+	await choose(page, "Open on start", "Today");
 	await page.goto("/");
 	await expect(page).toHaveURL(/\/page\/.*daily-\d{4}-\d{2}-\d{2}/);
 
@@ -102,12 +80,12 @@ test("Open on start lands on Today, or on the last page", async ({ page }) => {
 	await page.getByRole("button", { name: "Create page" }).click();
 	await page.locator("[data-title]").fill("Where I left off");
 	await page.goto("/settings/general");
-	await page.getByLabel("Open on start").selectOption("Last page");
+	await choose(page, "Open on start", "Last page");
 	await page.goto("/");
 	await expect(page).toHaveURL(/Where-I-left-off/);
 
 	await page.goto("/settings/general");
-	await page.getByLabel("Open on start").selectOption("Home");
+	await choose(page, "Open on start", "Home");
 	await page.goto("/");
 	await expect(page).toHaveURL(/\/$/);
 });

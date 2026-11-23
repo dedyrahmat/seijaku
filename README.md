@@ -2,204 +2,153 @@
 
 **Active calm. The opposite of noise.**
 
-Seijaku is a local-first note-taking app. The name is the Japanese Zen garden idea of stillness: rich and powerful like Notion or Obsidian, with an interface that never shouts.
+Seijaku is a local-first, end-to-end encrypted note-taking app. The name is the Japanese Zen garden idea of stillness: as capable as Notion or Obsidian, with an interface that never shouts.
 
-> **Status:** all eleven phases are built: local editor, sync, end-to-end encrypted accounts, attachments, search, history and sharing, importers, an installable PWA, a Windows/macOS/Linux desktop app, and both deploy paths. A real Cloudflare deploy, an iPhone install and the macOS/Linux builds still need running on real accounts and devices. See [docs/PLAN.md](docs/PLAN.md).
+It runs in the browser, installs as an app on iPhone and Android (PWA), and ships as a desktop app for Windows, macOS and Linux. You host the server yourself, on one Docker container or on Cloudflare.
 
-## What works today
+## Features
 
-- Nested pages with drag-and-drop reorder (and a row menu for keyboard and touch), tags, daily notes, on-device search, a quick switcher, trash with auto-empty
-- Block editor with Markdown shortcuts and a slash menu: headings, lists, to-dos, quotes, code, tables, toggles, callouts, math, images, video, audio, files and link previews
-- Everything stored on your device first, so it works offline, then synced to your server; notes are end-to-end encrypted, so the server only holds sealed data
-- Accounts with a passkey or a 12-word phrase, each with its own workspace; sign-in is optional
-- Version history, revocable public share links, Markdown export, and importers for Obsidian, Notion, Keep, Evernote, Apple Notes and Journal, Markdown, HTML and text
-- An installable PWA (works offline, iPhone Home Screen) and a desktop app with a global quick-capture hotkey and a tray icon
-- "Washi & ink" design: warm paper light theme, sumi-ink dark theme, following the system setting
+- **Pages and organising:** nested pages with drag-and-drop (and a row menu for keyboard and touch), tags, daily notes and a journal, `[[page links]]` with backlinks, trash with auto-empty, on-device search and a quick switcher (Ctrl/Cmd+K).
+- **Editor:** blocks with Markdown shortcuts and a slash menu: headings, lists, to-dos with due dates, quotes, code, tables, toggles, callouts, math (KaTeX), images, video, audio, files and link previews.
+- **Note types:** page, checklist, journal entry, meeting notes, study note, quick note and database (a table of pages with typed properties, sort and filter).
+- **Local-first:** every note is saved on your device first and works offline, then syncs to your server. Edits made offline on several devices merge cleanly.
+- **Private by design:** notes are encrypted on your devices. The server only stores sealed data and cannot read titles, text or files.
+- **Accounts:** sign in with a passkey or a 12-word recovery phrase. Signing in is optional; without an account your notes stay on the device.
+- **Sharing:** revocable, expiring public read-only links, and sharing a page with other accounts as editor or reader.
+- **History:** version snapshots with preview and restore.
+- **Import and export:** Obsidian, Notion, Google Keep, Evernote, Apple Notes, Apple Journal, Markdown, HTML and text in; a zip of Markdown files out.
+- **Desktop extras:** a global quick-capture hotkey, tray icon, launch at login and auto-update.
+- **Languages:** English and Indonesian.
+- **Design:** "Washi & ink": a warm paper light theme and a sumi-ink dark theme that follows your system.
 
-## Where it is going
+## Tech stack
 
-One person, many devices: web, an installable PWA on iPhone, and desktop for Windows, macOS and Linux through Tauri 2. Notes are Yjs documents that merge cleanly after editing offline. The server runs either on Cloudflare (Workers, Durable Objects, D1, R2) or self-hosted on Bun, from one codebase.
+| Area | Technology |
+| --- | --- |
+| Runtime and tooling | [Bun](https://bun.sh) workspaces (package manager, test runner, self-host runtime), TypeScript, [Biome](https://biomejs.dev) |
+| Web app | React 19, [Vite](https://vite.dev), [TanStack Router](https://tanstack.com/router), Tailwind CSS v4, i18next, KaTeX |
+| Editor | [BlockNote](https://www.blocknotejs.org) (core MPL packages only) on ProseMirror |
+| Notes and sync | [Yjs](https://yjs.dev) CRDTs, `y-indexeddb` for on-device storage, one WebSocket per device |
+| Encryption | `@noble/ciphers`, `@noble/curves`, `@noble/hashes`, `@scure/bip39` (recovery phrase), WebAuthn PRF for passkey-derived keys |
+| Server | [Hono](https://hono.dev), [Better Auth](https://www.better-auth.com) with passkeys, [Drizzle ORM](https://orm.drizzle.team) (SQLite dialect), Zod |
+| Hosting target 1 | Bun (`Bun.serve`, `bun:sqlite`, files on disk), one Docker container |
+| Hosting target 2 | Cloudflare Workers, Durable Objects (WebSocket hibernation), D1, R2 |
+| PWA | `vite-plugin-pwa` and Workbox (installable, offline shell) |
+| Desktop | [Tauri 2](https://tauri.app) (Rust): tray, global shortcut, deep links, OS keychain, updater |
+| Tests and CI | `bun:test`, [Playwright](https://playwright.dev) end-to-end, GitHub Actions |
 
-## Roadmap
+## Getting started (development)
 
-Each phase ends in something runnable, and work stops after every phase for review. Details are in [docs/PLAN.md](docs/PLAN.md).
+You need [Bun](https://bun.sh). The desktop app also needs Rust and, on Windows, the MSVC build tools.
 
-### Phase 1: Scaffold (done)
+```bash
+bun install
+bun run --cwd apps/server dev   # sync server on http://localhost:8791
+bun run --cwd apps/web dev      # web app on http://localhost:5173
+```
 
-- [x] Check installed tools, `git init`
-- [x] Bun workspaces, TypeScript, Biome, test setup
-- [x] Empty apps and packages
+Open http://localhost:5173. Vite proxies `/api` and `/sync` to the server on port 8791. The web app alone is enough to write notes; the server adds accounts and sync. If the app says it cannot reach the server, check that nothing else is using port 8791.
 
-### Phase 2: Local editor (done)
+To test two devices in one browser, open the app on two origins (`localhost` and `[::1]`): each has its own IndexedDB.
 
-- [x] BlockNote restyling spike
-- [x] App shell and Washi & ink theme (light and dark)
-- [x] Index doc and note tree: nested pages, reorder, trash
-- [x] Editor bound to a Y.Doc with the v1 blocks (callout, math, tables, toggles, code, media by URL)
-- [x] IndexedDB persistence, works offline on one device
+### Commands
 
-### Phase 3: Sync (done)
+```bash
+bun run typecheck                     # tsc --noEmit in every package
+bun run lint                          # biome check
+bun run format                        # biome format --write
+bun test                              # unit and server tests
+bun run test:e2e                      # Playwright end-to-end (builds the web app; needs Chrome)
+bun run --cwd apps/web build          # production web build into apps/web/dist
+bun run --cwd apps/server dev:worker  # the Cloudflare build of the server, locally on workerd
+bun run --cwd apps/desktop dev        # desktop app in development
+```
 
-- [x] `UpdateStore` interface (append update, load doc, compact)
-- [x] `Room` class and message encoding on `y-protocols`: state-vector diff on connect, then live updates, many docs multiplexed by docId
-- [x] Update log compaction into one merged update
-- [x] Bun adapter: in-process room, `Bun.serve` WebSocket, `UpdateStore` on `bun:sqlite`
-- [x] Client provider in `apps/web` store: one WebSocket per device, reconnect with backoff
-- [x] Background catch-up of notes that are not open
-- [x] Cloudflare adapter: `WorkspaceRoom` Durable Object with WebSocket hibernation, `UpdateStore` on DO SQLite
-- [x] Sync status in the title bar, per the design (Synced, Syncing, Offline, Keep your notes safe), and the word count and "Saved on this device" footer
-- [x] `bun test`: two simulated clients converge, offline edits merge, compaction keeps state; the Bun server is tested over a real socket and restart (the DO store is checked with `apps/server/scripts/smoke.ts` against `wrangler dev`, not in `bun test`)
-- [x] Two browser profiles see each other's edits and offline edits merge after reconnect (checked by hand in the browser pane, not Playwright)
-- [x] Reload offline still opens notes (service worker, phase 9)
-- [x] Playwright automation of the two-context test (`bun run test:e2e`)
+`E2E_CHANNEL=msedge bun run test:e2e` runs the end-to-end tests in Edge instead of Chrome.
 
-### Phase 4: Auth (done)
+## Using Seijaku
 
-- [x] Spike Better Auth passkeys on both runtimes (fallback: `@simplewebauthn` with own sessions)
-- [x] First-run setup gated by `SETUP_TOKEN`, then registration closes
-- [x] Passkey and recovery-phrase sign-in, end-to-end encryption
-- [x] Session checks on HTTP and WebSocket upgrade
+1. **Open the app.** You can start writing straight away; notes are stored on this device.
+2. **Create an account (optional).** Choose a passkey, or generate a 12-word recovery phrase and write it down. The phrase is the only way to restore your notes on a new device if you lose every signed-in device, and nobody can recover it for you.
+3. **Sign in on another device.** Use your passkey or the phrase. Your notes download, decrypted on the device.
+4. **Write.** `+` in the sidebar creates a page (pick a note type). Type `/` for blocks. Ctrl/Cmd+K jumps to a page; Ctrl/Cmd+Shift+F searches the text of every page.
+5. **Organise.** Drag pages in the sidebar, or use a row's `⋯` menu to move, nest or trash it. Deleted pages wait in Trash.
+6. **Share.** Use Share in the title bar for a public read-only link, or invite another account to a page.
+7. **Bring notes in or take them out** under Settings, Data and storage.
+8. **Install it.** In a browser use "Install app" (on iPhone, Share, then Add to Home Screen), or install the desktop app.
 
-### Accounts rework (done)
-
-Sign-in is optional and accounts work like a wallet.
-
-- [x] Move the default dev server port off 8787 (to 8791)
-- [x] Use the app without an account; signing in turns sync on and uploads local notes
-- [x] Anyone can create an account with a passkey or a 12-word phrase; one encrypted workspace per account
-- [x] `SETUP_TOKEN` becomes an optional sign-up code
-- [x] A passkey alone opens notes on a new device (WebAuthn PRF), with the phrase as fallback
-- [x] One-container self-host: Bun serves the web build, Dockerfile and compose
-
-### Phase 5: Attachments
-
-- [x] `BlobStore` adapters: R2 and local disk
-- [x] Upload and download for images and files (sealed on the device, addressed by their hash)
-- [x] Offline cache and an upload queue that flushes on reconnect
-- [x] Link-preview unfurl endpoint and a Link preview block
-
-### Phase 6: Organising
-
-- [x] Tags
-- [x] Daily notes (`daily-YYYY-MM-DD`)
-- [x] On-device search (own implementation, no MiniSearch)
-- [x] Ctrl/Cmd+K quick switcher
-- [x] Trash: permanent delete and auto-empty
-- [x] Markdown import and export, whole-workspace zip
-
-### Phase 7: History and sharing
-
-- [x] Version snapshots on the server and a history panel (sealed on the device)
-- [x] Restore as a new edit
-- [x] Public read-only share links (`/share/:token#key`), revocable
-
-### Phase 8: Importers
-
-- [x] Common intermediate form and shared writer
-- [x] Obsidian, Notion, Google Keep, Evernote
-- [x] Apple Notes and Apple Journal (read as folders of HTML/Markdown/text; real export formats still unconfirmed)
-- [x] Generic Markdown, HTML and plain text
-
-### Phase 9: PWA (done)
-
-- [x] Service worker app-shell caching, so the app loads offline
-- [x] Manifest and icons
-- [x] iPhone polish: safe areas, keyboard handling (the floating formatting bar)
-- [x] Code-split the main bundle
-- [ ] Installing and editing offline on a real iPhone (needs a device)
-
-### Phase 10: Desktop (done)
-
-- [x] Tauri 2 shell for Windows, macOS and Linux (built and run on Windows; macOS and Linux build in CI)
-- [x] Sign-in through the system browser and a `seijaku://` deep link
-- [x] Server URL setting
-- [x] Quick capture: global hotkey and tray
-- [x] Auto-updater and GitHub Actions builds
-- [ ] A release tag and the `TAURI_SIGNING_PRIVATE_KEY` secret, to produce the first signed update
-
-### Phase 11: Deploy (done)
-
-- [x] `wrangler.jsonc` and D1 migrations for Cloudflare (checked on `wrangler dev` and `wrangler deploy --dry-run`)
-- [x] Dockerfile and compose for self-hosting
-- [x] Deployment docs for both paths
-- [ ] A real Cloudflare deploy and a `docker compose up` (need your account and a Docker host)
-
-Hosting, in order of priority: self-hosted Bun in one container (a VPS, Railway, Fly, Render or anything that runs Docker with a volume), then Cloudflare. Static-only hosts such as Vercel cannot run the server, because it needs a long-lived WebSocket and a SQLite file.
+Quick capture (desktop): press Ctrl/Cmd+Alt+Space anywhere to jot a line into today's note. You can rebind the key in Settings.
 
 ## Deploy
 
-**Self-host (one container).** Bun serves the API, the sync socket and the web app, with notes and files on a volume:
+Both targets run the same code. Static-only hosts such as Vercel cannot run the server: it needs a long-lived WebSocket and a database.
+
+Passkeys need HTTPS and a stable address, so set the public address before you start.
+
+### Option 1: self-host with Docker (one container)
+
+Bun serves the API, the sync socket and the web app. Notes, files and the database live in a volume at `/data`.
 
 ```bash
 SEIJAKU_ORIGIN=https://notes.example.com docker compose up -d
 ```
 
-Set `SEIJAKU_ORIGIN` to the public address (passkeys need HTTPS and that exact origin). Set `SETUP_TOKEN` to make every new account enter a sign-up code; unset, anyone who can reach the server can create an account. The same Dockerfile works on a VPS, Railway, Fly and Render; give it a volume at `/data`.
+Put a reverse proxy with HTTPS (Caddy, nginx, Traefik) in front of port 8791. The same Dockerfile works on a VPS, Railway, Fly and Render; give it a volume at `/data`.
 
-**Cloudflare.** Log in with `wrangler login`, create the database and bucket once, then deploy:
+Without Docker: `bun install`, `bun run --cwd apps/web build`, then `bun apps/server/src/bun.ts`.
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `SEIJAKU_ORIGIN` | Public address(es) people open the app at, comma-separated. Required for passkeys. | `http://localhost:8791` in compose |
+| `SETUP_TOKEN` | Sign-up code every new account must enter. Unset means anyone who can reach the server can create an account. | unset |
+| `PORT` | Port to listen on | `8791` |
+| `SEIJAKU_DB` | SQLite file | `/data/seijaku.sqlite` in Docker |
+| `SEIJAKU_BLOBS` | Folder for attached files | `/data/blobs` in Docker |
+| `SEIJAKU_WEB` | Folder with the web build | `apps/web/dist` |
+| `SEIJAKU_RP_ID` | WebAuthn relying-party id, if it must differ from the origin's host | derived from the origin |
+| `AUTH_SECRET` | Session signing secret | generated and kept in the database |
+| `QUOTA_FILES_MB`, `QUOTA_SNAPSHOTS`, `QUOTA_SHARES` | Per-account limits on files, history snapshots and share links | built-in defaults |
+
+Back up the `/data` volume. Because notes are encrypted on the device, a backup of it cannot be read without the account keys.
+
+### Option 2: Cloudflare (Workers, Durable Objects, D1, R2)
 
 ```bash
+bunx wrangler login
 cd apps/server
-bunx wrangler d1 create seijaku          # put the printed database_id into wrangler.jsonc
+bunx wrangler d1 create seijaku           # put the printed database_id into wrangler.jsonc
 bunx wrangler r2 bucket create seijaku-files
 cd ../.. && bun run --cwd apps/web build
 bun run --cwd apps/server deploy
 ```
 
-The Worker also serves the web app and keeps one Durable Object per account. Account tables are created in D1 by the Worker itself on its first request, so there is no separate migration step. Passkeys need HTTPS and a stable address; the Worker uses the address it is opened at, or `SEIJAKU_ORIGIN` under `vars` in `wrangler.jsonc` (comma-separated) if you serve it from several. Optionally `bunx wrangler secret put SETUP_TOKEN` for a sign-up code. `bun run --cwd apps/server dev:worker` runs the same thing locally on workerd.
+The Worker serves the web app too, and keeps one Durable Object per account. Account tables are created in D1 by the Worker on its first request, so there is no separate migration step. The Worker uses the address it is opened at for passkeys; set `SEIJAKU_ORIGIN` under `vars` in `apps/server/wrangler.jsonc` (comma-separated) if you serve it from several. For a sign-up code run `bunx wrangler secret put SETUP_TOKEN`.
 
-Static-only hosts such as Vercel cannot run the server: it needs a long-lived WebSocket and a SQLite file.
+### Desktop app
 
-**Desktop app.** Pushing a tag like `v0.1.0` builds Windows, macOS and Linux installers on GitHub Actions into a draft release. Add the updater key (the private half of the key whose public half is in `apps/desktop/src-tauri/tauri.conf.json`) as the repository secret `TAURI_SIGNING_PRIVATE_KEY`. In the app, set the server address under Settings, Sync, then sign in.
+Pushing a tag like `v0.1.0` builds Windows, macOS and Linux installers on GitHub Actions into a draft release. Add the updater private key as the repository secret `TAURI_SIGNING_PRIVATE_KEY` (its public half is in `apps/desktop/src-tauri/tauri.conf.json`). In the app, set your server address under Settings, Sync and devices, then sign in. Sign-in opens your system browser and returns through a `seijaku://` link.
 
-## Getting started
-
-You need [Bun](https://bun.sh).
-
-```bash
-bun install
-bun run --cwd apps/web dev
-```
-
-Open http://localhost:5173.
-
-For sync and sign-in, run the server beside it:
-
-```bash
-bun run --cwd apps/server dev
-```
-
-It listens on port 8791, and Vite proxies `/api` and `/sync` to that port. If the app says it "cannot reach the server", check that another program is not already using 8791. If one is, start the server with `PORT=<other>` and change the two proxy targets in `apps/web/vite.config.ts` to match.
-
-### Commands
-
-```bash
-bun run typecheck           # tsc --noEmit in every package
-bun run lint                # biome check
-bun run format              # biome format --write
-bun test                    # all tests
-bun run test:e2e            # Playwright: two devices, offline merge (needs Chrome)
-bun run --cwd apps/web build
-```
+To build locally: `bun run --cwd apps/desktop build` (installers land in `apps/desktop/src-tauri/target/release/bundle`).
 
 ## Repository layout
 
 ```
-apps/web        Vite + React SPA (TanStack Router, Tailwind v4, BlockNote)
+apps/web        Vite + React app (TanStack Router, Tailwind v4, BlockNote), also the PWA
 apps/desktop    Tauri 2 shell (Rust): tray, capture hotkey, keychain, updater
-apps/server     Hono server, Cloudflare and Bun entry points
-packages/db     Drizzle schema and migrations (sync log, key wraps, history, shares)
-packages/sync   Yjs workspace model and sync protocol
-docs/PLAN.md    Scope, architecture and phase plan
+apps/server     Hono server with two entry points: bun.ts (self-host) and worker.ts (Cloudflare)
+packages/sync   Yjs workspace model, sync protocol and encryption
+packages/db     Drizzle schema and migrations
+e2e/            Playwright end-to-end tests
+docs/           PLAN.md (scope and architecture), TRANSLATING.md, COLLABORATIVE-SHARING.md
 ```
 
-## Tech
+## Status
 
-Bun workspaces, TypeScript, React, Vite, Tailwind CSS v4, BlockNote (core, MPL packages only), Yjs with y-indexeddb, TanStack Router, Biome.
+All planned phases are built. What still needs a real environment: a live Cloudflare deploy, an install on a real iPhone, and macOS and Linux desktop builds on CI. The Apple Notes and Apple Journal importers read folders of HTML, Markdown or text, because their real export formats are unconfirmed. The full plan and phase history are in [docs/PLAN.md](docs/PLAN.md).
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md). To add a language, see [docs/TRANSLATING.md](docs/TRANSLATING.md).
 
 ## License
 

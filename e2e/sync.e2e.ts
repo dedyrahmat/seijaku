@@ -1,44 +1,5 @@
-import { expect, type Page, test } from "@playwright/test";
-
-async function newAccount(page: Page): Promise<string> {
-	await page.goto("/setup");
-	await page.getByRole("button", { name: "Generate a phrase instead" }).click();
-	await page.getByRole("list", { name: "Recovery phrase" }).waitFor();
-	const words = await page
-		.locator('ol[aria-label="Recovery phrase"] li span:last-child')
-		.allTextContents();
-	await page.getByLabel("I saved these words somewhere safe").check();
-	await page.getByRole("button", { name: "Open my notes" }).click();
-	return words.join(" ");
-}
-
-async function signIn(page: Page, phrase: string) {
-	await page.goto("/sign-in");
-	await page.getByRole("button", { name: "Sign in with phrase" }).click();
-	await page.locator("#sign-in-phrase").fill(phrase);
-	await page
-		.getByRole("button", { name: "Sign in with phrase" })
-		.last()
-		.click();
-	await page.waitForURL((u) => u.pathname === "/");
-}
-
-/** The sidebar + opens the picker; Page is card 2. */
-async function newPage(page: Page, title: string) {
-	await page.getByRole("button", { name: "New page" }).first().click();
-	await page.getByRole("dialog", { name: "New note" }).waitFor();
-	await page.keyboard.press("2");
-	await page.getByRole("button", { name: "Create page" }).click();
-	await page.locator("[data-title]").fill(title);
-}
-
-const editor = (page: Page) => page.locator(".bn-editor");
-
-async function type(page: Page, text: string) {
-	await editor(page).click();
-	await page.keyboard.press("Control+End");
-	await page.keyboard.type(text);
-}
+import { expect, test } from "@playwright/test";
+import { editor, newAccount, newPage, signIn, type } from "./helpers";
 
 test("two devices share one workspace: live edits, offline merge, offline reload", async ({
 	browser,

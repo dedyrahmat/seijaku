@@ -165,6 +165,7 @@ export default {
 				await room.fetch("https://room/wipe", { method: "DELETE" });
 			},
 			limitsFromEnv(env as unknown as Record<string, string | undefined>),
+			sharedHooks,
 		).fetch(request, env, ctx);
 	},
 };

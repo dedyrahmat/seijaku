@@ -567,6 +567,7 @@ article[data-hide-done]
 	align-items: center;
 	gap: 6px;
 }
+/* biome-ignore lint/style/noDescendingSpecificity: unrelated to the link card rule */
 .seijaku-todopop__row > span {
 	width: 56px;
 	color: var(--mute);

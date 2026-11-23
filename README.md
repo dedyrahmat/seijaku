@@ -23,19 +23,19 @@ It runs in the browser, installs as an app on iPhone and Android (PWA), and ship
 
 ## Tech stack
 
-| Area | Technology |
-| --- | --- |
-| Runtime and tooling | [Bun](https://bun.sh) workspaces (package manager, test runner, self-host runtime), TypeScript, [Biome](https://biomejs.dev) |
-| Web app | React 19, [Vite](https://vite.dev), [TanStack Router](https://tanstack.com/router), Tailwind CSS v4, i18next, KaTeX |
-| Editor | [BlockNote](https://www.blocknotejs.org) (core MPL packages only) on ProseMirror |
-| Notes and sync | [Yjs](https://yjs.dev) CRDTs, `y-indexeddb` for on-device storage, one WebSocket per device |
-| Encryption | `@noble/ciphers`, `@noble/curves`, `@noble/hashes`, `@scure/bip39` (recovery phrase), WebAuthn PRF for passkey-derived keys |
-| Server | [Hono](https://hono.dev), [Better Auth](https://www.better-auth.com) with passkeys, [Drizzle ORM](https://orm.drizzle.team) (SQLite dialect), Zod |
-| Hosting target 1 | Bun (`Bun.serve`, `bun:sqlite`, files on disk), one Docker container |
-| Hosting target 2 | Cloudflare Workers, Durable Objects (WebSocket hibernation), D1, R2 |
-| PWA | `vite-plugin-pwa` and Workbox (installable, offline shell) |
-| Desktop | [Tauri 2](https://tauri.app) (Rust): tray, global shortcut, deep links, OS keychain, updater |
-| Tests and CI | `bun:test`, [Playwright](https://playwright.dev) end-to-end, GitHub Actions |
+| Area                | Technology                                                                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Runtime and tooling | [Bun](https://bun.sh) workspaces (package manager, test runner, self-host runtime), TypeScript, [Biome](https://biomejs.dev)                      |
+| Web app             | React 19, [Vite](https://vite.dev), [TanStack Router](https://tanstack.com/router), Tailwind CSS v4, i18next, KaTeX                               |
+| Editor              | [BlockNote](https://www.blocknotejs.org) (core MPL packages only) on ProseMirror                                                                  |
+| Notes and sync      | [Yjs](https://yjs.dev) CRDTs, `y-indexeddb` for on-device storage, one WebSocket per device                                                       |
+| Encryption          | `@noble/ciphers`, `@noble/curves`, `@noble/hashes`, `@scure/bip39` (recovery phrase), WebAuthn PRF for passkey-derived keys                       |
+| Server              | [Hono](https://hono.dev), [Better Auth](https://www.better-auth.com) with passkeys, [Drizzle ORM](https://orm.drizzle.team) (SQLite dialect), Zod |
+| Hosting target 1    | Bun (`Bun.serve`, `bun:sqlite`, files on disk), one Docker container                                                                              |
+| Hosting target 2    | Cloudflare Workers, Durable Objects (WebSocket hibernation), D1, R2                                                                               |
+| PWA                 | `vite-plugin-pwa` and Workbox (installable, offline shell)                                                                                        |
+| Desktop             | [Tauri 2](https://tauri.app) (Rust): tray, global shortcut, deep links, OS keychain, updater                                                      |
+| Tests and CI        | `bun:test`, [Playwright](https://playwright.dev) end-to-end, GitHub Actions                                                                       |
 
 ## Getting started (development)
 
@@ -97,17 +97,17 @@ Put a reverse proxy with HTTPS (Caddy, nginx, Traefik) in front of port 8791. Th
 
 Without Docker: `bun install`, `bun run --cwd apps/web build`, then `bun apps/server/src/bun.ts`.
 
-| Variable | Purpose | Default |
-| --- | --- | --- |
-| `SEIJAKU_ORIGIN` | Public address(es) people open the app at, comma-separated. Required for passkeys. | `http://localhost:8791` in compose |
-| `SETUP_TOKEN` | Sign-up code every new account must enter. Unset means anyone who can reach the server can create an account. | unset |
-| `PORT` | Port to listen on | `8791` |
-| `SEIJAKU_DB` | SQLite file | `/data/seijaku.sqlite` in Docker |
-| `SEIJAKU_BLOBS` | Folder for attached files | `/data/blobs` in Docker |
-| `SEIJAKU_WEB` | Folder with the web build | `apps/web/dist` |
-| `SEIJAKU_RP_ID` | WebAuthn relying-party id, if it must differ from the origin's host | derived from the origin |
-| `AUTH_SECRET` | Session signing secret | generated and kept in the database |
-| `QUOTA_FILES_MB`, `QUOTA_SNAPSHOTS`, `QUOTA_SHARES` | Per-account limits on files, history snapshots and share links | built-in defaults |
+| Variable                                            | Purpose                                                                                                       | Default                            |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `SEIJAKU_ORIGIN`                                    | Public address(es) people open the app at, comma-separated. Required for passkeys.                            | `http://localhost:8791` in compose |
+| `SETUP_TOKEN`                                       | Sign-up code every new account must enter. Unset means anyone who can reach the server can create an account. | unset                              |
+| `PORT`                                              | Port to listen on                                                                                             | `8791`                             |
+| `SEIJAKU_DB`                                        | SQLite file                                                                                                   | `/data/seijaku.sqlite` in Docker   |
+| `SEIJAKU_BLOBS`                                     | Folder for attached files                                                                                     | `/data/blobs` in Docker            |
+| `SEIJAKU_WEB`                                       | Folder with the web build                                                                                     | `apps/web/dist`                    |
+| `SEIJAKU_RP_ID`                                     | WebAuthn relying-party id, if it must differ from the origin's host                                           | derived from the origin            |
+| `AUTH_SECRET`                                       | Session signing secret                                                                                        | generated and kept in the database |
+| `QUOTA_FILES_MB`, `QUOTA_SNAPSHOTS`, `QUOTA_SHARES` | Per-account limits on files, history snapshots and share links                                                | built-in defaults                  |
 
 Back up the `/data` volume. Because notes are encrypted on the device, a backup of it cannot be read without the account keys.
 

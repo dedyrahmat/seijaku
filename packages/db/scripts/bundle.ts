@@ -22,4 +22,4 @@ for (const set of ["log", "account"]) {
 	}
 	out += `};\n\n`;
 }
-writeFileSync(join(root, "src", "migrations.ts"), out.trimEnd() + "\n");
+writeFileSync(join(root, "src", "migrations.ts"), `${out.trimEnd()}\n`);

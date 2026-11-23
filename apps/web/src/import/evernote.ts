@@ -46,7 +46,8 @@ const first = (src: string, tag: string): string | undefined =>
 function enexDate(s: string | undefined): number | undefined {
 	const m = s?.trim().match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/);
 	if (!m) return undefined;
-	return Date.UTC(+m[1]!, +m[2]! - 1, +m[3]!, +m[4]!, +m[5]!, +m[6]!);
+	const [y = 0, mo = 1, d = 0, h = 0, mi = 0, sec = 0] = m.slice(1).map(Number);
+	return Date.UTC(y, mo - 1, d, h, mi, sec);
 }
 
 const hex = (bytes: Uint8Array): string =>

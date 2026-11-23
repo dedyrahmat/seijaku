@@ -11,7 +11,6 @@ import {
 	databaseRows,
 	deleteProp,
 	FILTER_OPS,
-	type FilterOp,
 	type NoteMeta,
 	OPS_FOR,
 	PROP_TYPES,
@@ -830,7 +829,6 @@ export function RowProps({
 	note: NoteMeta;
 	notes: NoteMeta[];
 }) {
-	const { t } = useTranslation();
 	const db = notes.find((n) => n.id === note.parentId);
 	if (!db?.schema) return null;
 	return (

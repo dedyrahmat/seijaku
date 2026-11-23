@@ -8,11 +8,9 @@ let ips = 0;
  */
 export async function ownAddress(page: Page) {
 	ips += 1;
-	await page
-		.context()
-		.setExtraHTTPHeaders({
-			"x-forwarded-for": `10.1.${ips >> 8}.${ips & 255}`,
-		});
+	await page.context().setExtraHTTPHeaders({
+		"x-forwarded-for": `10.1.${ips >> 8}.${ips & 255}`,
+	});
 }
 
 /** Create an account with a generated phrase; returns the 12 words. */

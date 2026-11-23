@@ -310,6 +310,7 @@ From an audit of every mockup board against `apps/web/src`, plus the disabled Se
     - [x] Obsidian `[[links]]` and Notion page links import as page links: importers write `[words](https://seijaku.invalid/page/<target>)` (the one form the Markdown reader keeps), and the writer gives every page its id first (`writer.ts`), then swaps matches by title; links to pages outside the import become plain words and are counted in the report. Export writes relative Markdown links (`export.ts`); a single-page export writes the title only
     - Checked in a browser (picker, link, click-through, Linked from, import of a small vault, export). `bun run test:e2e` has the same two `device.e2e.ts` failures as before (the custom dropdown replaced `<select>`)
 19. **Known gaps and debt**
+    - **Status 2026-11-23:** boards drawn in `docs/boards/phase-19.html` (offline "N waiting", share expiry and "Updated", storage quotas, remove the collide row); waiting for the user's OK before building. Non-UI items (unfurl cache, DNS-rebinding, importers) need no board.
     - [ ] "N waiting to upload" in the sync status
     - [ ] Share links: optional expiry; "last updated" on the public page
     - [ ] Per-account quotas for files, snapshots and shares

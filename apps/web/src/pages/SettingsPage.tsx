@@ -34,6 +34,7 @@ import {
 	TextField,
 	Toggle,
 } from "../components/SettingRows";
+import { StorageGroup } from "../components/StorageGroup";
 import {
 	captureShortcut,
 	type DesktopSettings,
@@ -547,7 +548,6 @@ function EditorSettings() {
 function SyncSettings({ syncedLine }: { syncedLine: string }) {
 	const { t } = useTranslation();
 	const { p, set } = useSet();
-	const labels = usePrefLabels();
 	const sync = useSyncState();
 	const signedOut = useSignedOut();
 	const keepSafe = useHomeScreenNotice();
@@ -638,26 +638,16 @@ function SyncSettings({ syncedLine }: { syncedLine: string }) {
 						}}
 					/>
 				</Row>
-				<Row
-					label={t("settings.sync.collide.label")}
-					desc={t("settings.sync.collide.desc")}
-				>
-					<Select
-						label={t("settings.sync.collide.label")}
-						value={p.collisions}
-						options={["Keep as a copy", "Keep the newer one"]}
-						labels={labels.collisions}
-						onChange={set("collisions")}
-						disabled
-					/>
-				</Row>
 			</Group>
 			{signedOut ? (
 				<Group name={t("settings.account")}>
 					<AccountRow />
 				</Group>
 			) : (
-				<DevicesGroup />
+				<>
+					<StorageGroup />
+					<DevicesGroup />
+				</>
 			)}
 		</>
 	);

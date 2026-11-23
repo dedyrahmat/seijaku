@@ -63,7 +63,10 @@ export function SyncStatus() {
 			state.pending > 0
 				? t("sync.detail.sending", { count: state.pending })
 				: t("sync.detail.catching"),
-		offline: t("sync.detail.offline"),
+		offline:
+			state.pending > 0
+				? t("sync.detail.offlineWaiting", { count: state.pending })
+				: t("sync.detail.offline"),
 		"keep-safe": t("settings.sync.connection.keepSafe"),
 	}[kind];
 

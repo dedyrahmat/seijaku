@@ -17,12 +17,13 @@ import {
 	stem,
 	tagList,
 } from "./model";
+import { csvToMarkdown } from "./tables";
 
 /**
  * A Notion export ("Markdown & CSV"): every page is "Title <32 hex>.md", and a page's
  * sub-pages sit in a folder of the same name. The ids are dropped from titles, folders
  * become the page tree, a leading "Tags:" property becomes tags, and links between pages
- * become page links. Database tables (CSV) are not imported; their rows are pages already.
+ * become page links. A database table (CSV) becomes one more page with a Markdown table; its rows are pages already.
  */
 
 const ID = / [0-9a-f]{32}(?=\.|$)/;
@@ -39,10 +40,22 @@ export function parseNotion(entries: Entries): Parsed {
 	for (const [path, bytes] of entries) {
 		const ext = extname(path);
 		if (ext === "csv") {
-			skipped.push({
-				source: strip(path),
-				reason: "Database tables are not imported; each row is its own page",
+			// "_all" is Notion's copy of the same table with every column.
+			const md = path.endsWith("_all.csv") ? "" : csvToMarkdown(text(bytes));
+			if (!md) {
+				skipped.push({
+					source: strip(path),
+					reason: "Empty or repeated table",
+				});
+				continue;
+			}
+			const table = newNote(strip(path), `${strip(stem(path))} (table)`, {
+				kind: "markdown",
+				text: md,
 			});
+			table.parents = dirname(path).split("/").filter(Boolean).map(strip);
+			table.warnings.push("Rows are also pages of their own");
+			notes.push(table);
 			continue;
 		}
 		if (ext === "html" || ext === "htm") {

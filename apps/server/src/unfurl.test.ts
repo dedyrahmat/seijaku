@@ -84,9 +84,27 @@ test("the resolver can refuse a name that points inside", async () => {
 	await expect(
 		unfurl("https://sneaky.example/", {
 			fetcher,
-			allowHost: async () => false,
+			resolveHost: async () => null,
 		}),
 	).rejects.toThrow("public internet");
+});
+
+test("the fetch connects to the address that was checked, keeping the name", async () => {
+	const seen: { url: string; host: string | null }[] = [];
+	const fetcher = (async (url: URL, init: RequestInit) => {
+		seen.push({ url: url.href, host: new Headers(init.headers).get("host") });
+		return new Response("<title>Hi</title>", {
+			headers: { "content-type": "text/html" },
+		});
+	}) as unknown as typeof fetch;
+	const out = await unfurl("https://example.com/a?b=1", {
+		fetcher,
+		resolveHost: async () => "93.184.216.34",
+	});
+	expect(out.url).toBe("https://example.com/a?b=1");
+	expect(seen).toEqual([
+		{ url: "https://93.184.216.34/a?b=1", host: "example.com" },
+	]);
 });
 
 test("a page that is not HTML gets a bare card", async () => {

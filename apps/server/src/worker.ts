@@ -8,6 +8,7 @@ import {
 	rpIdFor,
 	socketHeaders,
 } from "./auth";
+import { limitsFromEnv } from "./quota";
 import { R2BlobStore } from "./r2-blobs";
 
 export { WorkspaceRoom } from "./room-do";
@@ -119,11 +120,17 @@ export default {
 			const id = env.WORKSPACE_ROOM.idFromName(userId);
 			return env.WORKSPACE_ROOM.get(id).fetch(request);
 		}
-		return createApp(new R2BlobStore(env.BLOBS), auth, {}, async (userId) => {
-			const room = env.WORKSPACE_ROOM.get(
-				env.WORKSPACE_ROOM.idFromName(userId),
-			);
-			await room.fetch("https://room/wipe", { method: "DELETE" });
-		}).fetch(request, env, ctx);
+		return createApp(
+			new R2BlobStore(env.BLOBS),
+			auth,
+			{},
+			async (userId) => {
+				const room = env.WORKSPACE_ROOM.get(
+					env.WORKSPACE_ROOM.idFromName(userId),
+				);
+				await room.fetch("https://room/wipe", { method: "DELETE" });
+			},
+			limitsFromEnv(env as unknown as Record<string, string | undefined>),
+		).fetch(request, env, ctx);
 	},
 };

@@ -1,9 +1,10 @@
 import { docVersion, shareLink } from "@seijaku/db";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, asc, count, eq, inArray } from "drizzle-orm";
 import type { Hono } from "hono";
 import * as z from "zod";
 import type { AuthService } from "./auth";
 import { BLOB_ID, type BlobStore, MAX_UPLOAD_BYTES, newBlobId } from "./blobs";
+import { DEFAULT_LIMITS, type Limits, over } from "./quota";
 
 /**
  * Version history and public share links. Both hold only sealed bytes: the app seals a note's
@@ -79,6 +80,7 @@ export function mountHistory(
 	app: Hono,
 	auth: AuthService,
 	blobs: BlobStore,
+	limits: Limits = DEFAULT_LIMITS,
 ): void {
 	const db = async () => {
 		await auth.ready;
@@ -141,6 +143,29 @@ export function mountHistory(
 				),
 			);
 			for (const v of drop) await blobs.delete(v.blobId).catch(() => undefined);
+		}
+		// Over the account's snapshot limit: the oldest go first, so history never stops.
+		if (limits.snapshots > 0) {
+			const [{ n } = { n: 0 }] = await d
+				.select({ n: count() })
+				.from(docVersion)
+				.where(eq(docVersion.userId, userId));
+			if (n > limits.snapshots) {
+				const oldest = await d
+					.select({ id: docVersion.id, blobId: docVersion.blobId })
+					.from(docVersion)
+					.where(eq(docVersion.userId, userId))
+					.orderBy(asc(docVersion.createdAt))
+					.limit(n - limits.snapshots);
+				await d.delete(docVersion).where(
+					inArray(
+						docVersion.id,
+						oldest.map((v) => v.id),
+					),
+				);
+				for (const v of oldest)
+					await blobs.delete(v.blobId).catch(() => undefined);
+			}
 		}
 		return c.json({ id });
 	});
@@ -208,6 +233,8 @@ export function mountHistory(
 	const publish = z.object({
 		token: z.string().regex(TOKEN).optional(),
 		data: z.string().min(1),
+		/** Epoch ms; null for never. Left out, an existing link keeps its date. */
+		expiresAt: z.number().int().positive().nullable().optional(),
 	});
 
 	// Creates a share, or replaces the page behind an existing one (same link, new content).
@@ -226,11 +253,6 @@ export function mountHistory(
 			return c.json({ error: "too large" }, 413);
 
 		const d = await db();
-		const blobId = newBlobId();
-		await blobs.put(blobId, bytes.buffer as ArrayBuffer, {
-			type: "application/octet-stream",
-			size: bytes.byteLength,
-		});
 		const [existing] = parsed.data.token
 			? await d
 					.select()
@@ -243,10 +265,36 @@ export function mountHistory(
 					)
 					.limit(1)
 			: [];
+		if (!existing) {
+			const [{ n } = { n: 0 }] = await d
+				.select({ n: count() })
+				.from(shareLink)
+				.where(eq(shareLink.userId, userId));
+			if (over(n, 1, limits.shares))
+				return c.json(
+					{ error: "quota", what: "shares", limit: limits.shares },
+					413,
+				);
+		}
+		const blobId = newBlobId();
+		await blobs.put(blobId, bytes.buffer as ArrayBuffer, {
+			type: "application/octet-stream",
+			size: bytes.byteLength,
+		});
+		const expiresAt =
+			parsed.data.expiresAt === undefined
+				? undefined
+				: parsed.data.expiresAt === null
+					? null
+					: new Date(parsed.data.expiresAt);
 		if (existing) {
 			await d
 				.update(shareLink)
-				.set({ blobId, updatedAt: new Date() })
+				.set({
+					blobId,
+					updatedAt: new Date(),
+					...(expiresAt === undefined ? {} : { expiresAt }),
+				})
 				.where(eq(shareLink.id, existing.id));
 			await blobs.delete(existing.blobId).catch(() => undefined);
 			return c.json({
@@ -263,6 +311,7 @@ export function mountHistory(
 			blobId,
 			createdAt: now,
 			updatedAt: now,
+			expiresAt: expiresAt ?? null,
 		});
 		return c.json({ token, createdAt: now.getTime() });
 	});
@@ -293,13 +342,22 @@ export function mountHistory(
 		const token = c.req.param("token");
 		if (!TOKEN.test(token)) return c.json({ error: "not found" }, 404);
 		const [row] = await (await db())
-			.select({ blobId: shareLink.blobId })
+			.select({
+				blobId: shareLink.blobId,
+				updatedAt: shareLink.updatedAt,
+				expiresAt: shareLink.expiresAt,
+			})
 			.from(shareLink)
 			.where(eq(shareLink.token, token))
 			.limit(1);
+		if (row?.expiresAt && row.expiresAt.getTime() <= Date.now())
+			return c.json({ error: "expired" }, 410);
 		const found =
 			row && BLOB_ID.test(row.blobId) ? await blobs.get(row.blobId) : null;
-		if (!found) return c.json({ error: "not found" }, 404);
-		return octet(found.body as BodyInit, { "X-Robots-Tag": "noindex" });
+		if (!row || !found) return c.json({ error: "not found" }, 404);
+		return octet(found.body as BodyInit, {
+			"X-Robots-Tag": "noindex",
+			"X-Updated-At": String(row.updatedAt.getTime()),
+		});
 	});
 }

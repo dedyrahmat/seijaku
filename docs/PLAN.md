@@ -309,14 +309,15 @@ From an audit of every mockup board against `apps/web/src`, plus the disabled Se
     - [x] Backlinks are read on the device (`fragmentLinks` in `packages/sync/src/text.ts`, `workspace/links.ts`, `components/LinkedFrom.tsx`), each note once per edit time, like search. shortcut: the snippet shows titles as they were when the note was last read
     - [x] Obsidian `[[links]]` and Notion page links import as page links: importers write `[words](https://seijaku.invalid/page/<target>)` (the one form the Markdown reader keeps), and the writer gives every page its id first (`writer.ts`), then swaps matches by title; links to pages outside the import become plain words and are counted in the report. Export writes relative Markdown links (`export.ts`); a single-page export writes the title only
     - Checked in a browser (picker, link, click-through, Linked from, import of a small vault, export). `bun run test:e2e` has the same two `device.e2e.ts` failures as before (the custom dropdown replaced `<select>`)
-19. **Known gaps and debt**
-    - **Status 2026-11-23:** boards drawn in `docs/boards/phase-19.html` (offline "N waiting", share expiry and "Updated", storage quotas, remove the collide row); waiting for the user's OK before building. Non-UI items (unfurl cache, DNS-rebinding, importers) need no board.
-    - [ ] "N waiting to upload" in the sync status
-    - [ ] Share links: optional expiry; "last updated" on the public page
-    - [ ] Per-account quotas for files, snapshots and shares
-    - [ ] Server cache for unfurl answers; close the DNS-rebinding gap on self-host
-    - [ ] Importers: Notion CSV databases, Obsidian canvas, Keep audio transcripts; re-import a Seijaku export zip
-    - [ ] "When two edits collide" (decision: remove the row or rework it; Yjs merges, so there is no older version to keep)
+19. **Known gaps and debt** (boards approved 2026-11-23, `docs/boards/phase-19.html`; built)
+    - [x] Offline status says how many changes are saved on the device and will upload when back online (`sync.detail.offlineWaiting`, from `state.pending`)
+    - [x] Share links: optional expiry (never, 1, 7, 30 days; `share_link.expires_at`, `ShareInfo.expires`, `setShareExpiry`); an expired link answers 410 and the public page says so; "Renew" in the Share panel; the public page header shows "Updated <date>" (`X-Updated-At`, which the server already knew)
+    - [x] Per-account limits (`apps/server/src/quota.ts`, env `QUOTA_FILES_MB` default 500, `QUOTA_SNAPSHOTS` 5000, `QUOTA_SHARES` 100, 0 = none): files and new share links are refused with 413 `{error:"quota"}` and a plain message; at the snapshot limit the oldest snapshots are dropped instead of refusing. `blob_owner.size` records file sizes (files uploaded earlier count 0). `GET /api/usage` feeds Settings → Sync and devices → "Used on the server"
+    - [x] Unfurl answers are cached for an hour (per process, 500 entries, successes only); self-host pins the address it checked (`resolveHost`, connects to the IP with Host and TLS server name), closing the DNS-rebinding gap
+    - [x] Importers: a Notion CSV table becomes a page with a Markdown table (`tables.ts`; `_all.csv` copies skipped); an Obsidian canvas becomes a page of its cards in reading order (layout and arrows are not kept)
+    - [x] "When two edits collide" row and its preference removed
+    - [x] Also: a shared page with no blocks no longer crashes the public page; `docs/boards` is excluded from Biome (static mockups)
+    - Not done: Keep audio transcripts (the Takeout format is unconfirmed) and re-importing a Seijaku export zip. Not run: the Cloudflare path (typechecked only); the quota env vars are read from the worker's `env`, which needs them declared as `vars` in `wrangler.toml` to take effect
 20. **Databases**
     - [ ] Spike and boards first: table view of child pages with typed properties (text, select, date, checkbox), sort, filter; properties in the index doc. Build only after the boards and data model are approved
 21. **Collaborative sharing**

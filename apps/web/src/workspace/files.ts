@@ -70,7 +70,19 @@ export async function uploadFile(file: File): Promise<string> {
 		// Offline or the server is down: queued below.
 	}
 	if (res?.ok) return url;
-	if (res?.status === 413) throw new Error(i18n.t("errors.fileTooBig"));
+	if (res?.status === 413) {
+		const body = (await res.json().catch(() => null)) as {
+			error?: string;
+			limit?: number;
+		} | null;
+		throw new Error(
+			body?.error === "quota"
+				? i18n.t("errors.quotaFiles", {
+						size: `${Math.round((body.limit ?? 0) / 1048576)} MB`,
+					})
+				: i18n.t("errors.fileTooBig"),
+		);
+	}
 	if (res && res.status < 500 && res.status !== 401)
 		throw new Error(i18n.t("errors.uploadFailed"));
 

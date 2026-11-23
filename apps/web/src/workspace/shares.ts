@@ -72,9 +72,13 @@ async function inlineFiles(
 	return out;
 }
 
+/**
+ * `expires`: epoch ms or null for never; left out, an existing link keeps the date it has.
+ */
 async function publish(
 	noteId: string,
 	share: ShareInfo | null,
+	expires?: number | null,
 ): Promise<ShareInfo> {
 	const note = workspace.getNotes().find((n) => n.id === noteId);
 	if (!note) throw new Error(i18n.t("errors.pageGone"));
@@ -96,9 +100,19 @@ async function publish(
 		method: "PUT",
 		credentials: "include",
 		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ token: share?.token, data: toBase64(sealed) }),
+		body: JSON.stringify({
+			token: share?.token,
+			data: toBase64(sealed),
+			expiresAt: expires,
+		}),
 	});
 	if (res.status === 401) throw new Error(i18n.t("errors.shareSignIn"));
+	if (res.status === 413) {
+		const body = (await res.json().catch(() => null)) as {
+			limit?: number;
+		} | null;
+		throw new Error(i18n.t("errors.quotaShares", { count: body?.limit ?? 0 }));
+	}
 	if (!res.ok) throw new Error(i18n.t("errors.noServerMoment"));
 	const { token, createdAt } = (await res.json()) as {
 		token: string;
@@ -108,6 +122,7 @@ async function publish(
 		token,
 		key: share?.key ?? encodeKey(key),
 		at: share?.at ?? createdAt,
+		expires: expires === undefined ? (share?.expires ?? null) : expires,
 	};
 }
 
@@ -117,9 +132,19 @@ export function canShare(): boolean {
 
 /** Turns sharing on: publishes the page and records the link on it. */
 export async function startSharing(noteId: string): Promise<ShareInfo> {
-	const share = await publish(noteId, null);
+	const share = await publish(noteId, null, null);
 	setShare(workspace.index, noteId, share);
 	return share;
+}
+
+/** Sets when an existing link stops working (epoch ms), or null for never. Also renews an expired one. */
+export async function setShareExpiry(
+	noteId: string,
+	expires: number | null,
+): Promise<void> {
+	const share = workspace.getNotes().find((n) => n.id === noteId)?.share;
+	if (!share) return;
+	setShare(workspace.index, noteId, await publish(noteId, share, expires));
 }
 
 /** Turns sharing off for good: the server deletes the copy, and the link stops working. */
@@ -179,13 +204,23 @@ export function cleanBlocks(node: unknown): unknown {
 	return node;
 }
 
-/** What a link points at: the page's title and blocks, or null if it cannot be opened. */
+/** What a link points at: the page's title and blocks, "expired", or null if it cannot be opened. */
 export async function openShared(
 	token: string,
 	keyText: string,
-): Promise<{ title: string; workspace: string; blocks: Block[] } | null> {
+): Promise<
+	| {
+			title: string;
+			workspace: string;
+			blocks: Block[];
+			updatedAt: number;
+	  }
+	| "expired"
+	| null
+> {
 	try {
 		const res = await fetch(apiUrl(`/api/shares/${token}`));
+		if (res.status === 410) return "expired";
 		if (!res.ok) return null;
 		const plain = openShare(
 			decodeKey(keyText),
@@ -196,6 +231,7 @@ export async function openShared(
 			title: String(bundle.title ?? ""),
 			workspace: String(bundle.workspace ?? "").slice(0, 60),
 			blocks: cleanBlocks(bundle.blocks) as Block[],
+			updatedAt: Number(res.headers.get("x-updated-at")) || 0,
 		};
 	} catch {
 		return null;

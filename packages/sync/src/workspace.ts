@@ -50,6 +50,8 @@ export interface ShareInfo {
 	/** Base64url key that seals the published copy. Lives only here (sealed) and in the link. */
 	key: string;
 	at: number;
+	/** When the link stops working (epoch ms); missing or null means never. */
+	expires?: number | null;
 }
 
 export interface TreeNode {

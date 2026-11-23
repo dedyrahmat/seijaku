@@ -20,6 +20,7 @@ import {
 	stem,
 	tagList,
 } from "./model";
+import { canvasToMarkdown } from "./tables";
 
 /**
  * An Obsidian vault: Markdown files in folders. Folders become parent pages; frontmatter
@@ -42,7 +43,17 @@ export function parseObsidian(entries: Entries): Parsed {
 		if (SKIP_DIR.test(path)) continue;
 		const ext = extname(path);
 		if (ext === "canvas") {
-			skipped.push({ source: path, reason: "Canvas boards are not imported" });
+			const md = canvasToMarkdown(text(bytes));
+			if (!md) {
+				skipped.push({ source: path, reason: "Canvas board has no cards" });
+				continue;
+			}
+			const note = newNote(path, stem(path), { kind: "markdown", text: md });
+			note.parents = dirname(path).split("/").filter(Boolean);
+			note.warnings.push(
+				"Layout and arrows are not kept; cards are listed in reading order",
+			);
+			notes.push(note);
 			continue;
 		}
 		if (ext !== "md") continue;

@@ -146,35 +146,40 @@ async function readText(res: Response, limit: number): Promise<string> {
 
 export interface UnfurlOptions {
 	/**
-	 * Extra check on a name before it is fetched (self-host resolves it and refuses inner
-	 * addresses; on Cloudflare the platform already refuses them). Return false to refuse.
+	 * Self-host resolves a name once, refuses inner addresses (null), and returns the address
+	 * it checked; the fetch then connects to exactly that address, so a hostile DNS server
+	 * cannot answer differently the second time. On Cloudflare the platform already refuses
+	 * inner addresses, so nothing is passed.
 	 */
-	allowHost?: (host: string) => Promise<boolean>;
+	resolveHost?: (host: string) => Promise<string | null>;
 	fetcher?: typeof fetch;
 }
 
-/**
- * shortcut: a hostile DNS server can answer differently at fetch time than at check time
- * (rebinding); upgrade by pinning the checked address once Bun can connect to one.
- */
 export async function unfurl(
 	raw: string,
-	{ allowHost, fetcher = fetch }: UnfurlOptions = {},
+	{ resolveHost, fetcher = fetch }: UnfurlOptions = {},
 ): Promise<Preview> {
 	let url = checkUrl(raw);
 	for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-		if (allowHost && !(await allowHost(url.hostname)))
+		const address = resolveHost ? await resolveHost(url.hostname) : undefined;
+		if (address === null)
 			throw new UnfurlError("That address is not on the public internet.");
+		// Connect to the checked address; the name still goes in Host and the TLS server name.
+		const target = new URL(url);
+		if (address)
+			target.hostname = address.includes(":") ? `[${address}]` : address;
 		let res: Response;
 		try {
-			res = await fetcher(url, {
+			res = await fetcher(target, {
 				redirect: "manual",
 				signal: AbortSignal.timeout(5000),
 				headers: {
 					Accept: "text/html",
 					"User-Agent": "Mozilla/5.0 (compatible; SeijakuLinkPreview/1.0)",
+					...(address ? { Host: url.host } : {}),
 				},
-			});
+				...(address ? { tls: { serverName: url.hostname } } : {}),
+			} as RequestInit);
 		} catch {
 			throw new UnfurlError("Could not reach that page.");
 		}

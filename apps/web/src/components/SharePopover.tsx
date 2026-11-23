@@ -5,11 +5,17 @@ import { useAuth } from "../auth/session";
 import { useNotes } from "../workspace/hooks";
 import {
 	canShare,
+	setShareExpiry,
 	shareLink,
 	startSharing,
 	stopSharing,
 } from "../workspace/shares";
+import { ago } from "./ago";
 import { askConfirm } from "./Dialogs";
+import { Select } from "./SettingRows";
+
+const DAY = 86_400_000;
+const EXPIRY = ["never", "d1", "d7", "d30"] as const;
 
 /**
  * The mockup's Share to the web popover. Sharing publishes a sealed copy of this one page
@@ -71,6 +77,19 @@ export function SharePopover({
 		)
 			void run(() => stopSharing(noteId));
 	};
+	const expires = share?.expires ?? null;
+	const expired = expires !== null && expires <= Date.now();
+	// The date is stored, the choice is not: show the nearest option still ahead.
+	const left = expires === null ? 0 : (expires - Date.now()) / DAY;
+	const choice: (typeof EXPIRY)[number] =
+		expires === null ? "never" : left <= 1 ? "d1" : left <= 7 ? "d7" : "d30";
+	const pickExpiry = (v: (typeof EXPIRY)[number]) =>
+		run(() =>
+			setShareExpiry(
+				noteId,
+				v === "never" ? null : Date.now() + Number(v.slice(1)) * DAY,
+			),
+		);
 	const link = share ? shareLink(share) : "";
 	const signedIn = auth.phase === "signed-in" && canShare();
 
@@ -162,6 +181,46 @@ export function SharePopover({
 						>
 							{t("share.revoke")}
 						</button>
+					</div>
+					<div className="flex items-center gap-3 text-[13px]">
+						<div className="flex flex-1 flex-col">
+							<span className="text-ink">{t("share.expires.label")}</span>
+							<span className={expired ? "text-accent" : "text-mute"}>
+								{expires === null
+									? t("share.expires.desc")
+									: t(expired ? "share.expires.past" : "share.expires.on", {
+											when: expired
+												? ago(expires, Date.now())
+												: new Date(expires).toLocaleDateString(undefined, {
+														day: "numeric",
+														month: "short",
+													}),
+										})}
+							</span>
+						</div>
+						{expired ? (
+							<button
+								type="button"
+								disabled={busy}
+								onClick={() => void run(() => setShareExpiry(noteId, null))}
+								className="h-9 rounded-full border border-line px-4 text-[13px] font-medium"
+							>
+								{t("share.renew")}
+							</button>
+						) : null}
+						<Select
+							label={t("share.expires.label")}
+							value={choice}
+							options={EXPIRY}
+							labels={{
+								never: t("share.expires.never"),
+								d1: t("share.expires.d1"),
+								d7: t("share.expires.d7"),
+								d30: t("share.expires.d30"),
+							}}
+							onChange={pickExpiry}
+							disabled={busy}
+						/>
 					</div>
 					<p className="-mt-1.5 text-xs leading-normal text-mute">
 						{t("share.revokeNote")}

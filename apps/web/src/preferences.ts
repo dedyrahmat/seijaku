@@ -32,7 +32,6 @@ export interface Prefs {
 	language: string;
 	iconPack: IconPack;
 	openOnStart: "Today" | "Last page" | "Home";
-	collisions: "Keep as a copy" | "Keep the newer one";
 	trashAfter: "After 7 days" | "After 30 days" | "Never";
 	historyFor: "30 days" | "90 days" | "Forever";
 	lockAfterIdle: "5 minutes" | "15 minutes" | "Never";
@@ -60,7 +59,6 @@ export const DEFAULTS: Prefs = {
 	language: "en",
 	iconPack: "seijaku",
 	openOnStart: "Today",
-	collisions: "Keep as a copy",
 	trashAfter: "After 30 days",
 	historyFor: "90 days",
 	lockAfterIdle: "Never",

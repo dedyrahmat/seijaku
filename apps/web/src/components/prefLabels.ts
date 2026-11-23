@@ -13,10 +13,6 @@ export function usePrefLabels() {
 			"Match page style": t("prefs.pasteStyle.Match page style"),
 			"Plain text": t("prefs.pasteStyle.Plain text"),
 		},
-		collisions: {
-			"Keep as a copy": t("prefs.collisions.Keep as a copy"),
-			"Keep the newer one": t("prefs.collisions.Keep the newer one"),
-		},
 		trashAfter: {
 			"After 7 days": t("prefs.trashAfter.After 7 days"),
 			"After 30 days": t("prefs.trashAfter.After 30 days"),

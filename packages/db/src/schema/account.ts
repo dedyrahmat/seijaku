@@ -60,6 +60,8 @@ export const shareLink = sqliteTable(
 		blobId: text("blob_id").notNull(),
 		createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 		updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+		/** After this the link answers "expired" until its owner renews it. Null: never. */
+		expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
 	},
 	(t) => [uniqueIndex("share_link_by_token").on(t.token)],
 );
@@ -70,6 +72,8 @@ export const blobOwner = sqliteTable(
 	{
 		blobId: text("blob_id").primaryKey(),
 		userId: text("user_id").notNull(),
+		/** Sealed size, for the storage limit. Files uploaded before limits existed read 0. */
+		size: integer("size").notNull().default(0),
 	},
 	(t) => [index("blob_owner_by_user").on(t.userId)],
 );

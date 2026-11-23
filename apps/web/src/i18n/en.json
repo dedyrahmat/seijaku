@@ -93,10 +93,6 @@
 				"desc": "Pause syncing. Changes queue up and send when you turn this off.",
 				"label": "Work offline"
 			},
-			"collide": {
-				"desc": "Both versions are kept. Choose what happens to the older one.",
-				"label": "When two edits collide"
-			},
 			"sync": {
 				"desc": "Pull and push changes right now.",
 				"label": "Sync"
@@ -291,7 +287,19 @@
 		"account": "Account",
 		"versionLine": "Version {{version}} · {{where}}",
 		"navFooter": "Seijaku 0.1 · {{where}}",
-		"synced": "Synced {{when}}"
+		"synced": "Synced {{when}}",
+		"storage": {
+			"title": "Used on the server",
+			"files": "Files",
+			"filesOf": "{{used}} of {{limit}}",
+			"snapshots": "Version history",
+			"snapshotsOf": "{{used}} of {{limit}} snapshots",
+			"shares": "Shared pages",
+			"sharesOf": "{{used}} of {{limit}} links",
+			"noLimit": "{{used}} used, no limit",
+			"note": "Limits are set by whoever runs the server. Your notes themselves are never counted or refused; only files, snapshots and links are. When history is full, the oldest snapshots go first.",
+			"failed": "Could not reach your server to read the usage."
+		}
 	},
 	"tagline": "Active calm. The opposite of noise.",
 	"common": {
@@ -326,10 +334,6 @@
 		"pasteStyle": {
 			"Match page style": "Match page style",
 			"Plain text": "Plain text"
-		},
-		"collisions": {
-			"Keep as a copy": "Keep as a copy",
-			"Keep the newer one": "Keep the newer one"
 		},
 		"trashAfter": {
 			"After 7 days": "After 7 days",
@@ -481,7 +485,9 @@
 			"catching": "Catching up with your server. You can keep typing; nothing waits on this.",
 			"synced": "Every note is on this device and on your server. Last sync {{when}}.",
 			"sending_one": "Sending {{count}} edit. You can keep typing; nothing waits on this.",
-			"sending_other": "Sending {{count}} edits. You can keep typing; nothing waits on this."
+			"sending_other": "Sending {{count}} edits. You can keep typing; nothing waits on this.",
+			"offlineWaiting_one": "No connection. {{count}} change is saved on this device and will upload when you are back online.",
+			"offlineWaiting_other": "No connection. {{count}} changes are saved on this device and will upload when you are back online."
 		},
 		"offline": "Offline · saved on this device",
 		"keepSafe": "Keep your notes safe",
@@ -606,7 +612,18 @@
 		"heading": "Share to the web",
 		"title": "Share this page",
 		"publicLink": "Public link",
-		"revoke": "Revoke link"
+		"revoke": "Revoke link",
+		"expires": {
+			"label": "Link expires",
+			"desc": "After that the link stops working.",
+			"never": "Never",
+			"d1": "In 1 day",
+			"d7": "In 7 days",
+			"d30": "In 30 days",
+			"on": "Expires {{when}}",
+			"past": "Expired {{when}}"
+		},
+		"renew": "Renew"
 	},
 	"history": {
 		"todayAt": "today, {{time}}",
@@ -643,7 +660,10 @@
 		"cta": "Keep your own notes with Seijaku",
 		"goneTitle": "This page is not available",
 		"opening": "Opening…",
-		"sharedReadOnly": "Shared page · read only"
+		"sharedReadOnly": "Shared page · read only",
+		"updated": "Updated {{when}}",
+		"expiredTitle": "This link has expired",
+		"expiredDesc": "Whoever shared this page set it to stop working after a date. Ask them for a new link."
 	},
 	"note": {
 		"missing": "This page isn't here",
@@ -1085,7 +1105,10 @@
 		"fileSignIn": "Sign in to add files.",
 		"noServerMoment": "Could not reach your server. Try again in a moment.",
 		"shareSignIn": "Sign in to share pages.",
-		"pageGone": "This page is gone."
+		"pageGone": "This page is gone.",
+		"quotaFiles": "This server's file limit ({{size}}) is full. Delete files you no longer need, or ask whoever runs this server to raise it.",
+		"quotaShares_one": "This server allows {{count}} shared page. Stop sharing one first.",
+		"quotaShares_other": "This server allows {{count}} shared pages. Stop sharing one first."
 	},
 	"accent": {
 		"vermilion": "Vermilion",

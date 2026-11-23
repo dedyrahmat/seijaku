@@ -75,7 +75,7 @@ test("snapshots are listed newest first, belong to their owner, and need a sessi
 	const alice = await signUp(base);
 	const bob = await signUp(base);
 
-	expect((await call(base, "/api/versions?doc=" + doc, "")).status).toBe(401);
+	expect((await call(base, `/api/versions?doc=${doc}`, "")).status).toBe(401);
 	const made = await call(base, "/api/versions", alice, {
 		method: "POST",
 		body: JSON.stringify({ doc, meta: "sealed-meta", data: b64([1, 2, 3]) }),
@@ -199,4 +199,75 @@ test("thinning keeps recent snapshots dense and old ones sparse", () => {
 	// "Keep version history: 30 days" drops the old ones outright.
 	const short = versionsToKeep([v("a", now), v("f", now - 60 * day)], now, 30);
 	expect([...short]).toEqual(["a"]);
+});
+
+test("a share can expire, answers 410 until renewed, and reports when it was updated", async () => {
+	const base = await boot();
+	const alice = await signUp(base);
+	const put = (body: object) =>
+		call(base, "/api/shares", alice, {
+			method: "PUT",
+			body: JSON.stringify({ data: b64([1, 2, 3]), ...body }),
+		});
+	const { token } = (await (
+		await put({ expiresAt: Date.now() + 60_000 })
+	).json()) as { token: string };
+	const open = await call(base, `/api/shares/${token}`, "");
+	expect(open.status).toBe(200);
+	expect(Number(open.headers.get("x-updated-at"))).toBeGreaterThan(0);
+
+	await put({ token, expiresAt: Date.now() - 1000 });
+	expect((await call(base, `/api/shares/${token}`, "")).status).toBe(410);
+
+	await put({ token }); // no date given: the old one stays
+	expect((await call(base, `/api/shares/${token}`, "")).status).toBe(410);
+	await put({ token, expiresAt: null }); // renewed for good
+	expect((await call(base, `/api/shares/${token}`, "")).status).toBe(200);
+});
+
+test("limits refuse a new share or file, and drop the oldest snapshots", async () => {
+	process.env.QUOTA_SHARES = "1";
+	process.env.QUOTA_FILES_MB = "1";
+	process.env.QUOTA_SNAPSHOTS = "2";
+	try {
+		const base = await boot();
+		const alice = await signUp(base);
+		const share = (token?: string) =>
+			call(base, "/api/shares", alice, {
+				method: "PUT",
+				body: JSON.stringify({ token, data: b64([1]) }),
+			});
+		const first = (await (await share()).json()) as { token: string };
+		const refused = await share();
+		expect(refused.status).toBe(413);
+		expect(((await refused.json()) as { what: string }).what).toBe("shares");
+		expect((await share(first.token)).status).toBe(200); // replacing is fine
+
+		const upload = (n: number) =>
+			fetch(`${base}/api/files`, {
+				method: "POST",
+				headers: { Cookie: alice, "Content-Type": "image/png" },
+				body: new Uint8Array(n),
+			});
+		expect((await upload(700 * 1024)).status).toBe(200);
+		expect((await upload(700 * 1024)).status).toBe(413);
+
+		for (let i = 0; i < 4; i++)
+			await call(base, "/api/versions", alice, {
+				method: "POST",
+				body: JSON.stringify({ doc, meta: "m", data: b64([i + 1]) }),
+			});
+		const usage = (await (await call(base, "/api/usage", alice)).json()) as {
+			files: { used: number };
+			snapshots: { used: number; limit: number };
+			shares: { used: number };
+		};
+		expect(usage.snapshots).toEqual({ used: 2, limit: 2 });
+		expect(usage.shares.used).toBe(1);
+		expect(usage.files.used).toBe(700 * 1024);
+	} finally {
+		delete process.env.QUOTA_SHARES;
+		delete process.env.QUOTA_FILES_MB;
+		delete process.env.QUOTA_SNAPSHOTS;
+	}
 });

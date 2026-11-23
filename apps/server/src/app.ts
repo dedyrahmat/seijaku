@@ -1,5 +1,6 @@
-import { blobOwner } from "@seijaku/db";
-import { Hono, type MiddlewareHandler } from "hono";
+import { blobOwner, docVersion, shareLink } from "@seijaku/db";
+import { count, eq, sum } from "drizzle-orm";
+import { type Context, Hono, type MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
 import { mountAccount } from "./account";
 import { type AuthService, DESKTOP_ORIGINS } from "./auth";
@@ -13,7 +14,15 @@ import {
 	newBlobId,
 } from "./blobs";
 import { mountHistory } from "./history";
-import { UnfurlError, type UnfurlOptions, unfurl } from "./unfurl";
+import { DEFAULT_LIMITS, type Limits, over } from "./quota";
+import {
+	type Preview,
+	UnfurlError,
+	type UnfurlOptions,
+	unfurl,
+} from "./unfurl";
+
+const PREVIEW_TTL = 60 * 60_000;
 
 /**
  * The HTTP surface shared by both hosting targets. WebSocket upgrades are handled in the
@@ -27,6 +36,7 @@ export function createApp(
 	links: UnfurlOptions = {},
 	/** Removes an account's sync log (runtime specific), for account deletion. */
 	wipeLog: (userId: string) => Promise<void> = async () => undefined,
+	limits: Limits = DEFAULT_LIMITS,
 ) {
 	const app = new Hono();
 
@@ -37,7 +47,7 @@ export function createApp(
 			origin: DESKTOP_ORIGINS,
 			allowHeaders: ["authorization", "content-type"],
 			allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-			exposeHeaders: ["set-auth-token"],
+			exposeHeaders: ["set-auth-token", "x-updated-at"],
 		}),
 	);
 
@@ -54,19 +64,78 @@ export function createApp(
 		app.use("/api/files", needSession);
 		app.use("/api/files/*", needSession);
 		app.use("/api/unfurl", needSession);
-		mountHistory(app, auth, blobs);
+		mountHistory(app, auth, blobs, limits);
 		mountAccount(app, auth, blobs, wipeLog);
 	}
 
-	// Remember who uploaded a file, so deleting the account can remove it.
-	const own = async (headers: Headers, blobId: string) => {
+	/**
+	 * Remembers who uploaded a file (so deleting the account can remove it) and its size, and
+	 * says whether it fits the account's storage limit. A file already on record always fits,
+	 * which keeps a retried upload harmless.
+	 */
+	const reserve = async (
+		headers: Headers,
+		blobId: string,
+		size: number,
+	): Promise<boolean> => {
 		const userId = await auth?.userId(headers);
-		if (auth && userId)
-			await auth.db
-				.insert(blobOwner)
-				.values({ blobId, userId })
-				.onConflictDoNothing();
+		if (!auth || !userId) return true;
+		const [known] = await auth.db
+			.select({ id: blobOwner.blobId })
+			.from(blobOwner)
+			.where(eq(blobOwner.blobId, blobId))
+			.limit(1);
+		if (known) return true;
+		const [row] = await auth.db
+			.select({ used: sum(blobOwner.size) })
+			.from(blobOwner)
+			.where(eq(blobOwner.userId, userId));
+		if (over(Number(row?.used ?? 0), size, limits.fileBytes)) return false;
+		await auth.db
+			.insert(blobOwner)
+			.values({ blobId, userId, size })
+			.onConflictDoNothing();
+		return true;
 	};
+	const full = (c: Context) =>
+		c.json({ error: "quota", what: "files", limit: limits.fileBytes }, 413);
+
+	app.get("/api/usage", async (c) => {
+		const userId = auth && (await auth.userId(c.req.raw.headers));
+		if (!auth || !userId) return c.json({ error: "sign in first" }, 401);
+		await auth.ready;
+		const one = async (q: Promise<{ n: unknown }[]>) =>
+			Number((await q)[0]?.n ?? 0);
+		return c.json({
+			files: {
+				used: await one(
+					auth.db
+						.select({ n: sum(blobOwner.size) })
+						.from(blobOwner)
+						.where(eq(blobOwner.userId, userId)),
+				),
+				limit: limits.fileBytes,
+			},
+			snapshots: {
+				used: await one(
+					auth.db
+						.select({ n: count() })
+						.from(docVersion)
+						.where(eq(docVersion.userId, userId)),
+				),
+				limit: limits.snapshots,
+			},
+			shares: {
+				used: await one(
+					auth.db
+						.select({ n: count() })
+						.from(shareLink)
+						.where(eq(shareLink.userId, userId)),
+				),
+				limit: limits.shares,
+			},
+		});
+	});
 
 	app.get("/api/health", (c) => c.json({ ok: true }));
 
@@ -80,8 +149,9 @@ export function createApp(
 			return c.json({ error: "too large" }, 413);
 		const id = newBlobId();
 		const type = cleanType(c.req.header("content-type"));
+		if (!(await reserve(c.req.raw.headers, id, data.byteLength)))
+			return full(c);
 		await blobs.put(id, data, { type, size: data.byteLength });
-		await own(c.req.raw.headers, id);
 		return c.json({ id, url: `/api/files/${id}`, type, size: data.byteLength });
 	});
 
@@ -99,14 +169,26 @@ export function createApp(
 		if ((await blobIdFor(data)) !== id)
 			return c.json({ error: "address does not match the bytes" }, 400);
 		const type = cleanType(c.req.header("content-type"));
+		if (!(await reserve(c.req.raw.headers, id, data.byteLength)))
+			return full(c);
 		await blobs.put(id, data, { type, size: data.byteLength });
-		await own(c.req.raw.headers, id);
 		return c.json({ id, url: `/api/files/${id}`, type, size: data.byteLength });
 	});
 
+	// Previews are the same for everyone, so a recent answer is reused (per process; on
+	// Cloudflare per isolate). Failures are not remembered.
+	const previews = new Map<string, { at: number; preview: Preview }>();
 	app.get("/api/unfurl", async (c) => {
+		const key = c.req.query("url") ?? "";
+		const hit = previews.get(key);
+		if (hit && Date.now() - hit.at < PREVIEW_TTL) return c.json(hit.preview);
 		try {
-			return c.json(await unfurl(c.req.query("url") ?? "", links));
+			const preview = await unfurl(key, links);
+			previews.delete(key);
+			previews.set(key, { at: Date.now(), preview });
+			if (previews.size > 500)
+				previews.delete(previews.keys().next().value as string);
+			return c.json(preview);
 		} catch (err) {
 			if (err instanceof UnfurlError)
 				return c.json({ error: err.message }, 422);

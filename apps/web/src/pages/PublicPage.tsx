@@ -16,8 +16,14 @@ export function PublicPage() {
 	const { token } = useParams({ strict: false }) as { token?: string };
 	const [state, setState] = useState<
 		| { kind: "loading" }
-		| { kind: "gone" }
-		| { kind: "page"; title: string; blocks: Block[]; workspace: string }
+		| { kind: "gone"; expired: boolean }
+		| {
+				kind: "page";
+				title: string;
+				blocks: Block[];
+				workspace: string;
+				updatedAt: number;
+		  }
 	>({ kind: "loading" });
 
 	useEffect(() => {
@@ -26,14 +32,14 @@ export function PublicPage() {
 		const found = token && key ? openShared(token, key) : Promise.resolve(null);
 		void found.then((page) => {
 			if (!live) return;
-			if (page) {
+			if (page && page !== "expired") {
 				document.title = t("public.title", {
 					title: page.title || t("common.untitled"),
 				});
 				setState({ kind: "page", ...page });
 			} else {
 				document.title = t("public.sharedTitle");
-				setState({ kind: "gone" });
+				setState({ kind: "gone", expired: page === "expired" });
 			}
 		});
 		return () => {
@@ -51,6 +57,15 @@ export function PublicPage() {
 					{state.kind === "page" && state.workspace
 						? t("public.sharedFrom", { name: state.workspace })
 						: t("public.sharedReadOnly")}
+					{state.kind === "page" && state.updatedAt
+						? ` · ${t("public.updated", {
+								when: new Date(state.updatedAt).toLocaleDateString(undefined, {
+									day: "numeric",
+									month: "short",
+									year: "numeric",
+								}),
+							})}`
+						: ""}
 				</span>
 			</header>
 
@@ -67,10 +82,12 @@ export function PublicPage() {
 					) : (
 						<>
 							<h1 className="font-serif text-[40px] leading-[1.1] font-medium tracking-[-0.015em]">
-								{t("public.goneTitle")}
+								{state.expired
+									? t("public.expiredTitle")
+									: t("public.goneTitle")}
 							</h1>
 							<p className="mt-4 text-[17px] leading-[1.75] text-ink2">
-								{t("public.goneDesc")}
+								{state.expired ? t("public.expiredDesc") : t("public.goneDesc")}
 							</p>
 						</>
 					)}

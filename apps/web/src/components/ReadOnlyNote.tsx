@@ -20,7 +20,11 @@ export function ReadOnlyNote({
 	const { t } = useTranslation();
 	const scheme = useColorScheme();
 	const editor = useCreateBlockNote(
-		{ schema, initialContent: blocks as never, resolveFileUrl },
+		{
+			schema, // BlockNote refuses an empty list (a page with nothing on it yet).
+			initialContent: blocks.length > 0 ? (blocks as never) : undefined,
+			resolveFileUrl,
+		},
 		[blocks],
 	);
 	return (

@@ -22,6 +22,7 @@ import {
 	socketHeaders,
 } from "./auth";
 import { DiskBlobStore } from "./disk-blobs";
+import { limitsFromEnv } from "./quota";
 import { SqlUpdateStore } from "./sql-store";
 import { isPrivateHost } from "./unfurl";
 
@@ -65,13 +66,15 @@ function staticFile(dir: string, pathname: string): Response | null {
 		: null;
 }
 
-/** A name is fetched only if everything it resolves to is outside the local network. */
-async function publicHost(host: string): Promise<boolean> {
+/** A name is fetched only if everything it resolves to is outside the local network; returns the address to connect to. */
+async function publicHost(host: string): Promise<string | null> {
 	try {
 		const found = await lookup(host, { all: true });
-		return found.length > 0 && !found.some((a) => isPrivateHost(a.address));
+		return found.length > 0 && !found.some((a) => isPrivateHost(a.address))
+			? (found[0]?.address ?? null)
+			: null;
 	} catch {
-		return false;
+		return null;
 	}
 }
 
@@ -103,7 +106,7 @@ export function startServer(options: {
 	const app = createApp(
 		new DiskBlobStore(options.blobDir ?? "data/blobs"),
 		options.auth,
-		{ allowHost: publicHost },
+		{ resolveHost: publicHost },
 		async (userId) => {
 			const room = rooms.get(userId);
 			if (room) {
@@ -113,6 +116,7 @@ export function startServer(options: {
 			}
 			await options.store(userId).deleteAll();
 		},
+		limitsFromEnv(process.env),
 	);
 
 	const server = Bun.serve<SocketData>({

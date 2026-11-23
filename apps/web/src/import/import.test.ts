@@ -38,14 +38,23 @@ test("Obsidian: folders nest, tags and embeds are kept, links become page links"
 			].join("\n"),
 			"Attachments/wave.png": PNG,
 			".obsidian/app.json": "{}",
-			"Board.canvas": "{}",
+			"Board.canvas": JSON.stringify({
+				nodes: [
+					{ type: "text", text: "Second", x: 300, y: 0 },
+					{ type: "text", text: "First", x: 0, y: 0 },
+					{ type: "link", url: "https://example.com", x: 0, y: 200 },
+				],
+			}),
+			"Empty.canvas": "{}",
 		}),
 	);
 	expect(skipped).toEqual([
-		{ source: "Board.canvas", reason: "Canvas boards are not imported" },
+		{ source: "Empty.canvas", reason: "Canvas board has no cards" },
 	]);
-	expect(notes).toHaveLength(1);
-	const n = notes[0];
+	const board = notes.find((x) => x.title === "Board");
+	expect(board?.body.text).toBe("First\n\nSecond\n\n<https://example.com>");
+	expect(notes).toHaveLength(2);
+	const n = notes.find((x) => x.title === "Fourier");
 	expect(n?.title).toBe("Fourier");
 	expect(n?.parents).toEqual(["Studies", "Signals"]);
 	expect(n?.tags.sort()).toEqual(["math", "physics", "signals"]);
@@ -69,10 +78,15 @@ test("Notion: ids are dropped, sub-pages nest under their page, properties becom
 			"Projects abc012345678abcdef0123456789abcd/Studio def012345678abcdef0123456789abcd.md":
 				"# Studio\n\n![plan](Studio%20plan.png)\n",
 			"Projects abc012345678abcdef0123456789abcd/Studio plan.png": PNG,
-			"Tasks 111 0123456789abcdef0123456789abcdef.csv": "a,b",
+			"Tasks 111 0123456789abcdef0123456789abcdef.csv":
+				'Name,Notes\nWrite,"a, b | c"\nRead,"two\nlines"\n',
+			"Tasks 111 0123456789abcdef0123456789abcdef_all.csv": "Name\nx\n",
 		}),
 	);
 	expect(skipped).toHaveLength(1);
+	expect(notes.find((x) => x.title === "Tasks 111 (table)")?.body.text).toBe(
+		"| Name | Notes |\n| --- | --- |\n| Write | a, b \\| c |\n| Read | two lines |",
+	);
 	const projects = notes.find((n) => n.title === "Projects");
 	expect(projects?.parents).toEqual([]);
 	expect(projects?.tags).toEqual(["work", "home"]);

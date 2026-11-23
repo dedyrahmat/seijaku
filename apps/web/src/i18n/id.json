@@ -93,10 +93,6 @@
 				"desc": "Jeda sinkronisasi. Perubahan antre dan terkirim saat Anda mematikan ini.",
 				"label": "Bekerja luring"
 			},
-			"collide": {
-				"desc": "Kedua versi disimpan. Pilih apa yang terjadi pada yang lebih lama.",
-				"label": "Saat dua suntingan bertabrakan"
-			},
 			"sync": {
 				"desc": "Tarik dan kirim perubahan sekarang juga.",
 				"label": "Sinkronkan"
@@ -291,7 +287,19 @@
 		"account": "Akun",
 		"versionLine": "Versi {{version}} · {{where}}",
 		"navFooter": "Seijaku 0.1 · {{where}}",
-		"synced": "Tersinkron {{when}}"
+		"synced": "Tersinkron {{when}}",
+		"storage": {
+			"title": "Terpakai di server",
+			"files": "Berkas",
+			"filesOf": "{{used}} dari {{limit}}",
+			"snapshots": "Riwayat versi",
+			"snapshotsOf": "{{used}} dari {{limit}} rekaman",
+			"shares": "Halaman dibagikan",
+			"sharesOf": "{{used}} dari {{limit}} tautan",
+			"noLimit": "{{used}} terpakai, tanpa batas",
+			"note": "Batas ditetapkan oleh pengelola server. Catatan Anda sendiri tidak pernah dihitung atau ditolak; hanya berkas, rekaman versi, dan tautan. Bila riwayat penuh, rekaman terlama dihapus lebih dulu.",
+			"failed": "Tidak dapat menjangkau server untuk membaca pemakaian."
+		}
 	},
 	"tagline": "Ketenangan yang aktif. Kebalikan dari kebisingan.",
 	"common": {
@@ -326,10 +334,6 @@
 		"pasteStyle": {
 			"Match page style": "Cocokkan gaya halaman",
 			"Plain text": "Teks polos"
-		},
-		"collisions": {
-			"Keep as a copy": "Simpan sebagai salinan",
-			"Keep the newer one": "Simpan yang lebih baru"
 		},
 		"trashAfter": {
 			"After 7 days": "Setelah 7 hari",
@@ -475,7 +479,9 @@
 			"local": "Catatan Anda tersimpan di perangkat ini. Masuk atau buat akun untuk menyinkronkannya ke perangkat Anda yang lain.",
 			"catching": "Menyusul server Anda. Anda bisa terus mengetik; tidak ada yang menunggu ini.",
 			"synced": "Setiap catatan ada di perangkat ini dan di server Anda. Sinkronisasi terakhir {{when}}.",
-			"sending_other": "Mengirim {{count}} suntingan. Anda bisa terus mengetik; tidak ada yang menunggu ini."
+			"sending_other": "Mengirim {{count}} suntingan. Anda bisa terus mengetik; tidak ada yang menunggu ini.",
+			"offlineWaiting_one": "Tidak ada koneksi. {{count}} perubahan tersimpan di perangkat ini dan akan diunggah saat Anda kembali daring.",
+			"offlineWaiting_other": "Tidak ada koneksi. {{count}} perubahan tersimpan di perangkat ini dan akan diunggah saat Anda kembali daring."
 		},
 		"offline": "Luring · tersimpan di perangkat ini",
 		"keepSafe": "Jaga catatan Anda tetap aman",
@@ -598,7 +604,18 @@
 		"heading": "Bagikan ke web",
 		"title": "Bagikan halaman ini",
 		"publicLink": "Tautan publik",
-		"revoke": "Cabut tautan"
+		"revoke": "Cabut tautan",
+		"expires": {
+			"label": "Tautan kedaluwarsa",
+			"desc": "Setelah itu tautan berhenti berfungsi.",
+			"never": "Tidak pernah",
+			"d1": "Dalam 1 hari",
+			"d7": "Dalam 7 hari",
+			"d30": "Dalam 30 hari",
+			"on": "Kedaluwarsa {{when}}",
+			"past": "Kedaluwarsa {{when}}"
+		},
+		"renew": "Perbarui"
 	},
 	"history": {
 		"todayAt": "hari ini, {{time}}",
@@ -635,7 +652,10 @@
 		"cta": "Simpan catatan Anda sendiri dengan Seijaku",
 		"goneTitle": "Halaman ini tidak tersedia",
 		"opening": "Membuka…",
-		"sharedReadOnly": "Halaman dibagikan · hanya baca"
+		"sharedReadOnly": "Halaman dibagikan · hanya baca",
+		"updated": "Diperbarui {{when}}",
+		"expiredTitle": "Tautan ini sudah kedaluwarsa",
+		"expiredDesc": "Pemilik halaman ini mengatur tautannya berhenti berfungsi setelah tanggal tertentu. Minta tautan baru kepada mereka."
 	},
 	"note": {
 		"missing": "Halaman ini tidak ada di sini",
@@ -1066,7 +1086,10 @@
 		"fileSignIn": "Masuk untuk menambahkan berkas.",
 		"noServerMoment": "Tidak bisa menjangkau server Anda. Coba lagi sebentar lagi.",
 		"shareSignIn": "Masuk untuk membagikan halaman.",
-		"pageGone": "Halaman ini sudah tiada."
+		"pageGone": "Halaman ini sudah tiada.",
+		"quotaFiles": "Batas berkas server ini ({{size}}) sudah penuh. Hapus berkas yang tidak diperlukan, atau minta pengelola server menaikkannya.",
+		"quotaShares_one": "Server ini mengizinkan {{count}} halaman dibagikan. Hentikan pembagian satu halaman dulu.",
+		"quotaShares_other": "Server ini mengizinkan {{count}} halaman dibagikan. Hentikan pembagian satu halaman dulu."
 	},
 	"accent": {
 		"vermilion": "Vermilion",

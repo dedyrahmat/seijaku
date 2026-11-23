@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seijaku · Phase 20 boards</title>
+<style>
+:root{--paper:#f8f4eb;--panel:#f0eadd;--raised:#fcfaf4;--hover:#e6decb;--ink:#201d19;--ink2:#5b5448;--mute:#6e675a;--line:#ded6c5;--accent:#ae3b28;--off:#cfc6b3;--t1:#e9d9b8;--t2:#d9e3c8;--t3:#c9dbe6;--t4:#ecc9c4}
+.dark{--paper:#171512;--panel:#1d1b17;--raised:#23201b;--hover:#2b2822;--ink:#e9e3d6;--ink2:#b5ad9d;--mute:#968e7e;--line:#37332b;--accent:#e27a63;--off:#4a453b;--t1:#4a4028;--t2:#34402a;--t3:#2b3b45;--t4:#4a2f2b}
+*{box-sizing:border-box}
+body{margin:0;padding:32px;background:#d9d2c2;font:14px/1.5 "Hanken Grotesk",system-ui,sans-serif;color:#201d19}
+h1{font:500 28px "Newsreader",Georgia,serif;margin:0 0 4px}
+.lead{color:#5b5448;margin:0 0 28px;max-width:760px}
+.row{display:flex;flex-wrap:wrap;gap:28px;margin-bottom:36px;align-items:flex-start}
+.cap{font:12px "JetBrains Mono",monospace;color:#5b5448;margin:0 0 8px}
+.board{background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.main{width:860px;padding:26px 34px}.phone{width:375px;padding:18px 16px;min-height:520px}.pop{width:300px;padding:8px}
+.kick{font:11px "JetBrains Mono",monospace;color:var(--mute);letter-spacing:.06em;text-transform:uppercase}
+h2{font:500 34px "Newsreader",Georgia,serif;margin:2px 0 4px}
+.bar{display:flex;gap:8px;align-items:center;margin:14px 0 10px;flex-wrap:wrap}
+.pill{height:30px;padding:0 12px;border-radius:15px;border:1px solid var(--line);background:var(--raised);display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)}
+.pill.on{border-color:var(--ink);color:var(--ink)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th{font:600 11px "Hanken Grotesk",sans-serif;letter-spacing:.07em;text-transform:uppercase;color:var(--mute);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--line)}
+td.t{font:500 15px "Newsreader",Georgia,serif;width:34%}
+.tag{display:inline-block;padding:1px 9px;border-radius:10px;font-size:12px;color:var(--ink)}
+.t1{background:var(--t1)}.t2{background:var(--t2)}.t3{background:var(--t3)}.t4{background:var(--t4)}
+.box{display:inline-block;width:16px;height:16px;border:1.5px solid var(--ink2);border-radius:4px;vertical-align:middle}.box.on{background:var(--ink);border-color:var(--ink)}
+.add{color:var(--mute)}
+.m{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px}.m:hover,.m.sel{background:var(--hover)}
+.m i{width:18px;text-align:center;color:var(--mute);font-style:normal;font-size:12px}
+.m span{margin-left:auto;color:var(--mute);font-size:12px}
+.sep{border-top:1px solid var(--line);margin:6px 0}
+.hd{padding:8px 10px 4px;font:600 11px "Hanken Grotesk",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.inp{margin:4px 10px;height:34px;border:1px solid var(--line);border-radius:10px;background:var(--paper);display:flex;align-items:center;padding:0 10px;color:var(--mute);font-size:13px}
+.props{display:grid;grid-template-columns:120px 1fr;gap:6px 14px;margin:12px 0 18px;font-size:13.5px}
+.props b{font-weight:400;color:var(--mute)}
+.card{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--raised)}
+.card b{font:500 16px "Newsreader",Georgia,serif;display:block;margin-bottom:4px}
+.note{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--panel);color:var(--ink2);font-size:13px}
+.kinds{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}
+.kinds div{border:1px solid var(--line);border-radius:12px;padding:12px;font-size:13px;color:var(--ink2)}
+.kinds div.sel{border-color:var(--ink);background:var(--raised)}.kinds b{display:block;color:var(--ink);font-weight:500;font-size:14px}
+</style>
+</head>
+<body>
+<h1>Phase 20 · Databases</h1>
+<p class="lead">A database is a page whose sub-pages are its rows. Each row is an ordinary page you can open and write in; the table shows its properties. One table view in this phase (no boards, calendars or galleries). Everything below is also in the dark theme through the same tokens.</p>
+
+<p class="cap">1 · Database page, table view (desktop)</p>
+<div class="row"><div class="board main">
+<div class="kick">Database · 4 rows</div>
+<h2>Reading list</h2>
+<div class="bar"><span class="pill">Sort · Status ↑ ▾</span><span class="pill on">Filter · Status is not Done ▾</span><span class="pill">Properties ▾</span><span style="flex:1"></span><span class="pill">+ New row</span></div>
+<table>
+<tr><th>Name</th><th>Status ▾</th><th>Started</th><th>Pages</th><th>Owned</th><th class="add">+</th></tr>
+<tr><td class="t">The Garden of Stillness</td><td><span class="tag t2">Reading</span></td><td>3 Nov</td><td>220</td><td><span class="box on"></span></td><td></td></tr>
+<tr><td class="t">Notes on Ink</td><td><span class="tag t1">Next</span></td><td>–</td><td>–</td><td><span class="box"></span></td><td></td></tr>
+<tr><td class="t">Tea and Time</td><td><span class="tag t1">Next</span></td><td>–</td><td>180</td><td><span class="box on"></span></td><td></td></tr>
+<tr><td class="t">Quiet Machines</td><td><span class="tag t3">Paused</span></td><td>12 Sep</td><td>304</td><td><span class="box"></span></td><td></td></tr>
+</table>
+<div class="note">Click a name to open the row as a page. Click any other cell to edit it in place. Rows sort and filter on this device's view; the choice is saved with the database and syncs. "Done" rows are hidden by the filter, with "1 hidden" shown quietly at the foot.</div>
+</div></div>
+
+<p class="cap">2 · Add a property, and the select cell menu</p>
+<div class="row">
+<div class="board pop"><div class="hd">New property</div><div class="inp">Name</div><div class="sep"></div>
+<div class="m sel"><i>Aa</i>Text</div><div class="m"><i>#</i>Number</div><div class="m"><i>▾</i>Select<span>one of a list</span></div><div class="m"><i>▣</i>Date</div><div class="m"><i>☐</i>Checkbox</div></div>
+<div class="board pop"><div class="hd">Status</div>
+<div class="m sel"><span class="tag t2">Reading</span><span>✓</span></div><div class="m"><span class="tag t1">Next</span></div><div class="m"><span class="tag t3">Paused</span></div><div class="m"><span class="tag t4">Done</span></div>
+<div class="sep"></div><div class="inp">Find or add an option…</div><div class="m"><i>+</i>Create “Abandoned”</div></div>
+<div class="board pop"><div class="hd">Properties</div>
+<div class="m"><i>☑</i>Status</div><div class="m"><i>☑</i>Started</div><div class="m"><i>☑</i>Pages</div><div class="m"><i>☐</i>Owned<span>hidden</span></div><div class="sep"></div><div class="m"><i>⌫</i>Delete “Owned”…</div></div>
+</div>
+
+<p class="cap">3 · Sort and filter menus</p>
+<div class="row">
+<div class="board pop"><div class="hd">Sort by</div><div class="m sel"><i>✓</i>Status<span>A → Z</span></div><div class="m"><i></i>Started</div><div class="m"><i></i>Pages</div><div class="sep"></div><div class="m"><i>↕</i>Reverse order</div><div class="m"><i>×</i>No sort (manual order)</div></div>
+<div class="board pop" style="width:340px"><div class="hd">Filter</div><div class="m">Status <span style="margin-left:6px">is not ▾</span><span class="tag t4" style="margin-left:6px">Done</span></div><div class="m"><i>+</i>Add a filter</div><div class="sep"></div><div class="m"><i>×</i>Clear filters</div>
+<div class="note" style="margin:6px">Operators by type: text (contains, is), number (=, &gt;, &lt;), select (is, is not), date (before, after, is), checkbox (is checked).</div></div>
+</div>
+
+<p class="cap">4 · A row opened as a page, properties above the text</p>
+<div class="row"><div class="board main" style="width:640px">
+<div class="kick">Reading list ›</div><h2>The Garden of Stillness</h2>
+<div class="props"><b>Status</b><span><span class="tag t2">Reading</span></span><b>Started</b><span>3 Nov 2026</span><b>Pages</b><span>220</span><b>Owned</b><span><span class="box on"></span></span><b class="add">+ Add a property</b><span></span></div>
+<p style="font:17px/1.65 'Newsreader',Georgia,serif;margin:0;color:var(--ink2)">The page text goes here, as for any other page.</p>
+</div></div>
+
+<p class="cap">5 · Phone: the table becomes cards, dark theme</p>
+<div class="row"><div class="board phone dark">
+<div class="kick">Database · 4 rows</div><h2 style="font-size:28px">Reading list</h2>
+<div class="bar"><span class="pill">Sort</span><span class="pill on">Filter · 1</span><span style="flex:1"></span><span class="pill">+ Row</span></div>
+<div class="card"><b>The Garden of Stillness</b><span class="tag t2">Reading</span> · 3 Nov · 220 pp</div>
+<div class="card"><b>Notes on Ink</b><span class="tag t1">Next</span></div>
+<div class="card"><b>Tea and Time</b><span class="tag t1">Next</span> · 180 pp</div>
+<div class="card"><b>Quiet Machines</b><span class="tag t3">Paused</span> · 12 Sep · 304 pp</div>
+</div>
+<div class="board main" style="width:440px">
+<p class="cap" style="margin-bottom:0">6 · New note picker, a seventh card</p>
+<div class="kinds"><div><b>Page</b>A blank page with a title.</div><div><b>Checklist</b>To-dos you can tick off.</div><div class="sel"><b>Database</b>A table of pages with their own properties: status, dates, tags.</div><div><b>Study note</b>Summary, maths, code.</div></div>
+<div class="note">Creating one makes the database page with a Name and a Status property, and one empty row. Sidebar glyph: a small table. Change type does not offer Database (a page with text becomes one only by choosing so in its menu, which keeps its text above the table).</div>
+</div></div>
+
+<h1 style="margin-top:20px">Data model (for approval with the boards)</h1>
+<p class="lead">
+<b>Where:</b> the index doc, like titles and tags, so it is sealed and syncs; nothing new on the server.<br>
+<b>Database:</b> a note with <code>kind: "database"</code> and a nested <code>db</code> map: <code>props</code> (a Y.Array of <code>{id, name, type, options}</code>, types text, number, select, date, checkbox; options carry a label and one of six tints), <code>sort</code> (<code>{prop, dir}</code>), <code>filters</code> (a list of <code>{prop, op, value}</code>) and <code>hidden</code> (property ids not shown).<br>
+<b>Rows:</b> the database's child pages, any kind. Each row note gets a <code>cells</code> Y.Map keyed by property id, so two devices editing different cells merge; the same cell is last writer wins. The title is the built-in first column.<br>
+<b>Deleting a property</b> hides it for good in the table but leaves the values in <code>cells</code>, so an undo or another device's late edit cannot break anything.<br>
+<b>Shown rows:</b> computed on the device (<code>databaseRows(notes, db)</code>, pure, tested), like search and backlinks. A row moved out of the database keeps its cells but they are not shown until it is moved back.<br>
+<b>Spike first:</b> pure functions in <code>packages/sync/src/database.ts</code> with tests (create, add property, set cell, sort, filter, concurrent cell edits, deleted property) before any screen.<br>
+<b>Left out on purpose:</b> formulas, relations, rollups, multiple views, grouping, drag-to-reorder columns, CSV export of the table.
+</p>
+</body>
+</html>

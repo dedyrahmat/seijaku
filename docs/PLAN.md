@@ -319,9 +319,11 @@ From an audit of every mockup board against `apps/web/src`, plus the disabled Se
     - [x] Also: a shared page with no blocks no longer crashes the public page; `docs/boards` is excluded from Biome (static mockups)
     - Not done: Keep audio transcripts (the Takeout format is unconfirmed) and re-importing a Seijaku export zip. Not run: the Cloudflare path (typechecked only); the quota env vars are read from the worker's `env`, which needs them declared as `vars` in `wrangler.toml` to take effect
 20. **Databases**
-    - [ ] Spike and boards first: table view of child pages with typed properties (text, select, date, checkbox), sort, filter; properties in the index doc. Build only after the boards and data model are approved
+    - **Status 2026-11-23:** boards and data model drawn in `docs/boards/phase-20.html` (table view, property and option menus, sort and filter, row as a page, phone cards, a seventh "Database" card in the New note picker); waiting for the user's OK. After approval: spike `packages/sync/src/database.ts` (pure functions and tests), then the UI.
+    - [ ] Spike and boards approved, then build: table view of child pages with typed properties (text, number, select, date, checkbox), sort, filter; properties in the index doc
 21. **Collaborative sharing**
-    - [ ] Key design first (wrap a page key per recipient account), approved before boards
+    - **Status 2026-11-23:** key design written in `docs/COLLABORATIVE-SHARING.md` (page key wrapped per member with X25519, a shared room per page, link invites, server-enforced read-only, rotation on removal and its stated limit); four decisions need the user's answer before boards.
+    - [ ] Key design approved
     - [ ] Boards: invite, people with access, read or edit, revoke; revoking rotates the page key (limit stated plainly)
 
 With every phase: update this file and the "Built so far" line in `CLAUDE.md`; browser check against the board (light, dark, phone); `bun run typecheck`, `bun run lint`, `bun test`, and `bun run test:e2e` when sync or sharing changes.

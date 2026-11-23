@@ -1,17 +1,14 @@
 import { blobOwner, docVersion, keyWrap, shareLink } from "@seijaku/db";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { Hono } from "hono";
 import * as z from "zod";
-import { type AuthService, hashLogin } from "./auth";
+import { type AuthService, FRESH_SECONDS, phraseMatches } from "./auth";
 import { BLOB_ID, type BlobStore } from "./blobs";
 import {
 	noSharedHooks,
 	removeAccountFromShares,
 	type SharedHooks,
 } from "./shared";
-
-/** A passkey sign-in counts as proof for this long. */
-const FRESH_SECONDS = 120;
 
 /**
  * Deletes the signed-in account and everything the server holds for it: the sync log, every
@@ -44,14 +41,7 @@ export function mountAccount(
 		const { loginKey } = parsed.data;
 		let proven = false;
 		if (loginKey) {
-			const [row] = await d
-				.select({ loginHash: keyWrap.loginHash })
-				.from(keyWrap)
-				.where(and(eq(keyWrap.userId, userId), eq(keyWrap.kind, "phrase")))
-				.limit(1);
-			proven =
-				!!row?.loginHash &&
-				row.loginHash === (await hashLogin(auth.secret, loginKey));
+			proven = await phraseMatches(auth, userId, loginKey);
 		} else {
 			const current = await auth.auth.api.getSession({ headers });
 			proven =

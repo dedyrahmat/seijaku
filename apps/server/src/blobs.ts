@@ -64,3 +64,52 @@ export function cleanType(raw: string | undefined | null): string {
 	const t = (raw ?? "").split(";")[0]?.trim().toLowerCase() ?? "";
 	return /^[a-z]+\/[a-z0-9.+-]+$/.test(t) ? t : "application/octet-stream";
 }
+
+/**
+ * Reads a request body of at most `max` bytes, or returns null as soon as it grows past that.
+ * `Content-Length` can be left out or wrong, so the bytes themselves are counted.
+ */
+export async function readBody(
+	req: Request,
+	max: number,
+): Promise<ArrayBuffer | null> {
+	if (Number(req.headers.get("content-length") ?? 0) > max) return null;
+	const reader = req.body?.getReader();
+	if (!reader) return new ArrayBuffer(0);
+	const chunks: Uint8Array[] = [];
+	let size = 0;
+	for (;;) {
+		const { done, value } = await reader.read();
+		if (done) break;
+		size += value.byteLength;
+		if (size > max) {
+			await reader.cancel().catch(() => undefined);
+			return null;
+		}
+		chunks.push(value);
+	}
+	const out = new Uint8Array(size);
+	let at = 0;
+	for (const c of chunks) {
+		out.set(c, at);
+		at += c.byteLength;
+	}
+	return out.buffer as ArrayBuffer;
+}
+
+/** A JSON request body of at most `max` bytes. */
+export async function readJson(
+	req: Request,
+	max: number,
+): Promise<{ ok: true; value: unknown } | { ok: false; status: 400 | 413 }> {
+	const body = await readBody(req, max);
+	if (!body) return { ok: false, status: 413 };
+	try {
+		return { ok: true, value: JSON.parse(new TextDecoder().decode(body)) };
+	} catch {
+		return { ok: false, status: 400 };
+	}
+}
+
+/** Room for a sealed upload of `MAX_UPLOAD_BYTES` carried as base64 inside JSON. */
+export const MAX_JSON_BYTES = Math.ceil((MAX_UPLOAD_BYTES * 4) / 3) + 8192;

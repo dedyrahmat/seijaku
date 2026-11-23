@@ -59,6 +59,19 @@ function bearerFetch(): void {
 	};
 }
 
+const STATE_KEY = "seijaku:desktop-sign-in";
+
+/** The nonce of the sign-in this app started, once: a second use finds nothing. */
+function takeSignInState(): string | null {
+	try {
+		const state = localStorage.getItem(STATE_KEY);
+		localStorage.removeItem(STATE_KEY);
+		return state;
+	} catch {
+		return null;
+	}
+}
+
 /** Trades the one-time code from the browser for this device's own session. */
 async function exchange(code: string): Promise<void> {
 	const server = savedServerUrl();
@@ -87,8 +100,13 @@ export async function initDesktop(onSignedIn: () => void): Promise<void> {
 	const handle = async (urls: string[] | null) => {
 		for (const raw of urls ?? []) {
 			const link = new URL(raw);
+			// Only the sign-in this app started: a link from anywhere else cannot sign it in.
+			const state = takeSignInState();
 			const code =
-				link.protocol === "seijaku:" && link.hostname === "signin"
+				link.protocol === "seijaku:" &&
+				link.hostname === "signin" &&
+				state !== null &&
+				state === link.searchParams.get("state")
 					? link.searchParams.get("code")
 					: null;
 			if (code) {
@@ -106,7 +124,9 @@ export async function signInInBrowser(): Promise<void> {
 	const server = savedServerUrl();
 	if (!server) throw new Error(i18n.t("errors.noServer"));
 	const { openUrl } = await import("@tauri-apps/plugin-opener");
-	await openUrl(`${server}/desktop-link`);
+	const state = crypto.randomUUID();
+	localStorage.setItem(STATE_KEY, state);
+	await openUrl(`${server}/desktop-link?state=${state}`);
 }
 
 /** Forget this device's session (the notes stay). */

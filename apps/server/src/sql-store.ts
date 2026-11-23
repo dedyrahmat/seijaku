@@ -76,6 +76,19 @@ export class SqlUpdateStore implements UpdateStore {
 			.run();
 	}
 
+	bytes(): number {
+		const [row] = this.db
+			.select({ n: sql<number>`coalesce(sum(length(${docLog.data})), 0)` })
+			.from(docLog)
+			.where(
+				this.scope
+					? sql`substr(${docLog.docId}, 1, ${this.scope.length}) = ${this.scope}`
+					: undefined,
+			)
+			.all();
+		return Number(row?.n ?? 0);
+	}
+
 	replaceUpTo(docId: string, upto: number, snapshot: Uint8Array): void {
 		const id = this.scope + docId;
 		this.db.transaction((tx) => {

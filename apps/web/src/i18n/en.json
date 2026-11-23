@@ -123,7 +123,7 @@
 		},
 		"security": {
 			"lock": {
-				"desc": "Ask for your passkey or recovery phrase after you step away. Notes stay on this device.",
+				"desc": "Ask for your passkey or recovery phrase in the app after you step away. It does not encrypt the notes kept in this browser: for that, use your device's own lock screen and disk encryption.",
 				"label": "Lock after inactivity"
 			},
 			"delete": {
@@ -586,6 +586,7 @@
 		"removeFailed": "The passkey could not be removed.",
 		"passkeysFailed": "Could not load your passkeys.",
 		"phraseFailed": "Could not make a new phrase.",
+		"currentPhrasePrompt": "Type your current recovery phrase to replace it",
 		"noServer": "Could not reach the server.",
 		"phraseEnds": "This ends your old phrase.",
 		"signOutFailed": "Could not sign out.",

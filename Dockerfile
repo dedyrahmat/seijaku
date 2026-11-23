@@ -7,6 +7,9 @@ ENV SEIJAKU_DB=/data/seijaku.sqlite \
     SEIJAKU_BLOBS=/data/blobs \
     SEIJAKU_WEB=/app/apps/web/dist \
     PORT=8791
+# The data folder belongs to the image's unprivileged user; the server needs nothing else writable.
+RUN mkdir -p /data && chown bun:bun /data
+USER bun
 VOLUME /data
 EXPOSE 8791
 CMD ["bun", "apps/server/src/bun.ts"]

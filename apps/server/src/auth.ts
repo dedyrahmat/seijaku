@@ -15,7 +15,7 @@ import {
 import { setSessionCookie } from "better-auth/cookies";
 import { getMigrations } from "better-auth/db/migration";
 import { bearer } from "better-auth/plugins";
-import { and, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import * as z from "zod";
 import type { AccountDb } from "./db";
 
@@ -47,6 +47,11 @@ export interface AuthConfig {
 	secret: string;
 	/** A sign-up code every new account must enter. Unset: sign-up is open. */
 	setupToken?: string | undefined;
+	/**
+	 * The request header that carries the client's address, set by a proxy this deployment
+	 * controls (Cloudflare: cf-connecting-ip). Unset, no header is believed.
+	 */
+	ipHeader?: string | undefined;
 }
 
 export interface SeijakuStatus {
@@ -63,7 +68,7 @@ export interface KeyWrap {
 	wrapped: string;
 }
 
-function safeEqual(a: string, b: string): boolean {
+export function safeEqual(a: string, b: string): boolean {
 	const x = new TextEncoder().encode(a);
 	const y = new TextEncoder().encode(b);
 	let diff = x.length ^ y.length;
@@ -98,6 +103,27 @@ export async function hashLogin(
 export const DESKTOP_ORIGINS = ["http://tauri.localhost", "tauri://localhost"];
 
 const DESKTOP_CODE_SECONDS = 120;
+/** More than anyone registers; replacing a passkey's wrap does not count twice. */
+const MAX_PASSKEY_WRAPS = 50;
+/** A sign-in this recent counts as proof of who is at the keyboard. */
+export const FRESH_SECONDS = 120;
+
+/** True when `loginKey` is the one the account's recovery phrase makes. */
+export async function phraseMatches(
+	config: Pick<AuthConfig, "db" | "secret">,
+	userId: string,
+	loginKey: string,
+): Promise<boolean> {
+	const [row] = await config.db
+		.select({ loginHash: keyWrap.loginHash })
+		.from(keyWrap)
+		.where(and(eq(keyWrap.userId, userId), eq(keyWrap.kind, "phrase")))
+		.limit(1);
+	return (
+		!!row?.loginHash &&
+		safeEqual(row.loginHash, await hashLogin(config.secret, loginKey))
+	);
+}
 
 /**
  * A short-lived code that turns a signed-in browser into a desktop sign-in: the user id and an
@@ -106,7 +132,7 @@ const DESKTOP_CODE_SECONDS = 120;
  */
 async function desktopCode(secret: string, userId: string): Promise<string> {
 	const body = `${userId}.${Math.floor(Date.now() / 1000) + DESKTOP_CODE_SECONDS}`;
-	return `${body}.${await hashLogin(secret, `desktop:${body}`)}`;
+	return `${body}.${await hashLogin(`${secret}/desktop-code`, body)}`;
 }
 
 async function userOfDesktopCode(
@@ -117,7 +143,10 @@ async function userOfDesktopCode(
 	const body = code.slice(0, cut);
 	if (
 		cut < 0 ||
-		!safeEqual(code.slice(cut + 1), await hashLogin(secret, `desktop:${body}`))
+		!safeEqual(
+			code.slice(cut + 1),
+			await hashLogin(`${secret}/desktop-code`, body),
+		)
 	)
 		return null;
 	const [userId, expires] = body.split(".");
@@ -260,8 +289,13 @@ function seijakuPlugin(config: AuthConfig): BetterAuthPlugin {
 							message:
 								"That sign-in link has expired. Start again from the app.",
 						});
+					// Made from another session, not from proof of who holds the account: it must not count
+					// as a recent sign-in, so it is dated as if it were old (its expiry is unchanged).
 					const session = await ctx.context.internalAdapter.createSession(
 						user.id,
+						false,
+						{ createdAt: new Date(0) },
+						true,
 					);
 					await setSessionCookie(ctx, { session, user });
 					return ctx.json({ ok: true });
@@ -301,6 +335,8 @@ function seijakuPlugin(config: AuthConfig): BetterAuthPlugin {
 							kind: z.literal("phrase"),
 							loginKey: z.string().min(20).max(200),
 							wrapped: z.string().min(20).max(500),
+							/** The phrase being replaced; not needed straight after signing in. */
+							currentLoginKey: z.string().min(20).max(200).optional(),
 						}),
 						z.object({
 							kind: z.literal("passkey"),
@@ -313,6 +349,41 @@ function seijakuPlugin(config: AuthConfig): BetterAuthPlugin {
 					const userId = ctx.context.session.user.id;
 					const body = ctx.body;
 					const ref = body.kind === "passkey" ? body.ref : "";
+					if (body.kind === "phrase") {
+						// Replacing the phrase locks the owner out of recovery, so a stolen session is not enough:
+						// it takes the current phrase, or a sign-in made moments ago.
+						const [existing] = await config.db
+							.select({ id: keyWrap.id })
+							.from(keyWrap)
+							.where(
+								and(eq(keyWrap.userId, userId), eq(keyWrap.kind, "phrase")),
+							)
+							.limit(1);
+						const fresh =
+							Date.now() -
+								new Date(ctx.context.session.session.createdAt).getTime() <
+							FRESH_SECONDS * 1000;
+						const proven =
+							!existing ||
+							fresh ||
+							(!!body.currentLoginKey &&
+								(await phraseMatches(config, userId, body.currentLoginKey)));
+						if (!proven)
+							throw new APIError("FORBIDDEN", {
+								message: "Enter your current recovery phrase first.",
+							});
+					} else {
+						const [have] = await config.db
+							.select({ n: count() })
+							.from(keyWrap)
+							.where(
+								and(eq(keyWrap.userId, userId), eq(keyWrap.kind, "passkey")),
+							);
+						if ((have?.n ?? 0) >= MAX_PASSKEY_WRAPS)
+							throw new APIError("BAD_REQUEST", {
+								message: "Too many passkeys.",
+							});
+					}
 					await config.db
 						.delete(keyWrap)
 						.where(
@@ -365,7 +436,11 @@ export function createAuth(config: AuthConfig) {
 		session: { expiresIn: 60 * 60 * 24 * 90, updateAge: 60 * 60 * 24 },
 		advanced: {
 			cookiePrefix: "seijaku",
-			ipAddress: { ipAddressHeaders: ["cf-connecting-ip", "x-forwarded-for"] },
+			// Only a header the deployment sets itself can be trusted; any other is the client's to forge.
+			// Without one, rate limits share a single bucket.
+			ipAddress: {
+				ipAddressHeaders: config.ipHeader ? [config.ipHeader] : [],
+			},
 		},
 		rateLimit: { enabled: true, storage: "database" },
 		plugins: [

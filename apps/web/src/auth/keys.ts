@@ -221,21 +221,36 @@ export async function wrapHeldKeyForPasskey(
 	if (key) await wrapForPasskey(passkey, key);
 }
 
-/** Makes a new phrase for the key this device holds; the old phrase stops working. */
-export async function replacePhrase(): Promise<string> {
+/** The server wants the current phrase before it lets a new one replace it. */
+export class NeedsPhrase extends Error {}
+
+/**
+ * Makes a new phrase for the key this device holds; the old phrase stops working. The server
+ * asks for the current phrase unless you signed in a moment ago: pass it then.
+ */
+export async function replacePhrase(currentPhrase?: string): Promise<string> {
 	const workspaceKey = await loadWorkspaceKey();
 	if (!workspaceKey) throw new Error(i18n.t("errors.unlockFirst"));
-	return storePhrase(workspaceKey);
+	if (currentPhrase && !isValidPhrase(currentPhrase))
+		throw new Error(i18n.t("errors.badPhrase"));
+	return storePhrase(workspaceKey, currentPhrase);
 }
 
-async function storePhrase(workspaceKey: Uint8Array): Promise<string> {
+async function storePhrase(
+	workspaceKey: Uint8Array,
+	currentPhrase?: string,
+): Promise<string> {
 	const phrase = newPhrase();
 	const { loginKey, wrapKey } = phraseKeys(phrase);
 	const res = await send("/key-wraps", {
 		kind: "phrase",
 		loginKey,
 		wrapped: toBase64(wrapWorkspaceKey(wrapKey, workspaceKey)),
+		...(currentPhrase
+			? { currentLoginKey: phraseKeys(currentPhrase).loginKey }
+			: {}),
 	});
+	if (res.status === 403) throw new NeedsPhrase();
 	if (!res.ok) throw await failure(res, "Could not save the new phrase.");
 	return phrase;
 }

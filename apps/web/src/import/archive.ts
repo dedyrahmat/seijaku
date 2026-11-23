@@ -17,6 +17,24 @@ function clean(path: string): string {
 	return path.replace(/\\/g, "/").replace(/^\/+/, "");
 }
 
+/** Opens a zip, refusing before anything is inflated if its files would pass the size limit. */
+function unzip(bytes: Uint8Array, total: { bytes: number }) {
+	let planned = total.bytes;
+	return unzipSync(bytes, {
+		filter: (file) => {
+			planned += file.originalSize;
+			if (planned > MAX_BYTES) throw new TooBig();
+			return true;
+		},
+	});
+}
+
+class TooBig extends Error {
+	constructor() {
+		super("That export is larger than 1.5 GB. Import it in parts.");
+	}
+}
+
 function add(
 	into: Entries,
 	path: string,
@@ -31,12 +49,17 @@ function add(
 		throw new Error("That export is larger than 1.5 GB. Import it in parts.");
 	if (/\.zip$/i.test(name) && depth < MAX_NESTED) {
 		// Notion wraps big exports in zips inside the zip; open them as if they were folders.
+		let inner: Record<string, Uint8Array> | null = null;
 		try {
-			for (const [inner, data] of Object.entries(unzipSync(bytes)))
-				add(into, inner, data, depth + 1, total);
-			return;
-		} catch {
+			inner = unzip(bytes, total);
+		} catch (err) {
+			if (err instanceof TooBig) throw err;
 			// Not really a zip: keep it as a file.
+		}
+		if (inner) {
+			for (const [name, data] of Object.entries(inner))
+				add(into, name, data, depth + 1, total);
+			return;
 		}
 	}
 	into.set(name, bytes);
@@ -49,13 +72,16 @@ export async function readEntries(picked: Picked[]): Promise<Entries> {
 	for (const { path, file } of picked) {
 		const bytes = new Uint8Array(await file.arrayBuffer());
 		if (/\.zip$/i.test(file.name)) {
+			let inner: Record<string, Uint8Array>;
 			try {
-				for (const [inner, data] of Object.entries(unzipSync(bytes)))
-					add(entries, inner, data, 1, total);
-				continue;
-			} catch {
+				inner = unzip(bytes, total);
+			} catch (err) {
+				if (err instanceof TooBig) throw err;
 				throw new Error(`${file.name} is not a zip file that can be opened.`);
 			}
+			for (const [name, data] of Object.entries(inner))
+				add(entries, name, data, 1, total);
+			continue;
 		}
 		add(entries, path || file.name, bytes, 0, total);
 	}

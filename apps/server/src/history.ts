@@ -3,8 +3,21 @@ import { and, asc, count, eq, inArray } from "drizzle-orm";
 import type { Hono } from "hono";
 import * as z from "zod";
 import type { AuthService } from "./auth";
-import { BLOB_ID, type BlobStore, MAX_UPLOAD_BYTES, newBlobId } from "./blobs";
-import { DEFAULT_LIMITS, type Limits, over } from "./quota";
+import {
+	BLOB_ID,
+	type BlobStore,
+	MAX_JSON_BYTES,
+	MAX_UPLOAD_BYTES,
+	newBlobId,
+	readJson,
+} from "./blobs";
+import {
+	chargeBlob,
+	DEFAULT_LIMITS,
+	type Limits,
+	over,
+	releaseBlob,
+} from "./quota";
 
 /**
  * Version history and public share links. Both hold only sealed bytes: the app seals a note's
@@ -97,7 +110,9 @@ export function mountHistory(
 	app.post("/api/versions", async (c) => {
 		const userId = await auth.userId(c.req.raw.headers);
 		if (!userId) return c.json({ error: "sign in first" }, 401);
-		const parsed = newVersion.safeParse(await c.req.json().catch(() => null));
+		const body = await readJson(c.req.raw, MAX_JSON_BYTES);
+		if (!body.ok) return c.json({ error: "bad request" }, body.status);
+		const parsed = newVersion.safeParse(body.value);
 		if (!parsed.success) return c.json({ error: "bad request" }, 400);
 		const { doc, meta, data, keepDays } = parsed.data;
 		let bytes: Uint8Array;
@@ -111,6 +126,13 @@ export function mountHistory(
 
 		const d = await db();
 		const blobId = newBlobId();
+		if (
+			!(await chargeBlob(d, userId, blobId, bytes.byteLength, limits.fileBytes))
+		)
+			return c.json(
+				{ error: "quota", what: "files", limit: limits.fileBytes },
+				413,
+			);
 		await blobs.put(blobId, bytes.buffer as ArrayBuffer, {
 			type: "application/octet-stream",
 			size: bytes.byteLength,
@@ -142,7 +164,10 @@ export function mountHistory(
 					drop.map((v) => v.id),
 				),
 			);
-			for (const v of drop) await blobs.delete(v.blobId).catch(() => undefined);
+			for (const v of drop) {
+				await blobs.delete(v.blobId).catch(() => undefined);
+				await releaseBlob(d, v.blobId);
+			}
 		}
 		// Over the account's snapshot limit: the oldest go first, so history never stops.
 		if (limits.snapshots > 0) {
@@ -163,8 +188,10 @@ export function mountHistory(
 						oldest.map((v) => v.id),
 					),
 				);
-				for (const v of oldest)
+				for (const v of oldest) {
 					await blobs.delete(v.blobId).catch(() => undefined);
+					await releaseBlob(d, v.blobId);
+				}
 			}
 		}
 		return c.json({ id });
@@ -206,7 +233,10 @@ export function mountHistory(
 			.select({ blobId: docVersion.blobId })
 			.from(docVersion)
 			.where(where);
-		for (const v of rows) await blobs.delete(v.blobId);
+		for (const v of rows) {
+			await blobs.delete(v.blobId);
+			await releaseBlob(d, v.blobId);
+		}
 		await d.delete(docVersion).where(where);
 		return c.json({ ok: true });
 	});
@@ -241,7 +271,9 @@ export function mountHistory(
 	app.put("/api/shares", async (c) => {
 		const userId = await auth.userId(c.req.raw.headers);
 		if (!userId) return c.json({ error: "sign in first" }, 401);
-		const parsed = publish.safeParse(await c.req.json().catch(() => null));
+		const body = await readJson(c.req.raw, MAX_JSON_BYTES);
+		if (!body.ok) return c.json({ error: "bad request" }, body.status);
+		const parsed = publish.safeParse(body.value);
 		if (!parsed.success) return c.json({ error: "bad request" }, 400);
 		let bytes: Uint8Array;
 		try {
@@ -277,6 +309,13 @@ export function mountHistory(
 				);
 		}
 		const blobId = newBlobId();
+		if (
+			!(await chargeBlob(d, userId, blobId, bytes.byteLength, limits.fileBytes))
+		)
+			return c.json(
+				{ error: "quota", what: "files", limit: limits.fileBytes },
+				413,
+			);
 		await blobs.put(blobId, bytes.buffer as ArrayBuffer, {
 			type: "application/octet-stream",
 			size: bytes.byteLength,
@@ -297,6 +336,7 @@ export function mountHistory(
 				})
 				.where(eq(shareLink.id, existing.id));
 			await blobs.delete(existing.blobId).catch(() => undefined);
+			await releaseBlob(d, existing.blobId);
 			return c.json({
 				token: existing.token,
 				createdAt: existing.createdAt.getTime(),
@@ -333,6 +373,7 @@ export function mountHistory(
 		if (row) {
 			await d.delete(shareLink).where(eq(shareLink.id, row.id));
 			await blobs.delete(row.blobId).catch(() => undefined);
+			await releaseBlob(d, row.blobId);
 		}
 		return c.json({ ok: true });
 	});

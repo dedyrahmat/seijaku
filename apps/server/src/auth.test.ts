@@ -22,7 +22,11 @@ async function boot(env: Record<string, string> = {}) {
 	const dbPath = join(dir, "db.sqlite");
 	const auth = await openAuth(
 		dbPath,
-		{ SETUP_TOKEN: "right-token", ...env },
+		{
+			SETUP_TOKEN: "right-token",
+			SEIJAKU_IP_HEADER: "x-forwarded-for",
+			...env,
+		},
 		0,
 	);
 	const { server } = startServer({
@@ -325,4 +329,18 @@ test("desktop sign-in: a browser session makes a code the app trades for a beare
 		}),
 	).toBe("open");
 	ws.close();
+});
+
+test("rate limits cannot be dodged by forging a forwarded address unless the deployment trusts that header", async () => {
+	const { base } = await boot({ SEIJAKU_IP_HEADER: "" });
+	const statuses: number[] = [];
+	for (let i = 0; i < 9; i++) {
+		const res = await fetch(`${base}/api/auth/seijaku/phrase`, {
+			method: "POST",
+			headers: { ...json, "x-forwarded-for": `203.0.113.${i + 1}` },
+			body: JSON.stringify({ loginKey: setup().loginKey }),
+		});
+		statuses.push(res.status);
+	}
+	expect(statuses).toContain(429);
 });

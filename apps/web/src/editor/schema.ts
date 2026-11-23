@@ -172,14 +172,19 @@ const createLinkPreviewBlock = createBlockSpec(
 				return { dom };
 			}
 
-			const card = document.createElement("a");
-			card.href = block.props.url;
-			card.target = "_blank";
-			card.rel = "noopener noreferrer";
+			// The address may have come from another person's page: only web links are followed.
+			const href = webAddress(block.props.url);
+			const card = document.createElement(href ? "a" : "span");
+			if (href && card instanceof HTMLAnchorElement) {
+				card.href = href;
+				card.target = "_blank";
+				card.rel = "noopener noreferrer";
+			}
 			card.className = "seijaku-linkcard__card";
 			const site = document.createElement("span");
 			site.className = "seijaku-linkcard__site";
-			site.textContent = block.props.site || new URL(block.props.url).hostname;
+			site.textContent =
+				block.props.site || (href ? new URL(href).hostname : "");
 			const title = document.createElement("span");
 			title.className = "seijaku-linkcard__title";
 			title.textContent = block.props.title || block.props.url;

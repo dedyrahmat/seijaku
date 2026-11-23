@@ -35,7 +35,28 @@ export class Room {
 	private docs = new Map<string, DocEntry>();
 	private peers = new Set<Peer>();
 
-	constructor(private store: UpdateStore) {}
+	/** Sealed bytes in the store, counted on the first write and kept up to date; null: count again. */
+	private used: number | null = null;
+
+	/** `maxBytes` caps what the store may hold (0 or left out: no cap). */
+	constructor(
+		private store: UpdateStore,
+		private maxBytes = 0,
+	) {}
+
+	/** @internal Room for `n` more bytes? Counts them if so. */
+	async admit(n: number): Promise<boolean> {
+		if (!this.maxBytes || !this.store.bytes) return true;
+		this.used ??= await this.store.bytes();
+		if (this.used + n > this.maxBytes) return false;
+		this.used += n;
+		return true;
+	}
+
+	/** @internal The log changed in a way that is not an append: count it again next time. */
+	recount(): void {
+		this.used = null;
+	}
 
 	/**
 	 * Registers a new device connection. In a shared page's room, `canWrite` says whether this
@@ -122,6 +143,8 @@ export class Room {
 
 export interface Access {
 	canWrite?: () => boolean | Promise<boolean>;
+	/** Dropping a doc and replacing its log with a snapshot: in a shared page, the owner's alone. */
+	canAdmin?: () => boolean;
 	tag?: string;
 }
 
@@ -211,6 +234,12 @@ export class Peer {
 			frame.kind === FrameKind.Snapshot;
 		if (writes && this.access.canWrite && !(await this.access.canWrite()))
 			return; // a reader: nothing is stored, nothing is acked
+		if (
+			(frame.kind === FrameKind.Drop || frame.kind === FrameKind.Snapshot) &&
+			this.access.canAdmin &&
+			!this.access.canAdmin()
+		)
+			return;
 
 		switch (frame.kind) {
 			case FrameKind.Unsubscribe:
@@ -234,6 +263,10 @@ export class Peer {
 
 			case FrameKind.Push:
 				await this.room.run(docId, async () => {
+					if (!(await this.room.admit(frame.blob.byteLength))) {
+						this.close(4008, "storage full");
+						return;
+					}
 					const seq = await this.store.append(docId, frame.blob);
 					// Ack only once it is on disk, so "Synced" in the UI is honest.
 					this.send(encodeAck(docId, seq));
@@ -244,6 +277,7 @@ export class Peer {
 			case FrameKind.Drop:
 				await this.room.run(docId, async () => {
 					await this.store.deleteDoc(docId);
+					this.room.recount();
 				});
 				return;
 
@@ -252,6 +286,7 @@ export class Peer {
 					const { head } = await this.store.stat(docId);
 					if (frame.upto < 1 || frame.upto > head) return;
 					await this.store.replaceUpTo(docId, frame.upto, frame.blob);
+					this.room.recount();
 				});
 				return;
 

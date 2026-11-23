@@ -603,6 +603,17 @@ export function DesktopLinkPage() {
 	const auth = useAuth();
 	const [link, setLink] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	// The desktop app sends a nonce with the link; it has to survive the sign-in step in between.
+	const [state] = useState(() => {
+		const key = "seijaku:desktop-state";
+		const given = new URLSearchParams(location.search).get("state");
+		try {
+			if (given) sessionStorage.setItem(key, given);
+			return given ?? sessionStorage.getItem(key) ?? "";
+		} catch {
+			return given ?? "";
+		}
+	});
 
 	useEffect(() => {
 		document.title = t("auth.titleDesktop");
@@ -625,14 +636,14 @@ export function DesktopLinkPage() {
 				});
 				if (!res.ok) throw new Error(t("auth.noLink"));
 				const { code } = (await res.json()) as { code: string };
-				const url = `seijaku://signin?code=${encodeURIComponent(code)}`;
+				const url = `seijaku://signin?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`;
 				setLink(url);
 				location.href = url;
 			} catch (err) {
 				setError(message(err, t("account.noServer")));
 			}
 		})();
-	}, [auth.phase, navigate, t]);
+	}, [auth.phase, navigate, t, state]);
 
 	return (
 		<Page>

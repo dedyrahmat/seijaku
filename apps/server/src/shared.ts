@@ -1,5 +1,5 @@
 import { accountKey, sharedPage, shareInvite, shareMember } from "@seijaku/db";
-import { and, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import type { Hono } from "hono";
 import * as z from "zod";
 import type { AuthService } from "./auth";
@@ -12,6 +12,10 @@ import type { AuthService } from "./auth";
 
 export type Role = "owner" | "editor" | "reader";
 const INVITE_DAYS = 7;
+/** Per account, per page: enough for real use, too few to fill a disk with rows. */
+const MAX_PAGES = 100;
+const MAX_INVITES = 50;
+const MAX_MEMBERS = 100;
 const DAY = 86_400_000;
 
 /** What the runtime does to a shared page's room (Bun: in-process rooms; Cloudflare: its Durable Object). */
@@ -128,6 +132,12 @@ export function mountShared(
 	app.post("/api/shared", async (c) => {
 		const userId = await me(c.req.raw.headers);
 		if (!userId) return c.json({ error: "sign in first" }, 401);
+		const [owned] = await d()
+			.select({ n: count() })
+			.from(sharedPage)
+			.where(eq(sharedPage.ownerId, userId));
+		if ((owned?.n ?? 0) >= MAX_PAGES)
+			return c.json({ error: "quota", what: "shared", limit: MAX_PAGES }, 413);
 		const id = newId();
 		const now = new Date();
 		await d()
@@ -169,6 +179,15 @@ export function mountShared(
 			})
 			.safeParse(await c.req.json().catch(() => null));
 		if (!parsed.success) return c.json({ error: "bad request" }, 400);
+		const [open] = await d()
+			.select({ n: count() })
+			.from(shareInvite)
+			.where(eq(shareInvite.shareId, shareId));
+		if ((open?.n ?? 0) >= MAX_INVITES)
+			return c.json(
+				{ error: "quota", what: "invites", limit: MAX_INVITES },
+				413,
+			);
 		const id = newId() + newId(); // 40 hex: unguessable
 		const now = Date.now();
 		const expiresAt = now + INVITE_DAYS * DAY;
@@ -262,6 +281,21 @@ export function mountShared(
 		if (!page) return c.json({ error: "not found" }, 404);
 		if (await sharedRole(auth, inv.shareId, userId))
 			return c.json({ error: "already a member" }, 409);
+		const [members] = await d()
+			.select({ n: count() })
+			.from(shareMember)
+			.where(eq(shareMember.shareId, inv.shareId));
+		if ((members?.n ?? 0) >= MAX_MEMBERS)
+			return c.json(
+				{ error: "quota", what: "members", limit: MAX_MEMBERS },
+				413,
+			);
+		// Take the invite first: of two claims at once, only one gets it.
+		const taken = await d()
+			.delete(shareInvite)
+			.where(eq(shareInvite.id, inv.id))
+			.returning({ id: shareInvite.id });
+		if (taken.length === 0) return c.json({ error: "not found" }, 404);
 		await d()
 			.insert(accountKey)
 			.values({ userId, publicKey: parsed.data.publicKey })
@@ -278,7 +312,6 @@ export function mountShared(
 			label: inv.label,
 			createdAt: new Date(),
 		});
-		await d().delete(shareInvite).where(eq(shareInvite.id, inv.id)); // one use
 		return c.json({ shareId: inv.shareId, role: inv.role, epoch: page.epoch });
 	});
 

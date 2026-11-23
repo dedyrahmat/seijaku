@@ -12,9 +12,10 @@ import {
 	isInlineType,
 	MAX_UPLOAD_BYTES,
 	newBlobId,
+	readBody,
 } from "./blobs";
 import { mountHistory } from "./history";
-import { DEFAULT_LIMITS, type Limits, over } from "./quota";
+import { chargeBlob, DEFAULT_LIMITS, type Limits } from "./quota";
 import { mountShared, noSharedHooks, type SharedHooks } from "./shared";
 import {
 	type Preview,
@@ -72,11 +73,7 @@ export function createApp(
 		mountShared(app, auth, shared);
 	}
 
-	/**
-	 * Remembers who uploaded a file (so deleting the account can remove it) and its size, and
-	 * says whether it fits the account's storage limit. A file already on record always fits,
-	 * which keeps a retried upload harmless.
-	 */
+	/** Records who uploaded a file and whether it fits the account's storage limit. */
 	const reserve = async (
 		headers: Headers,
 		blobId: string,
@@ -84,22 +81,7 @@ export function createApp(
 	): Promise<boolean> => {
 		const userId = await auth?.userId(headers);
 		if (!auth || !userId) return true;
-		const [known] = await auth.db
-			.select({ id: blobOwner.blobId })
-			.from(blobOwner)
-			.where(eq(blobOwner.blobId, blobId))
-			.limit(1);
-		if (known) return true;
-		const [row] = await auth.db
-			.select({ used: sum(blobOwner.size) })
-			.from(blobOwner)
-			.where(eq(blobOwner.userId, userId));
-		if (over(Number(row?.used ?? 0), size, limits.fileBytes)) return false;
-		await auth.db
-			.insert(blobOwner)
-			.values({ blobId, userId, size })
-			.onConflictDoNothing();
-		return true;
+		return chargeBlob(auth.db, userId, blobId, size, limits.fileBytes);
 	};
 	const full = (c: Context) =>
 		c.json({ error: "quota", what: "files", limit: limits.fileBytes }, 413);
@@ -145,12 +127,9 @@ export function createApp(
 
 	// Upload: raw bytes as the body, content type in the header.
 	app.post("/api/files", async (c) => {
-		const declared = Number(c.req.header("content-length") ?? 0);
-		if (declared > MAX_UPLOAD_BYTES) return c.json({ error: "too large" }, 413);
-		const data = await c.req.arrayBuffer();
+		const data = await readBody(c.req.raw, MAX_UPLOAD_BYTES);
+		if (!data) return c.json({ error: "too large" }, 413);
 		if (data.byteLength === 0) return c.json({ error: "empty" }, 400);
-		if (data.byteLength > MAX_UPLOAD_BYTES)
-			return c.json({ error: "too large" }, 413);
 		const id = newBlobId();
 		const type = cleanType(c.req.header("content-type"));
 		if (!(await reserve(c.req.raw.headers, id, data.byteLength)))
@@ -164,12 +143,9 @@ export function createApp(
 	app.put("/api/files/:id", async (c) => {
 		const id = c.req.param("id");
 		if (!BLOB_ID.test(id)) return c.json({ error: "bad id" }, 400);
-		const declared = Number(c.req.header("content-length") ?? 0);
-		if (declared > MAX_UPLOAD_BYTES) return c.json({ error: "too large" }, 413);
-		const data = await c.req.arrayBuffer();
+		const data = await readBody(c.req.raw, MAX_UPLOAD_BYTES);
+		if (!data) return c.json({ error: "too large" }, 413);
 		if (data.byteLength === 0) return c.json({ error: "empty" }, 400);
-		if (data.byteLength > MAX_UPLOAD_BYTES)
-			return c.json({ error: "too large" }, 413);
 		if ((await blobIdFor(data)) !== id)
 			return c.json({ error: "address does not match the bytes" }, 400);
 		const type = cleanType(c.req.header("content-type"));

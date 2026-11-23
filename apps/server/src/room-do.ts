@@ -3,6 +3,7 @@ import { logMigrations } from "@seijaku/db";
 import { encodeResync, MAX_FRAME_BYTES, type Peer, Room } from "@seijaku/sync";
 import { drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
+import { limitsFromEnv } from "./quota";
 import { SqlUpdateStore } from "./sql-store";
 
 /**
@@ -32,7 +33,10 @@ export class WorkspaceRoom extends DurableObject {
 		super(ctx, env as never);
 		const db = drizzle(ctx.storage);
 		migrate(db, { migrations: logMigrations });
-		this.room = new Room(new SqlUpdateStore(db));
+		this.room = new Room(
+			new SqlUpdateStore(db),
+			limitsFromEnv(env as Record<string, string | undefined>).logBytes,
+		);
 		// Keep-alive pings are answered without waking the object.
 		ctx.setWebSocketAutoResponse(
 			new WebSocketRequestResponsePair("ping", "pong"),
@@ -43,15 +47,19 @@ export class WorkspaceRoom extends DurableObject {
 
 	override async fetch(request: Request): Promise<Response> {
 		// A member was removed or changed role: hang up on their devices only.
+		// DELETE is only ever sent by the Worker itself; a socket upgrade is never one.
+		const internal =
+			request.method === "DELETE" &&
+			request.headers.get("Upgrade") !== "websocket";
 		const kick = new URL(request.url).searchParams.get("kick");
-		if (request.method === "DELETE" && kick) {
+		if (internal && kick) {
 			for (const ws of this.ctx.getWebSockets())
 				if (this.attachment(ws)?.userId === kick)
 					ws.close(4003, "access changed");
 			return new Response(null, { status: 204 });
 		}
 		// Account deleted, or a shared page's key changed: hang up on every device and drop the whole log.
-		if (request.method === "DELETE") {
+		if (internal) {
 			this.room.closeAll(4001, "account deleted");
 			await this.room.flush();
 			await this.ctx.storage.deleteAll();
@@ -89,7 +97,13 @@ export class WorkspaceRoom extends DurableObject {
 				send: (data) => ws.send(toBuffer(data)),
 				close: (code, reason) => ws.close(code, reason),
 			},
-			who ? { canWrite: () => who.role !== "reader", tag: who.userId } : {},
+			who
+				? {
+						canWrite: () => who.role !== "reader",
+						canAdmin: () => who.role === "owner",
+						tag: who.userId,
+					}
+				: {},
 		);
 		this.peers.set(ws, peer);
 		if (resync) ws.send(toBuffer(encodeResync()));

@@ -16,6 +16,51 @@ export class UnfurlError extends Error {}
 const MAX_BYTES = 512 * 1024;
 const MAX_REDIRECTS = 3;
 
+/** True for IPv4 addresses that are not on the public internet. */
+function privateV4(a: number, b: number, c: number): boolean {
+	return (
+		a === 0 ||
+		a === 10 ||
+		a === 127 ||
+		(a === 100 && b >= 64 && b <= 127) ||
+		(a === 169 && b === 254) ||
+		(a === 172 && b >= 16 && b <= 31) ||
+		(a === 192 && b === 0 && (c === 0 || c === 2)) ||
+		(a === 192 && b === 168) ||
+		(a === 198 && (b === 18 || b === 19)) ||
+		(a === 198 && b === 51 && c === 100) ||
+		(a === 203 && b === 0 && c === 113) ||
+		a >= 224
+	);
+}
+
+/** Eight 16-bit groups of an IPv6 address, or null when it is not one. Takes `::` and a dotted tail. */
+function parseV6(host: string): number[] | null {
+	let text = host.split("%")[0] as string;
+	const dotted = text.match(/^(.*:)(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+	if (dotted) {
+		const [a = 0, b = 0, c = 0, d = 0] = dotted.slice(2).map(Number);
+		if ([a, b, c, d].some((n) => n > 255)) return null;
+		text = `${dotted[1]}${((a << 8) | b).toString(16)}:${((c << 8) | d).toString(16)}`;
+	}
+	const halves = text.split("::");
+	if (halves.length > 2) return null;
+	const side = (s: string) => (s === "" ? [] : s.split(":"));
+	const head = side(halves[0] as string);
+	const tail = halves.length === 2 ? side(halves[1] as string) : [];
+	const missing = 8 - head.length - tail.length;
+	if (halves.length === 1 ? missing !== 0 : missing < 1) return null;
+	const groups = [
+		...head,
+		...Array(halves.length === 2 ? missing : 0).fill("0"),
+		...tail,
+	];
+	const nums = groups.map((g) =>
+		/^[0-9a-f]{1,4}$/i.test(g) ? parseInt(g, 16) : NaN,
+	);
+	return nums.length === 8 && nums.every((n) => !Number.isNaN(n)) ? nums : null;
+}
+
 /** True for names and addresses that point inside a network: never fetched. */
 export function isPrivateHost(host: string): boolean {
 	const h = host.toLowerCase().replace(/^\[|\]$/g, "");
@@ -28,27 +73,39 @@ export function isPrivateHost(host: string): boolean {
 	)
 		return true;
 	const v4 = h.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
-	if (v4) {
-		const [a, b] = [Number(v4[1]), Number(v4[2])];
+	if (v4) return privateV4(Number(v4[1]), Number(v4[2]), Number(v4[3]));
+	if (isV6) {
+		const g = parseV6(h);
+		if (!g) return true; // not an address we understand: do not fetch it
+		const [g0 = 0, g1 = 0, g2 = 0, g3 = 0, g4 = 0, g5 = 0, g6 = 0, g7 = 0] = g;
+		const embedded = (hi: number, lo: number) =>
+			privateV4(hi >> 8, hi & 255, lo >> 8);
+		// Addresses that carry an IPv4 one (mapped, compatible, NAT64, 6to4): judge that one.
+		if (
+			g0 === 0 &&
+			g1 === 0 &&
+			g2 === 0 &&
+			g3 === 0 &&
+			g4 === 0 &&
+			(g5 === 0xffff || g5 === 0)
+		)
+			return g5 === 0 && g6 === 0 && g7 <= 1 ? true : embedded(g6, g7);
+		if (
+			g0 === 0x64 &&
+			g1 === 0xff9b &&
+			g2 === 0 &&
+			g3 === 0 &&
+			g4 === 0 &&
+			g5 === 0
+		)
+			return embedded(g6, g7);
+		if (g0 === 0x2002) return embedded(g1, g2);
 		return (
-			a === 0 ||
-			a === 10 ||
-			a === 127 ||
-			(a === 100 && b >= 64 && b <= 127) ||
-			(a === 169 && b === 254) ||
-			(a === 172 && b >= 16 && b <= 31) ||
-			(a === 192 && b === 168) ||
-			a >= 224
-		);
-	}
-	if (h.includes(":")) {
-		const mapped = h.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-		if (mapped) return isPrivateHost(mapped[1] as string);
-		return (
-			h === "::" ||
-			h === "::1" ||
-			/^f[cd]/.test(h) || // unique local
-			/^fe[89ab]/.test(h) // link local
+			(g0 & 0xfe00) === 0xfc00 || // unique local
+			(g0 & 0xffc0) === 0xfe80 || // link local
+			(g0 & 0xffc0) === 0xfec0 || // site local
+			(g0 & 0xff00) === 0xff00 || // multicast
+			(g0 === 0x2001 && g1 === 0x0db8) // documentation
 		);
 	}
 	return false;

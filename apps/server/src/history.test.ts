@@ -264,10 +264,31 @@ test("limits refuse a new share or file, and drop the oldest snapshots", async (
 		};
 		expect(usage.snapshots).toEqual({ used: 2, limit: 2 });
 		expect(usage.shares.used).toBe(1);
-		expect(usage.files.used).toBe(700 * 1024);
+		// Snapshots and published pages count against the same storage limit: 1 byte + 2 x 1 byte.
+		expect(usage.files.used).toBe(700 * 1024 + 3);
 	} finally {
 		delete process.env.QUOTA_SHARES;
 		delete process.env.QUOTA_FILES_MB;
 		delete process.env.QUOTA_SNAPSHOTS;
+	}
+});
+
+test("a snapshot or published page that does not fit the storage limit is refused", async () => {
+	process.env.QUOTA_FILES_MB = "1";
+	try {
+		const base = await boot();
+		const alice = await signUp(base);
+		const big = Buffer.alloc(700 * 1024, 7).toString("base64");
+		const send = (path: string, body: object, method = "POST") =>
+			call(base, path, alice, { method, body: JSON.stringify(body) });
+		expect(
+			(await send("/api/versions", { doc, meta: "m", data: big })).status,
+		).toBe(200);
+		expect(
+			(await send("/api/versions", { doc, meta: "m", data: big })).status,
+		).toBe(413);
+		expect((await send("/api/shares", { data: big }, "PUT")).status).toBe(413);
+	} finally {
+		delete process.env.QUOTA_FILES_MB;
 	}
 });

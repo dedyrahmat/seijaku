@@ -123,7 +123,7 @@
 		},
 		"security": {
 			"lock": {
-				"desc": "Minta kunci sandi atau frasa pemulihan setelah Anda menjauh. Catatan tetap di perangkat ini.",
+				"desc": "Minta kunci sandi atau frasa pemulihan di aplikasi setelah Anda menjauh. Ini tidak mengenkripsi catatan yang disimpan di browser ini: untuk itu, gunakan kunci layar dan enkripsi disk perangkat Anda.",
 				"label": "Kunci setelah tidak aktif"
 			},
 			"delete": {
@@ -578,6 +578,7 @@
 		"removeFailed": "Kunci sandi tidak bisa dihapus.",
 		"passkeysFailed": "Tidak bisa memuat kunci sandi Anda.",
 		"phraseFailed": "Tidak bisa membuat frasa baru.",
+		"currentPhrasePrompt": "Ketik frasa pemulihan Anda saat ini untuk menggantinya",
 		"noServer": "Tidak bisa menjangkau server.",
 		"phraseEnds": "Ini mengakhiri frasa lama Anda.",
 		"signOutFailed": "Tidak bisa keluar.",

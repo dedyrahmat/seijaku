@@ -28,6 +28,8 @@ export default defineConfig({
 			SEIJAKU_BLOBS: join(dir, "blobs"),
 			SEIJAKU_WEB: "apps/web/dist",
 			SETUP_TOKEN: "",
+			// The e2e helpers give each browser context its own address this way.
+			SEIJAKU_IP_HEADER: "x-forwarded-for",
 		},
 	},
 });

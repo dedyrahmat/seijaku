@@ -383,7 +383,26 @@ class Collab {
 			call<Invite[]>("GET", `/api/shared/${shareId}/invites`),
 		]);
 		if (!m.ok) throw new Error(String(m.status));
-		return { people: m.data ?? [], invites: i.data ?? [] };
+		const people = m.data ?? [];
+		this.pin(people); // notice a key that changes later, while it can still be told apart
+		return { people, invites: i.data ?? [] };
+	}
+
+	/**
+	 * Remembers each member's public key the first time this account sees it (in the index doc,
+	 * sealed with everything else) and says which ones have changed since. The server hands
+	 * these keys out, so without this it could swap one for its own when a new page key is sealed.
+	 */
+	private pin(people: Person[]): Person[] {
+		const pins = workspace.index.getMap<string>("collabPins");
+		const changed: Person[] = [];
+		for (const p of people) {
+			if (!p.publicKey || p.role === "owner") continue;
+			const known = pins.get(p.memberId);
+			if (!known) pins.set(p.memberId, p.publicKey);
+			else if (known !== p.publicKey) changed.push(p);
+		}
+		return changed;
 	}
 
 	/** Makes a one-use link. The page key rides inside it, sealed under a secret in the #fragment. */
@@ -445,6 +464,7 @@ class Collab {
 		const e = this.entry(shareId);
 		if (!e?.owner) return;
 		const { people } = await this.people(shareId);
+		if (this.pin(people).length > 0) throw new Error("a member's key changed");
 		const key = newWorkspaceKey();
 		const wraps = people
 			.filter((p) => p.role !== "owner")

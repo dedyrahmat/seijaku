@@ -176,12 +176,14 @@ export function sharedNoteEdited(noteId: string): void {
 }
 
 const SAFE_LINK = /^(https?:|mailto:)/i;
-const SAFE_MEDIA = /^(https?:\/\/|data:(image|video|audio)\/)/i;
+/** A public page loads nothing from other sites: media is embedded, and only link cards name a web address. */
+const EMBEDDED_MEDIA = /^data:(image|video|audio)\//i;
+const WEB_ADDRESS = /^https?:\/\//i;
 
 /**
  * A shared page comes from someone else, so it is read as data and cleaned before it is drawn:
- * links that are not web or mail links become plain text, and media must be a web address or
- * an embedded image, video or audio.
+ * links that are not web or mail links become plain text, and media must be an embedded
+ * image, video or audio (so opening the page never contacts another site).
  */
 export function cleanBlocks(node: unknown): unknown {
 	if (Array.isArray(node)) {
@@ -193,10 +195,16 @@ export function cleanBlocks(node: unknown): unknown {
 		});
 	}
 	if (node && typeof node === "object") {
+		const kind = (node as { type?: string }).type;
 		return Object.fromEntries(
 			Object.entries(node).map(([k, v]) => {
-				if (k === "url" && typeof v === "string")
-					return [k, v === "" || SAFE_MEDIA.test(v) ? v : ""];
+				if (k === "url" && typeof v === "string") {
+					const ok =
+						kind === "linkPreview"
+							? WEB_ADDRESS.test(v)
+							: EMBEDDED_MEDIA.test(v);
+					return [k, v === "" || ok ? v : ""];
+				}
 				return [k, cleanBlocks(v)];
 			}),
 		);

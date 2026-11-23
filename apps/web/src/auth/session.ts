@@ -162,6 +162,8 @@ class AuthStore {
 		remember(false);
 		forgetDeviceToken();
 		await clearWorkspaceKey();
+		// Sealed attachments seen while signed in are not kept for the next person at this browser.
+		await globalThis.caches?.delete("seijaku-files").catch(() => undefined);
 		this.cipher = null;
 		this.set({ ...this.state, phase: "signed-out" });
 		await this.refresh();

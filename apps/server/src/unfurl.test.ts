@@ -119,3 +119,21 @@ test("a page that is not HTML gets a bare card", async () => {
 		site: "example.com",
 	});
 });
+
+test("IPv6 forms that carry an inner IPv4 address are refused", () => {
+	// The URL parser writes [::ffff:127.0.0.1] as [::ffff:7f00:1].
+	expect(() => checkUrl("http://[::ffff:127.0.0.1]:8791/")).toThrow();
+	for (const host of [
+		"[::ffff:7f00:1]",
+		"[::ffff:a9fe:a9fe]",
+		"[64:ff9b::7f00:1]",
+		"[2002:7f00:1::]",
+		"[::]",
+		"[ff02::1]",
+		"[fe80::1]",
+		"198.18.0.1",
+	])
+		expect(isPrivateHost(host)).toBe(true);
+	for (const host of ["[2606:4700:4700::1111]", "[::ffff:808:808]"])
+		expect(isPrivateHost(host)).toBe(false);
+});

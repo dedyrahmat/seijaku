@@ -32,6 +32,8 @@ export interface UpdateStore {
 	deleteDoc(docId: string): MaybePromise<void>;
 	/** Removes every log of this store (an account being deleted). */
 	deleteAll(): MaybePromise<void>;
+	/** Bytes of sealed data held, for the storage limit. Stores that cannot say are never limited. */
+	bytes?(): MaybePromise<number>;
 }
 
 export class MemoryUpdateStore implements UpdateStore {
@@ -61,6 +63,13 @@ export class MemoryUpdateStore implements UpdateStore {
 
 	deleteAll(): void {
 		this.logs.clear();
+	}
+
+	bytes(): number {
+		let n = 0;
+		for (const log of this.logs.values())
+			for (const e of log) n += e.data.length;
+		return n;
 	}
 
 	replaceUpTo(docId: string, upto: number, snapshot: Uint8Array): void {

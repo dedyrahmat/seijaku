@@ -42,6 +42,27 @@ export function openStore(path: string): (userId: string) => UpdateStore {
 	return (userId) => new SqlUpdateStore(db, userId);
 }
 
+/** Sent with every page and answer: scripts only from this server, no framing, no sniffing. */
+const SECURITY_HEADERS: Record<string, string> = {
+	"Content-Security-Policy":
+		"default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' ws: wss:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+	"X-Content-Type-Options": "nosniff",
+	"Referrer-Policy": "no-referrer",
+	"X-Frame-Options": "DENY",
+};
+
+/** The response with the security headers added; a policy the route set itself (uploaded files) stays. */
+function secured(res: Response): Response {
+	const headers = new Headers(res.headers);
+	for (const [name, value] of Object.entries(SECURITY_HEADERS))
+		if (!headers.has(name)) headers.set(name, value);
+	return new Response(res.body, {
+		status: res.status,
+		statusText: res.statusText,
+		headers,
+	});
+}
+
 /** A file from the web build, or its index.html for an app route; null when nothing fits. */
 function staticFile(dir: string, pathname: string): Response | null {
 	let clean: string;
@@ -99,11 +120,12 @@ export function startServer(options: {
 	/** Sign-in. Left out only by tests: without it the server is open to anyone. */
 	auth?: AuthService;
 }) {
+	const limits = limitsFromEnv(process.env);
 	const rooms = new Map<string, Room>();
 	const roomFor = (userId: string) => {
 		const found = rooms.get(userId);
 		if (found) return found;
-		const room = new Room(options.store(userId));
+		const room = new Room(options.store(userId), limits.logBytes);
 		rooms.set(userId, room);
 		return room;
 	};
@@ -112,7 +134,7 @@ export function startServer(options: {
 	const sharedRoom = (shareId: string) => {
 		const found = sharedRooms.get(shareId);
 		if (found) return found;
-		const room = new Room(options.store(`shared:${shareId}`));
+		const room = new Room(options.store(`shared:${shareId}`), limits.logBytes);
 		sharedRooms.set(shareId, room);
 		return room;
 	};
@@ -143,13 +165,15 @@ export function startServer(options: {
 			}
 			await options.store(userId).deleteAll();
 		},
-		limitsFromEnv(process.env),
+		limits,
 		sharedHooks,
 	);
 
 	const server = Bun.serve<SocketData>({
 		port: options.port,
 		hostname: options.hostname,
+		// A sealed upload is at most 25 MB (about 34 MB as base64 in JSON); nothing larger is read.
+		maxRequestBodySize: 40 * 1024 * 1024,
 		async fetch(req, srv) {
 			const url = new URL(req.url);
 			if (url.pathname === "/sync") {
@@ -173,10 +197,11 @@ export function startServer(options: {
 				return new Response("Expected a WebSocket upgrade", { status: 426 });
 			}
 			const res = await app.fetch(req);
-			if (res.status !== 404 || !options.webDir) return res;
-			if (req.method !== "GET" && req.method !== "HEAD") return res;
-			if (url.pathname.startsWith("/api/")) return res;
-			return staticFile(options.webDir, url.pathname) ?? res;
+			if (res.status !== 404 || !options.webDir) return secured(res);
+			if (req.method !== "GET" && req.method !== "HEAD") return secured(res);
+			if (url.pathname.startsWith("/api/")) return secured(res);
+			const file = staticFile(options.webDir, url.pathname);
+			return secured(file ?? res);
 		},
 		websocket: {
 			maxPayloadLength: MAX_FRAME_BYTES,
@@ -189,6 +214,7 @@ export function startServer(options: {
 				ws.data.peer = shareId
 					? sharedRoom(shareId).join(conn, {
 							canWrite: () => role !== "reader",
+							canAdmin: () => role === "owner",
 							tag: userId,
 						})
 					: roomFor(userId).join(conn);
@@ -260,6 +286,7 @@ export async function openAuth(
 		rpID: rpIdFor(origins[0] as string, env.SEIJAKU_RP_ID),
 		secret,
 		setupToken: env.SETUP_TOKEN,
+		ipHeader: env.SEIJAKU_IP_HEADER?.trim().toLowerCase() || undefined,
 	});
 	await service.ready;
 	return service;

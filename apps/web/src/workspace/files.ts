@@ -21,6 +21,11 @@ async function addressOf(sealed: Uint8Array): Promise<string> {
 	).join("");
 }
 
+/** A file of ours: the server's own address for a sealed file, nothing else. */
+const FILE_URL = /^(?:https?:\/\/[^/]+)?\/api\/files\/[a-f0-9]{24}$/i;
+/** Addresses a page may show without us fetching them: web, embedded or local media. */
+const SHOWN_URL = /^(?:https?:\/\/|blob:|data:(?:image|video|audio)\/)/i;
+
 /** The Cache API exists only in secure contexts; without it files work online only. */
 async function open(name: string): Promise<Cache | null> {
 	try {
@@ -140,7 +145,7 @@ export interface OpenedFile {
 /** Gets a sealed file (from the cache, else the server) and opens it; null if it cannot be opened here. */
 export async function readFile(url: string): Promise<OpenedFile | null> {
 	const cipher = authStore.getCipher();
-	if (!cipher) return null;
+	if (!cipher || !FILE_URL.test(url)) return null;
 	const cache = await open(FILES);
 	let sealed = await cache?.match(url);
 	if (!sealed) {
@@ -160,7 +165,9 @@ const opened = new Map<string, Promise<string>>();
 
 /** A local address for a sealed file, for the editor to show. Falls back to the file's own address. */
 export function resolveFileUrl(url: string): Promise<string> {
-	if (!url.includes("/api/files/")) return Promise.resolve(url);
+	// A shared page can name any address: never hand the editor one that is not plain media.
+	if (!FILE_URL.test(url))
+		return Promise.resolve(SHOWN_URL.test(url) ? url : "");
 	let found = opened.get(url);
 	if (!found) {
 		found = readFile(url).then((file) =>

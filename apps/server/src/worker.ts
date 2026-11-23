@@ -58,6 +58,18 @@ async function migrateD1(d1: D1Database): Promise<void> {
 	}
 }
 
+/**
+ * What a room may be sent on behalf of a client: a plain GET upgrade, without the headers only
+ * this Worker sets. The room treats DELETE as an internal command (wipe, kick), so a client's
+ * own method and `x-share-*` headers must never reach it.
+ */
+function roomRequest(request: Request): Request {
+	const headers = new Headers(request.headers);
+	headers.delete("x-share-user");
+	headers.delete("x-share-role");
+	return new Request(request, { method: "GET", headers });
+}
+
 let service: Promise<AuthService> | undefined;
 
 /** One sign-in service per isolate, made on the first request. */
@@ -93,6 +105,7 @@ function authFor(env: Env, requestOrigin: string): Promise<AuthService> {
 			rpID: rpIdFor(origins[0] as string, env.SEIJAKU_RP_ID),
 			secret,
 			setupToken: env.SETUP_TOKEN,
+			ipHeader: "cf-connecting-ip",
 		});
 		await made.ready;
 		return made;
@@ -124,7 +137,7 @@ export default {
 			const userId = await auth.userId(socketHeaders(request));
 			if (!userId) return new Response("Sign in first", { status: 401 });
 			const id = env.WORKSPACE_ROOM.idFromName(userId);
-			return env.WORKSPACE_ROOM.get(id).fetch(request);
+			return env.WORKSPACE_ROOM.get(id).fetch(roomRequest(request));
 		}
 		const shared = url.pathname.match(/^\/sync\/shared\/([a-f0-9]{20})$/);
 		if (shared) {
@@ -139,7 +152,9 @@ export default {
 			const headers = new Headers(request.headers);
 			headers.set("x-share-user", userId);
 			headers.set("x-share-role", role);
-			return sharedRoom(shareId).fetch(new Request(request, { headers }));
+			return sharedRoom(shareId).fetch(
+				new Request(request, { method: "GET", headers }),
+			);
 		}
 		const sharedHooks: SharedHooks = {
 			async reset(shareId) {

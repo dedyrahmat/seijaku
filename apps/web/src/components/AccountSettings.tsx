@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+	NeedsPhrase,
 	registerPasskey,
 	replacePhrase,
 	wrapHeldKeyForPasskey,
@@ -9,6 +10,7 @@ import {
 import { authClient, authMessage, authStore, useAuth } from "../auth/session";
 import { i18n } from "../i18n";
 import { ago } from "./ago";
+import { askText } from "./Dialogs";
 import { PhraseActions, PhraseGrid } from "./RecoveryPhrase";
 import { Btn, Group, Row, TextField } from "./SettingRows";
 
@@ -275,7 +277,16 @@ export function RecoveryGroup() {
 	const replace = async () => {
 		setError(null);
 		try {
-			setPhrase(await replacePhrase());
+			let made: string;
+			try {
+				made = await replacePhrase();
+			} catch (err) {
+				if (!(err instanceof NeedsPhrase)) throw err;
+				const typed = await askText(t("account.currentPhrasePrompt"));
+				if (!typed) return;
+				made = await replacePhrase(typed);
+			}
+			setPhrase(made);
 			setConfirming(false);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : t("account.phraseFailed"));

@@ -2,7 +2,7 @@ name: Desktop
 
 # Every push to main (a merged PR is one) bumps the app version, tags it, and builds installers for
 # Windows, Linux and macOS (Apple silicon and Intel). They are attached, with the signed latest.json
-# the in-app updater reads, to a draft GitHub release named after the tag.
+# the in-app updater reads, to a GitHub release named after the tag, which is published once every build has succeeded.
 # The bump level comes from the commit messages: see .github/scripts/bump-version.sh.
 on:
   push:
@@ -85,3 +85,14 @@ jobs:
           releaseName: "Seijaku ${{ needs.version.outputs.tag }}"
           releaseDraft: true
           args: ${{ matrix.args }}
+
+  # Runs only when all four builds succeeded, so the public release is never partial.
+  publish:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - run: gh release edit "${{ needs.version.outputs.tag }}" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

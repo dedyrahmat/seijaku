@@ -1,14 +1,45 @@
 name: Desktop
 
-# Pushing a tag like v0.1.0 builds installers for Windows, macOS and Linux and attaches them,
-# with the signed latest.json the in-app updater reads, to a draft GitHub release.
+# Every push to main (a merged PR is one) bumps the app version, tags it, and builds installers for
+# Windows, Linux and macOS (Apple silicon and Intel). They are attached, with the signed latest.json
+# the in-app updater reads, to a draft GitHub release named after the tag.
+# The bump level comes from the commit messages: see .github/scripts/bump-version.sh.
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
   workflow_dispatch:
 
+# One release at a time, so two quick pushes never bump the same version.
+concurrency:
+  group: desktop-release
+  cancel-in-progress: false
+
 jobs:
+  version:
+    # The release commit below is pushed with GITHUB_TOKEN, which does not retrigger workflows; this is a second guard.
+    if: ${{ !startsWith(github.event.head_commit.message, 'chore(release):') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.bump.outputs.tag }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - id: bump
+        run: |
+          before=${{ github.event.before }}
+          version=$(.github/scripts/bump-version.sh "${before:-0000000}" "$GITHUB_SHA")
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore(release): v$version [skip ci]"
+          git tag "v$version"
+          git push origin HEAD:main "v$version"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: version
     permissions:
       contents: write
     strategy:
@@ -26,6 +57,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.version.outputs.tag }}
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
       - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
         with:
@@ -48,7 +81,7 @@ jobs:
         with:
           projectPath: apps/desktop
           tauriScript: bunx tauri
-          tagName: ${{ github.ref_name }}
-          releaseName: "Seijaku ${{ github.ref_name }}"
+          tagName: ${{ needs.version.outputs.tag }}
+          releaseName: "Seijaku ${{ needs.version.outputs.tag }}"
           releaseDraft: true
           args: ${{ matrix.args }}
